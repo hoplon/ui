@@ -1,0 +1,559 @@
+(ns hoplon.ui
+  (:refer-clojure :exclude [range time])
+  (:refer-hoplon  :exclude [button elem form])
+  (:require-macros
+    [hoplon.ui :as r])
+  (:require
+    [cljsjs.enquire]
+    [clojure.string :refer [split]]))
+
+;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *data*   nil)
+(def ^:dynamic *error*  nil)
+(def ^:dynamic *submit* nil)
+
+(def +sm+ 736)
+(def +lg+ 1069)
+
+(def +default-button+      {:color 0xffffff :s-color 0xcccccc :font-color 0x333})
+(def +default-button-down+ {:color 0xd4d4d4 :s-color 0x8c8c8c :font-color 0x333})
+(def +primary-button+      {:color 0x337ab7 :s-color 0x2e6da4 :font-color 0xfff})
+(def +primary-button-down+ {:color 0x286090 :s-color 0x204d74 :font-color 0xfff})
+(def +success-button+      {:color 0x5cb85c :s-color 0x4cae4c :font-color 0xfff})
+(def +success-button-down+ {:color 0x449d44 :s-color 0x398439 :font-color 0xfff})
+(def +warning-button+      {:color 0xf0ad4e :s-color 0xeea236 :font-color 0xfff})
+(def +warning-button-down+ {:color 0xd58512 :s-color 0x985f0d :font-color 0xfff})
+(def +info-button+         {:color 0x5bc0de :s-color 0x46b8da :font-color 0xfff})
+(def +info-button-down+    {:color 0x31b0d5 :s-color 0x269abc :font-color 0xfff})
+(def +danger-button+       {:color 0xd9534f :s-color 0xd43f3a :font-color 0xfff})
+(def +danger-button-down+  {:color 0xac2925 :s-color 0x761c19 :font-color 0xfff})
+
+
+(def +success+ {:color 0xdff0d8 :s-color 0xd6e9c6 :font-color 0x3c763d})
+(def +warning+ {:color 0xfcf8e3 :s-color 0xfaebcc :font-color 0x8a6d3b})
+(def +danger+  {:color 0xf2dede :s-color 0xebccd1 :font-color 0xa94442})
+(def +info+    {:color 0xd9edf7 :s-color 0xBCE8F1 :font-color 0x31708f})
+
+(def palettes
+  {:hoplon.ui/success +success+
+   :hoplon.ui/warning +warning+
+   :hoplon.ui/danger  +danger+
+   :hoplon.ui/info    +info+})
+
+(def +f+  21)
+(def +p+  18)
+
+(def +sc+ 0xCCC)
+
+(def bgcolor :grey)
+
+(def globals [:initial :inherit])
+
+(def lengths [:auto])
+
+(def colors [:antiquewhite :aqua :aquamarine :azure :beige :bisque :black
+             :blanchedalmond :blue :blueviolet :brown :burlywood :cadetblue :chartreuse
+             :chocolate :coral :cornflowerblue :cornsilk :crimson :darkblue :darkcyan
+             :darkgoldenrod :darkgray :darkgreen :darkgrey :darkkhaki :darkmagenta
+             :darkolivegreen :darkorange :darkorchid :darkred :darksalmon :darkseagreen
+             :darkslateblue :darkslategray :darkslategrey :darkturquoise :darkviolet
+             :deeppink :deepskyblue :dimgray :dimgrey :dodgerblue :firebrick :floralwhite
+             :forestgreen :fuchsia :gainsboro :ghostwhite :gold :goldenrod :gray :green
+             :greenyellow :grey :honeydew :hotpink :indianred :indigo :ivory :khaki
+             :lavender :lavenderblush :lawngreen :lemonchiffon :lightblue :lightcoral
+             :lightcyan :lightgoldenrodyellow :lightgray :lightgreen :lightgrey :lightpink
+             :lightsalmon :lightseagreen :lightskyblue :lightslategray :lightslategrey
+             :lightsteelblue :lightyellow :lime :limegreen :linen :maroon :mediumaquamarine
+             :mediumblue :mediumorchid :mediumpurple :mediumseagreen :mediumslateblue
+             :mediumspringgreen :mediumturquoise :mediumvioletred :midnightblue :mintcream
+             :mistyrose :moccasin :navajowhite :navy :oldlace :olive :olivedrab :orangered
+             :orchid :palegoldenrod :palegreen :paleturquoise :palevioletred :papayawhip
+             :peachpuff :peru :pink :plum :powderblue :purple :rebeccapurple :red
+             :rosybrown :royalblue :saddlebrown :salmon :sandybrown :seagreen :seashell
+             :sienna :silver :skyblue :slateblue :slategray :slategrey :snow :springgreen
+             :steelblue :tan :teal :thistle :tomato :turquoise :violet :wheat :white
+             :whitesmoke :yellow :yellowgreen])
+
+(def cursors [:alias :all-scroll :auto :cell :context-menu :col-resize :copy
+              :crosshair :default :e-resize :ew-resize :grab :grabbing :help :move :n-resize
+              :ne-resize :nesw-resize :ns-resize :nw-resize :nwse-resize :no-drop :none
+              :not-allowed :pointer :progress :row-resize :s-resize :se-resize :sw-resize
+              :text :vertical-text :w-resize :wait :zoom-in :zoom-out])
+
+(def decorations [:none :underline :overline :line-through])
+(def weights [:normal :bold :bolder :lighter :number])
+
+(def haligns [:left :right :center :justify])
+
+(def valigns [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
+
+;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn chop  [string]    (subs string 0 (dec (count string))))
+(defn lastchar  [string]    (subs string (dec (count string)) (count string)))
+
+(defn px    [v]      (if (number? v) (str v "px") v))
+
+(defn kw-ok?  [kws v] (and (keyword? v) (some #{v} (conj kws globals))))
+
+(defn namekw [v & kws]
+  (if (some #{v} (apply concat kws))
+      (name v)
+      (throw (js/Error. (str "Keyword value " v " invalid.")))))
+
+(defn string [v]
+  (if (or (= (subs v (- (count v) 1) (count v)) "%")
+          (= (subs v (- (count v) 2) (count v)) "em"))
+      v
+      (throw (js/Error. (str "String value " v " invalid.")))))
+
+;; todo: rgb colors
+(defn ->color [v]
+  (cond
+    (number? v)       (str "#" (.toString v 16))
+    (keyword? v)      (namekw v colors globals)
+    :else             (throw (js/Error. (str "Color value " v " invalid.")))))
+
+(defn ->len [v]
+  (cond
+    (vector?  v) v
+    (integer? v) (str    v "px")
+    (number?  v) (str (* v 100) "%")
+    (keyword? v) (namekw v lengths globals)
+    (string?  v) (string v)
+    :else        (throw (js/Error. (str "Length value " v " invalid.")))))
+
+(defn ->cursor [v]
+  (cond
+    (kw-ok? cursors v) (name v)
+    :else              (throw (js/Error. (str "Cursor value " v " invalid.")))))
+
+(defn ->decoration [v]
+  (cond
+    (keyword? v) (namekw v decorations globals)
+    :else        (throw (js/Error. (str "Decoration value " v " invalid.")))))
+
+(defn ->weight [v]
+  (cond
+    (keyword? v) (namekw v weights globals)
+    (integer? v)  v
+    :else        (throw (js/Error. (str "Weight value " v " invalid.")))))
+
+(defn ->halign [v]
+  (cond
+    (keyword? v) (namekw v haligns globals)
+    :else        (throw (js/Error. (str "Align value " v " invalid.")))))
+
+(defn ->valign [v]
+  (cond
+    (integer? v) (str    v "px")
+    (number?  v) (str    v "%")
+    (keyword? v) (namekw v valigns globals)
+    (string?  v) (string  v)
+    :else        (throw (js/Error. (str "Vertical align value " v " invalid.")))))
+
+;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; todo: unregister handlers for elements that are no longer on page
+(let [do' (get-method do! :hoplon.core/default)]
+  (defmethod do! :hoplon.core/default [e a v]
+    (cond
+      (fn?     v)             (let [$w (js/jQuery js/window)]
+                                   (.on $w "resize" #(do! e a (v (.width $w)))))
+      (vector? v)             (doseq [[min val max] (partition 3 2 (cons 0 (conj v 999999)))]
+                                (.register js/enquire (str "(min-width: " (->len min) ") and (max-width: " (->len (dec max)) ")") #(do! e a (->len val))))
+      (= (namespace a) "css") (do! e :css {(name a) v})
+      :else                   (do' e a v))))
+
+;;; non-inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; position (outer)
+(defmethod do! :x           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")))
+(defmethod do! :y           [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
+(defmethod do! :z           [e _ v] (do! e :css/z-index               v)) ;:max :min
+
+; size (outer)
+(defmethod do! :w           [e _ v] (do! e :css/width          (->len v)))
+(defmethod do! :w-          [e _ v] (do! e :css/min-width      (->len v)))
+(defmethod do! :w+          [e _ v] (do! e :css/max-width      (->len v)))
+(defmethod do! :h           [e _ v] (do! e :css/height         (->len v)))
+(defmethod do! :h-          [e _ v] (do! e :css/min-height     (->len v)))
+(defmethod do! :h+          [e _ v] (do! e :css/max-height     (->len v)))
+
+; alignment (?)
+(defmethod do! :ah          [e _ v] (do! e :css/text-align     (->halign v))) ;i
+(defmethod do! :av          [e _ v] (do! e :css/vertical-align (->valign v)))
+
+; constraint (outer)
+(defmethod do! :c           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")) ;; todo: refactor
+                                    (do! e :css/right          (->len v) (do! e :css/position "absolute"))
+                                    (do! e :css/top            (->len v) (do! e :css/position "absolute"))
+                                    (do! e :css/bottom         (->len v) (do! e :css/position "absolute")))
+(defmethod do! :cl          [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")))
+(defmethod do! :cr          [e _ v] (do! e :css/right          (->len v) (do! e :css/position "absolute")))
+(defmethod do! :ct          [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
+(defmethod do! :cb          [e _ v] (do! e :css/bottom         (->len v) (do! e :css/position "absolute")))
+(defmethod do! :ch          [e _ v] (do! e :l v) (do! e :r v))
+(defmethod do! :cv          [e _ v] (do! e :t v) (do! e :b v))
+
+; margin (outer)
+(defmethod do! :m           [e _ v] (do! e :css/padding         (->len v)))
+(defmethod do! :ml          [e _ v] (do! e :css/padding-left    (->len v)))
+(defmethod do! :mr          [e _ v] (do! e :css/padding-right   (->len v)))
+(defmethod do! :mt          [e _ v] (do! e :css/padding-top     (->len v)))
+(defmethod do! :mb          [e _ v] (do! e :css/padding-bottom  (->len v)))
+(defmethod do! :mh          [e _ v] (do! e :ml v) (do! e :mr v))
+(defmethod do! :mv          [e _ v] (do! e :mt v) (do! e :mb v))
+
+; offset (outer)
+(defmethod do! :o           [e _ v] (do! e :css/margin         (->len v)))
+(defmethod do! :ol          [e _ v] (do! e :css/margin-left    (->len v)))
+(defmethod do! :or          [e _ v] (do! e :css/margin-right   (->len v)))
+(defmethod do! :ot          [e _ v] (do! e :css/margin-top     (->len v)))
+(defmethod do! :ob          [e _ v] (do! e :css/marign-bottom  (->len v)))
+(defmethod do! :oh          [e _ v] (do! e :ol v) (do! e :or v))
+(defmethod do! :ov          [e _ v] (do! e :ot v) (do! e :ob v))
+
+; fence (inner)
+(defmethod do! :f           [e _ v] (do! e :css/margin         (px (- v))))
+(defmethod do! :fl          [e _ v] (do! e :css/margin-left    (px (- v))))
+(defmethod do! :fr          [e _ v] (do! e :css/margin-right   (px (- v))))
+(defmethod do! :ft          [e _ v] (do! e :css/margin-top     (px (- v))))
+(defmethod do! :fb          [e _ v] (do! e :css/marign-bottom  (px (- v))))
+(defmethod do! :fh          [e _ v] (do! e :fl v) (do! e :fr v))
+(defmethod do! :fv          [e _ v] (do! e :ft v) (do! e :fb v))
+
+;; gutter (inner)
+(defmethod do! :g           [e _ v] (do! e :f  v))
+(defmethod do! :gh          [e _ v] (do! e :fl v) (do! e :fr v))
+(defmethod do! :gv          [e _ v] (do! e :ft v) (do! e :fb v))
+
+; padding (inner)
+(defmethod do! :p           [e _ v] (do! e :css/padding        (->len v)))
+(defmethod do! :pl          [e _ v] (do! e :css/padding-left   (->len v)))
+(defmethod do! :pr          [e _ v] (do! e :css/padding-right  (->len v)))
+(defmethod do! :pt          [e _ v] (do! e :css/padding-top    (->len v)))
+(defmethod do! :pb          [e _ v] (do! e :css/padding-bottom (->len v)))
+(defmethod do! :ph          [e _ v] (do! e :pl v) (do! e :pr v))
+(defmethod do! :pv          [e _ v] (do! e :pt v) (do! e :pb v))
+
+; stroke (inner)
+(defmethod do! :s           [e _ v] (do! e :css/border-width         (->len v)) (do! e :css/border-style        "solid"))
+(defmethod do! :sl          [e _ v] (do! e :css/border-left-width    (->len v)) (do! e :css/border-left-style   "solid"))
+(defmethod do! :sr          [e _ v] (do! e :css/border-right-width   (->len v)) (do! e :css/border-right-style  "solid"))
+(defmethod do! :st          [e _ v] (do! e :css/border-top-width     (->len v)) (do! e :css/border-top-style    "solid"))
+(defmethod do! :sb          [e _ v] (do! e :css/border-bottom-width  (->len v)) (do! e :css/border-bottom-style "solid"))
+(defmethod do! :sh          [e _ v] (do! e :sl v) (do! e :sr v))
+(defmethod do! :sv          [e _ v] (do! e :st v) (do! e :sb v))
+
+(defmethod do! :s-color     [e _ v] (do! e :css/border-color  (->color v)))
+(defmethod do! :s-style     [e _ v] (do! e :css/border-style  v))
+
+; radius (inner)
+(defmethod do! :r           [e _ v] (do! e :css/border-radius             (->len v)))
+(defmethod do! :rtl         [e _ v] (do! e :css/border-top-left-radius    (->len v)))
+(defmethod do! :rtr         [e _ v] (do! e :css/border-top-left-radius    (->len v)))
+(defmethod do! :rbl         [e _ v] (do! e :css/border-bottom-left-radius (->len v)))
+(defmethod do! :rbr         [e _ v] (do! e :css/border-bottom-left-radius (->len v)))
+
+; overflow (inner)
+(defmethod do! :overflow    [e _ v] (do! e :css/overflow           v))
+(defmethod do! :overflow-h  [e _ v] (do! e :css/overflow-x         v))
+(defmethod do! :overflow-y  [e _ v] (do! e :css/overflow-y         v))
+
+;;; inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod do! :color       [e _ v] (do! e :css/background-color   (->color v)))
+(defmethod do! :image       [e _ v] (do! e :css/background (str "url(" v ") no-repeat 50% 50% / cover")))
+(defmethod do! :opacity     [e _ v] (do! e :css/opacity v))
+
+(defmethod do! :font-color      [e _ v] (do! e :css/color           (->color v)))
+(defmethod do! :font-size       [e _ v] (do! e :css/font-size       (px v)))
+(defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
+(defmethod do! :font-decoration [e _ v] (do! e :css/text-decoration (->decoration v)))
+(defmethod do! :font-spacing    [e _ v] (do! e :css/letter-spacing  (->len v))) ;; add validation
+(defmethod do! :font-smoothing  [e _ v] (do! e :css/font-smooth     (->len v))) ;; add validation
+(defmethod do! :font-kerning    [e _ v] (do! e :css/font-kerning    (->len v))) ;; add validation
+(defmethod do! :font-height     [e _ v] (do! e :css/line-height     (->len v))) ;; add validation
+
+(defmethod do! :selectable  [e _ v] (do! e :css/user-select       v))
+
+(defmethod do! :cursor      [e _ v] (do! e :css/cursor    (->cursor v)))
+
+(defmethod on! :update [e _ c]
+  (when-dom e
+    (let [val #(.val (js/jQuery (.-target %)))]
+      ; (fn [] (.keyup    (js/jQuery e) #(if (= (.-which %) 13) (c (val %)))))  #_(.-is % ":focus")
+      (fn [] (.change (js/jQuery e) #(c (val %)))))))
+
+;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn set-fragment! [route & [query]]
+  (let [pair  (fn [[k v]] (str (name k) "=" v))
+        route (when (seq route) (apply str "/" (interpose "/" (map name route))))
+        query (when (seq query) (apply str "?" (interpose "&" (map pair query))))]
+    (set! js/window.location.hash (str route query))))
+
+(defn split-if [str re]
+  (if str (split str re)))
+
+(defn subs-if [str start end]
+  (if str (subs str start end)))
+
+(defn parse-if-int [v]
+  (if-let [n (js/parseInt v)] n v))
+
+;;; box model ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def out-attrs
+  {:css/box-sizing     "border-box"    ;; include border and padding in dimensions
+   :css/display        "inline-table"  ;; layout ltr ttb when width not 100% to support responsive design
+   :css/width          "100%"          ;; default elems to max width to emulate block positioning
+   ;:css/height         "100%"          ;; default to max height to support vertical positioning
+   :css/vertical-align "top"           ;; inline-block/table elems must be explititly told to align themselves to the top
+   :css/text-align     "initial"})    ;; prevent inheritance of alignment from parent
+
+(def out-attr-keys
+  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov])
+
+(def mid-attrs
+  {:css/box-sizing "border-box"
+   :css/display    "table-cell"})
+
+(def mid-attr-keys
+  [:s :sl :sr :st :sb :s-color :color :opacity :r :rtl :rtr :rbl :rbr :overflow :overflow-h :overflow-y :av :ah :toggle])
+
+(def in-attrs
+  {:css/box-sizing "border-box"
+   :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
+   :css/display    "block"})    ;; prevent white space from creeping in around inline elements
+
+(defn box [tag & args]
+  (let [[attrs elems] (#'hoplon.core/parse-args args)]
+    #_(prn :box tag attrs elems)
+    (->> elems
+         (tag in-attrs (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
+         (div mid-attrs (select-keys attrs mid-attr-keys))
+         (div out-attrs (select-keys attrs out-attr-keys)))))
+
+;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defelem elem [attrs elems]
+  (let [as (zipmap [:m :mh :mv] ((comp vals select-keys) attrs [:g :gh :gv]))]
+    (box div attrs (if (empty? as) elems (mapv #(% as) elems)))))
+
+(defelem form* [{:keys [submit] :as attrs} elems]
+  (let [elem (elem (dissoc attrs :submit) elems)
+        data *data*]
+    (reset! *submit* submit)
+    (.keypress (js/jQuery elem) #(if (= (.-which %) 13) (submit @data)))
+    elem))
+
+;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defelem anchor [{:keys [label url] :as attrs} elems]
+  ( (div
+      :css/box-sizing     "border-box"
+      :css/display        "inline-block"
+      :css/text-align     "initial"
+      :css/vertical-align "top"
+      ( (a
+          :css/box-sizing "border-box"
+          :css/display    "block"
+          :css/width      "100%"
+          :css/color      "inherit"
+          :href           url
+          elems)
+        (apply dissoc attrs :url :alt out-attr-keys)))
+    (select-keys attrs out-attr-keys)))
+
+(defelem button [{:keys [prompt] :as attrs} elems]
+  (box
+    (hoplon.core/button
+      :css/width            "100%"
+      :css/background-color "transparent"
+      :css/border-style     "none"
+      :css/text-align       "inherit")
+      ;:css/outline          "none"
+
+    :pr         12
+    :ph         14
+    :pv         10
+    :r          4
+    :color      0xFFF
+    :s          1
+    :s-color    0xCCC
+    :ah         :center
+    :font-size  +p+
+    :font-color 0x333
+    :cursor     :pointer
+    (dissoc attrs :prompt)
+    (cons prompt elems)))
+
+(defelem image [{:keys [label url] :as attrs} _]
+  (let [empty-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="]
+    (box
+     (hoplon.core/img
+      :css/width "100%"
+      :src       (cell= (or url empty-url))
+      :alt       label)
+     :w :auto
+     (dissoc attrs :label :url))))
+
+;;; forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; (hoplon.core/label
+;   :css/box-sizing     "border-box"
+;   :css/display        "block"
+;   :font-size          +p+
+;   :ph                 6
+;   label )
+
+(defelem field* [{:keys [autocorrect autocapitalize name label prompt type value] :as attrs} _]
+  (box
+    (hoplon.core/input
+      :css/width            "100%"
+      :css/background-color "transparent"
+      :css/box-shadow       "none"
+      :css/border-style     "none"
+      :css/padding          "0"
+      :css/font-size        "inherit"
+      ; :css/outline          "none"
+      :name                 name
+      :type                 type
+      :value                value
+      :placeholder          prompt
+      :autocorrect          autocorrect
+      :autocapitalize       autocapitalize)
+    :ph        14
+    :pv        10
+    :r         4
+    :s         1
+    :s-color   0xCCC
+    :color     0xFFF
+    :font-size +p+
+    (dissoc attrs :name :type :value :prompt :autocorrect :autocapitalize)))
+
+(defelem field [{:keys [valid] :as attrs} _]
+  (let [field-name  #(.attr (js/jQuery (.-target %)) "name")
+        field-value #(.val (js/jQuery (.-target %)))
+        elem        (field* (dissoc attrs :valid))
+        data        *data*]
+    (.change (js/jQuery elem) #(prn :data (when data @data) (keyword (field-name %)) (field-value %)))
+    (.change (js/jQuery elem) #(when data (swap! data assoc (keyword (field-name %)) (field-value %))))
+    (.keyup  (js/jQuery elem) #(when data (swap! data assoc (keyword (field-name %)) (field-value %))))
+    elem))
+
+(defelem dropdown [{:keys [name options prompt] :as attrs} _]
+  (let [state (cell :closed)
+        index (cell nil)]
+    (.click (js/jQuery js/document) #(reset! state :closed))
+    (button
+      :click #(do (.stopPropagation %) (reset! index (aget (.data (js/jQuery (.-target %))) "index")) (reset! state (if (= @state :closed) :open :closed)))
+      :ah           :left
+      :pr           26
+      :name         name
+      :prompt       (cell= (or (and index (nth options index)) prompt))
+      (dissoc attrs :name :options :prompt)
+      (div
+        :css/position     "absolute"
+        :css/display      "inline-block"
+        :css/width        "0"
+        :css/height       "0"
+        :css/right        "18px"
+        :css/top          "50%"
+        :css/margin-top   "-2px"
+        :css/border-top   "5px dashed"
+        :css/border-right "5px solid transparent"
+        :css/border-left  "5px solid transparent")
+      (ul
+        :toggle               (cell= (= state :open))
+        :css/position         "absolute"
+        :css/float            "left"
+        :css/top              "100%"
+        :css/left             "0"
+        :css/min-width        "98%"
+        :css/margin           "0"
+        :css/padding-left     "6px"
+        :css/padding-right    "6px"
+        :css/z-index          "1000"
+        :css/border-style     "solid"
+        :css/border-width     "1px"
+        :css/border-radius    "4px"
+        :css/border-color     "#CCC"
+        :css/background-color "#FFF"
+        :css/list-style       "none"
+        (for-tpl [[i v] (map-indexed vector options)]
+          (li :css/margin-left "0" :css/padding "6px" :data-index i (text v)))))))
+
+(defelem submit [{:keys [submit] :as attrs} elems]
+  (let [subm *submit*
+        data *data*]
+    (button :click #((or submit @subm) @data) (dissoc attrs :submit) elems)))
+
+(defelem checkbox       [attrs _] (field (merge {:type "checkbox"}       attrs)))
+(defelem color          [attrs _] (field (merge {:type "color"}          attrs)))
+(defelem date           [attrs _] (field (merge {:type "date"}           attrs)))
+(defelem datetime       [attrs _] (field (merge {:type "datetime"}       attrs)))
+(defelem datetime-local [attrs _] (field (merge {:type "datetime-local"} attrs)))
+(defelem email          [attrs _] (field (merge {:type "email"}          attrs)))
+(defelem file           [attrs _] (field (merge {:type "file"}           attrs)))
+(defelem hidden         [attrs _] (field (merge {:type "hidden"}         attrs)))
+#_(defelem image          [attrs _] (field (merge {:type "image"}          attrs)))
+(defelem month          [attrs _] (field (merge {:type "month"}          attrs)))
+(defelem number         [attrs _] (field (merge {:type "number"}         attrs)))
+(defelem radio          [attrs _] (field (merge {:type "radio"}          attrs)))
+(defelem range          [attrs _] (field (merge {:type "range"}          attrs)))
+(defelem reset          [attrs _] (field (merge {:type "reset"}          attrs)))
+(defelem search         [attrs _] (field (merge {:type "search"}         attrs)))
+(defelem telephone      [attrs _] (field (merge {:type "tel"}            attrs)))
+(defelem time           [attrs _] (field (merge {:type "time"}           attrs)))
+(defelem url            [attrs _] (field (merge {:type "url"}            attrs)))
+(defelem week           [attrs _] (field (merge {:type "week"}           attrs)))
+(defelem password       [attrs _] (field (merge {:type "password"}       attrs)))
+(defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
+
+(defelem window [{:keys [alert author description keywords query route scripts styles initialized focuschange querychange routechange] :as attrs} elems]
+  (let [frag   (route-cell "#")
+        parts  (cell= (split (subs frag 2) #"\?"))
+        route* (cell= (->> (split (first parts) #"/") (map keyword)))
+        query* (cell= (->> (split (second parts) #"&") (map #(split % #"=")) (map (fn [[k v]] [(keyword k) (parse-if-int v)])) (into {})))]
+    (cell= (set-fragment! route query))
+    (cell= (if (and querychange (seq query*) (not= query* query)) (querychange query*)))
+    (cell= (if (and routechange (seq route*) (not= route* route)) (routechange route*)))
+    (if initialized (add-initfn! #(initialized js/window.navigator)))
+    (html :lang (:lang attrs "en") :css/height "100%"
+      (head
+        (html-meta :charset "utf-8")
+        (html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
+        (html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
+        (html-meta :name "description" :content description)
+        (html-meta :name "keywords"    :content keywords)
+        (html-meta :name "author"      :content author)
+        (title (:title attrs))
+        (link :rel "icon" :href (or (:icon attrs) "data:;base64,iVBORw0KGgo="))
+        (when styles
+          (for-tpl [s styles]
+            (link :rel "stylesheet" :href s)))
+        (when scripts
+          (for-tpl [s scripts]
+            (script :src s))))
+      (body
+        (merge {:css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" :css/margin "0" :css/height "100%"} (dissoc attrs :alert :author :description :title :icon :keywords :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange))
+        elems))))
+
+(defelem alert [{:keys [alert] :as attrs} _]
+  (let [detail  (cell false)
+        palette #(palettes (keyword "hoplon.ui" (name (or (:severity %) "info"))))]
+    (elem
+      :ph         15
+      :pv         10
+      :r          4
+      :s          2
+      :toggle     alert
+      :color      (cell= (:color      (palette alert)))
+      :s-color    (cell= (:s-color    (palette alert)))
+      :font-color (cell= (:font-color (palette alert)))
+      (dissoc attrs :alert)
+      (cell= (:message alert)))))

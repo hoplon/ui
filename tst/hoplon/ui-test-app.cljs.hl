@@ -1,0 +1,24 @@
+(page "index.html"
+  (:require
+    [hoplon.ui :as u]))
+
+(def sm 736)
+(def lg 1069)
+
+(u/window
+  :title       "Hoplon UI"
+  :description "Functional tests of Hoplon UI."
+  :query       {:foo "bar" :baz "barf"}
+  :route       ["tests"]
+  (u/elem :w "100%" :h "100%" :ah :center :av :middle
+    (u/elem :w ["100%" sm sm] :ah :center :g 10
+      (u/elem :w "100%" :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
+        "Hello")
+      (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
+        "Foo")
+      (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
+        "Bar")
+      (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
+        "Baz")
+      (u/elem :w "100%" :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
+        "World"))))
