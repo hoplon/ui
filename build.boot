@@ -1,6 +1,7 @@
 (set-env!
   :asset-paths  #{"rsc"}
-  :source-paths #{"tst" "src"}
+  :source-paths #{"src"}
+  :test-paths   #{"tst"}
   :target-path  "tgt"
   :dependencies '[[javax.servlet/javax.servlet-api "3.1.0"     :scope "provided"]
                   [org.clojure/clojurescript       "1.7.228"   :scope "provided"]
@@ -32,6 +33,9 @@
   (comp (watch) (speak) (hoplon :manifest true) (pom) (jar) (install)))
 
 (deftask run []
+  (as-> (get-env) $
+        (clojure.set/union (:source-paths $) (:test-paths $))
+        (set-env! :source-paths $))
   (comp (watch) (speak) (hoplon) (reload) (cljs :optimizations :none) (serve)))
 
 (task-options!
