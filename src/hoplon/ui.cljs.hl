@@ -521,7 +521,7 @@
 (defelem password       [attrs _] (field (merge {:type "password"}       attrs)))
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
-(defelem window [{:keys [alert author metadata description keywords query route scripts styles initialized focuschange querychange routechange] :as attrs} elems]
+(defelem window [{:keys [alert metadata query route scripts styles initialized focuschange querychange routechange] :as attrs} elems]
   (let [frag   (route-cell "#")
         parts  (cell= (split (subs frag 2) #"\?"))
         route* (cell= (->> (split (first parts) #"/") (map keyword)))
@@ -535,9 +535,6 @@
         (html-meta :charset "utf-8")
         (html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
         (html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
-        (when description (html-meta :name "description" :content description))
-        (when keywords    (html-meta :name "keywords"    :content keywords))
-        (when author      (html-meta :name "author"      :content author))
         (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
           (html-meta (into {} (for [[k v] m] [k (name v)]))))
         (title (:title attrs))
@@ -545,7 +542,7 @@
         (for-tpl [s styles]  (link :rel "stylesheet" :href s))
         (for-tpl [s scripts] (script :src s)))
       (body
-        (merge {:css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" :css/margin "0" :css/height "100%"} (dissoc attrs :alert :author :metadata :description :title :icon :keywords :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange))
+        (merge {:css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" :css/margin "0" :css/height "100%"} (dissoc attrs :alert :metadata :title :icon :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange))
         elems))))
 
 (defelem alert [{:keys [alert] :as attrs} _]
