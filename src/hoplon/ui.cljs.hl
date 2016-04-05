@@ -265,6 +265,7 @@
 ;;; inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod do! :color       [e _ v] (do! e :css/background-color   (->color v)))
+(defmethod do! :shadow      [e _ v] (do! e :css/box-shadow    v))
 (defmethod do! :image       [e _ v] (do! e :css/background (str "url(" v ") no-repeat 50% 50% / cover")))
 (defmethod do! :opacity     [e _ v] (do! e :css/opacity v))
 
@@ -322,7 +323,7 @@
    :css/display    "table-cell"})
 
 (def mid-attr-keys
-  [:s :sl :sr :st :sb :s-color :color :opacity :r :rtl :rtr :rbl :rbr :overflow :overflow-h :overflow-y :av :ah :toggle])
+  [:s :sl :sr :st :sb :s-color :color :shadow :opacity :r :rtl :rtr :rbl :rbr :overflow :overflow-h :overflow-y :av :ah :toggle])
 
 (def in-attrs
   {:css/box-sizing "border-box"
@@ -491,7 +492,7 @@
         :css/border-color     "#CCC"
         :css/background-color "#FFF"
         :css/list-style       "none"
-        (for-tpl [[i v] (map-indexed vector options)]
+        (for-tpl [[i v] (cell= (map-indexed vector options))]
           (li :css/margin-left "0" :css/padding "6px" :data-index i (text v)))))))
 
 (defelem submit [{:keys [submit] :as attrs} elems]

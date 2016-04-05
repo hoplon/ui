@@ -15,8 +15,12 @@
    {:property "og:image:height"          :content "250"}
    {:content  "text/html; charset=UTF-8" :http-equiv "content-type"}])
 
+;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def sm 736)
 (def lg 1069)
+
+;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (u/window
   :title       "Hoplon UI"
@@ -24,10 +28,17 @@
   :metadata    metadata
   :query       {:foo "bar" :baz "barf"}
   :route       ["tests"]
+  (u/elem :w "100%" :p 8 :av :middle :sb 1 :s-color 0xCCC :shadow "0 1px 4px 0 rgba(0,0,0,0.37)"
+    (u/image :w 50 :h 50 :url "http://hoplon.io/images/logos/hoplon-logo.png")
+    (u/elem :w 200 :ml 8 :font-size 21 :font-height 50 "Hoplon UI")
+    (u/elem :w "79%" :h 50 :g 8 :ah :right
+      (u/button   :w 200 :click #(swap! things conj (count @things)) "Add Thing")
+      (u/button   :w 200 :click #(swap! things pop) "Remove Thing")
+      (u/dropdown :w 200 :prompt "ChangeThing" :options (cell= (map str things)))))
   (u/elem :w "100%" :h "100%" :ah :center :av :middle
     (u/elem :w ["100%" sm sm] :ah :center :g 10
       (u/elem :w "100%" :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
-        (u/button :w 160 "Add Thing" :click #(swap! things conj (count @things))))
+        "Responsive Boxes")
       (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
         "Foo")
       (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color 0xEEE :s 2 :s-color 0xCCC
