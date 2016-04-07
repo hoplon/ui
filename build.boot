@@ -10,8 +10,7 @@
                   [adzerk/bootlaces                "0.1.13"    :scope "test"]
                   [hoplon/boot-hoplon              "0.1.13"    :scope "test"]
                   [tailrecursion/boot-jetty        "0.1.3"     :scope "test"]
-                  [hoplon                          "6.0.0-alpha13"]
-                  [cljsjs/enquire                  "2.1.2-0"]]
+                  [hoplon                          "6.0.0-alpha13"]]
   :repositories  [["clojars"       "https://clojars.org/repo/"]
                   ["maven-central" "https://repo1.maven.org/maven2/"]])
 

@@ -4,7 +4,6 @@
   (:require-macros
     [hoplon.ui :as r])
   (:require
-    [cljsjs.enquire]
     [clojure.string :refer [split]]))
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,8 +115,8 @@
     :else             (throw (js/Error. (str "Color value " v " invalid.")))))
 
 (defn ->len [v]
+  (prn :len v)
   (cond
-    (vector?  v) v
     (integer? v) (str    v "px")
     (number?  v) (str (* v 100) "%")
     (keyword? v) (namekw v lengths globals)
@@ -154,19 +153,6 @@
     :else        (throw (js/Error. (str "Vertical align value " v " invalid.")))))
 
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; todo: unregister handlers for elements that are no longer on page
-(let [do' (get-method do! :hoplon.core/default)]
-  (defmethod do! :hoplon.core/default [e a v]
-    (cond
-      (fn?     v)             (let [$w (js/jQuery js/window)]
-                                   (.on $w "resize" #(do! e a (v (.width $w)))))
-      (vector? v)             (doseq [[min val max] (partition 3 2 (cons 0 (conj v 999999)))]
-                                (.register js/enquire (str "(min-width: " (->len min) ") and (max-width: " (->len (dec max)) ")") #(do! e a (->len val))))
-      (= (namespace a) "css") (do! e :css {(name a) v})
-      :else                   (do' e a v))))
-
-;;; non-inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; position (outer)
 (defmethod do! :x           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")))
@@ -285,7 +271,7 @@
 (defmethod on! :update [e _ c]
   (when-dom e
     (let [val #(.val (js/jQuery (.-target %)))]
-      ; (fn [] (.keyup    (js/jQuery e) #(if (= (.-which %) 13) (c (val %)))))  #_(.-is % ":focus")
+      ; (fn [] (.keyup    (j e) #(if (= (.-which %) 13) (c (val %)))))  #_(.-is % ":focus")
       (fn [] (.change (js/jQuery e) #(c (val %)))))))
 
 ;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -310,13 +296,13 @@
 (def out-attrs
   {:css/box-sizing     "border-box"    ;; include border and padding in dimensions
    :css/display        "inline-table"  ;; layout ltr ttb when width not 100% to support responsive design
-   :css/width          "100%"          ;; default elems to max width to emulate block positioning
+   ;:css/width          "100%"          ;; default elems to max width to emulate block positioning
    ;:css/height         "100%"          ;; default to max height to support vertical positioning
    :css/vertical-align "top"           ;; inline-block/table elems must be explititly told to align themselves to the top
    :css/text-align     "initial"})    ;; prevent inheritance of alignment from parent
 
 (def out-attr-keys
-  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov])
+  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov]) ;; percent widths go out, fixed widths go in.
 
 (def mid-attrs
   {:css/box-sizing "border-box"
@@ -328,7 +314,7 @@
 (def in-attrs
   {:css/box-sizing "border-box"
    :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
-   :css/display    "block"})    ;; prevent white space from creeping in around inline elements
+   :css/display    "block"})   ;; prevent white space from creeping in around inline elements
 
 (defn box [tag & args]
   (let [[attrs elems] (#'hoplon.core/parse-args args)]
