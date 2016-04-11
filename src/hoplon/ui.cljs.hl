@@ -1,5 +1,5 @@
 (ns hoplon.ui
-  (:refer-clojure :exclude [range time])
+  (:refer-clojure :exclude [range time floats])
   (:refer-hoplon  :exclude [button elem form])
   (:require-macros
     [hoplon.ui :as r])
@@ -87,6 +87,8 @@
 
 (def valigns [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
 
+(def floats [:left :right])
+
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn chop  [string]    (subs string 0 (dec (count string))))
@@ -151,6 +153,11 @@
     (keyword? v) (namekw v valigns globals)
     (string?  v) (string  v)
     :else        (throw (js/Error. (str "Vertical align value " v " invalid.")))))
+
+(defn ->float [v]
+  (cond
+    (keyword? v) (namekw v floats globals)
+    :else        (throw (js/Error. (str "Float value " v " invalid.")))))
 
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -264,6 +271,8 @@
 (defmethod do! :font-kerning    [e _ v] (do! e :css/font-kerning    (->len v))) ;; add validation
 (defmethod do! :font-height     [e _ v] (do! e :css/line-height     (->len v))) ;; add validation
 
+(defmethod do! :float           [e _ v] (do! e :css/float           (->float v)))
+
 (defmethod do! :selectable  [e _ v] (do! e :css/user-select       v))
 
 (defmethod do! :cursor      [e _ v] (do! e :css/cursor    (->cursor v)))
@@ -296,38 +305,37 @@
 (def out-attrs
   {:css/box-sizing     "border-box"    ;; include border and padding in dimensions
    :css/display        "inline-table"  ;; layout ltr ttb when width not 100% to support responsive design
-   ;:css/width          "100%"          ;; default elems to max width to emulate block positioning
-   ;:css/height         "100%"          ;; default to max height to support vertical positioning
    :css/vertical-align "top"           ;; inline-block/table elems must be explititly told to align themselves to the top
-   :css/text-align     "initial"})    ;; prevent inheritance of alignment from parent
+   :css/text-align     "initial"})     ;; prevent inheritance of alignment from parent
 
 (def out-attr-keys
-  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov]) ;; percent widths go out, fixed widths go in.
+  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov :float]) ;; percent widths go out, fixed widths go in.
 
 (def mid-attrs
   {:css/box-sizing "border-box"
-   :css/display    "table-cell"})
+   :css/display    "table-cell"
+   :css/height     "inherit"})
 
 (def mid-attr-keys
   [:s :sl :sr :st :sb :s-color :color :shadow :opacity :r :rtl :rtr :rbl :rbr :overflow :overflow-h :overflow-y :av :ah :toggle])
 
 (def in-attrs
   {:css/box-sizing "border-box"
+   :css/display    "block"      ;; prevent white space from creeping in around inline elements
    :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
-   :css/display    "block"})   ;; prevent white space from creeping in around inline elements
+   :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
 
 (defn box [tag & args]
   (let [[attrs elems] (#'hoplon.core/parse-args args)]
-    #_(prn :box tag attrs elems)
     (->> elems
-         (tag in-attrs (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
+         (tag in-attrs  (assoc (apply dissoc attrs (concat mid-attr-keys out-attr-keys)) :css/height (if (:av attrs) "auto" "inherit")))
          (div mid-attrs (select-keys attrs mid-attr-keys))
          (div out-attrs (select-keys attrs out-attr-keys)))))
 
 (defn boxout [tag & args]
   (let [[attrs elems] (#'hoplon.core/parse-args args)]
     (->> elems
-         (div in-attrs (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
+         (div in-attrs  (assoc (apply dissoc attrs (concat mid-attr-keys out-attr-keys)) :css/height (if (:av attrs) "auto" "inherit")))
          (div mid-attrs (select-keys attrs mid-attr-keys))
          (tag out-attrs (select-keys attrs out-attr-keys)))))
 

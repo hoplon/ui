@@ -29,10 +29,10 @@
   :query       {:foo "bar" :baz "barf"}
   :route       ["tests"]
   (u/elem :w "100%" :p 8 :av :middle :sb 1 :s-color 0xCCC :shadow "0 1px 4px 0 rgba(0,0,0,0.37)"
-    (u/elem :w ["100%" sm "31%"]
+    (u/elem :w ["100%" sm :auto]
       (u/image :w 50 :h 50 :url "http://hoplon.io/images/logos/hoplon-logo.png")
       (u/elem :ml 8 :font-size 21 :font-height 50 "Hoplon UI"))
-    (u/elem :w ["100%" sm "69%"] :ah :right
+    (u/elem :w ["100%" sm :auto] :ah :right :float :right ;; float right is a temporary placeholder to greedily fill the remaining space in the line while we work on an implementation for :w :max
       (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Add Thing")
       (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things pop) "Remove Thing")
       (u/dropdown :w ["100%" sm 200] :h 50 :prompt "ChangeThing" :options (cell= (map str things)))))
