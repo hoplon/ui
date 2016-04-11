@@ -11,7 +11,7 @@ experiment to create a cohesive and responsive user interface component library 
 this is an experimental, early stage work in progress. bugs lurk everywhere. the api will change constantly. use at your own peril.
 
 ## demonstration
-execute `boot run` then navigate to `localhost:3000` in a browser to view functional tests. resize the browser window to test responsive layout features.
+execute `boot run` then navigate to `localhost:3010` in a browser to view functional tests. resize the browser window to test responsive layout features.  ui currently requires the `responsive-layout-attributes` branch of hoplon to be installed in order to function correctly.
 
 ## development
 continuously rebuild and reinstall the jar as changes are made.
