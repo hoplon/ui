@@ -94,7 +94,7 @@
 (defn chop  [string]    (subs string 0 (dec (count string))))
 (defn lastchar  [string]    (subs string (dec (count string)) (count string)))
 
-(defn px    [v]      (if (number? v) (str v "px") v))
+(defn px    [v]  (if (number? v) (str v "px") v))
 
 (defn kw-ok?  [kws v] (and (keyword? v) (some #{v} (conj kws globals))))
 
@@ -119,6 +119,7 @@
 (defn ->len [v]
   (prn :len v)
   (cond
+    (list?    v) (let [[op x y] v] (str "calc(" (->len x) " " op " " (->len y) ")"))
     (integer? v) (str    v "px")
     (number?  v) (str (* v 100) "%")
     (keyword? v) (namekw v lengths globals)
@@ -153,11 +154,6 @@
     (keyword? v) (namekw v valigns globals)
     (string?  v) (string  v)
     :else        (throw (js/Error. (str "Vertical align value " v " invalid.")))))
-
-(defn ->float [v]
-  (cond
-    (keyword? v) (namekw v floats globals)
-    :else        (throw (js/Error. (str "Float value " v " invalid.")))))
 
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -270,8 +266,6 @@
 (defmethod do! :font-smoothing  [e _ v] (do! e :css/font-smooth     (->len v))) ;; add validation
 (defmethod do! :font-kerning    [e _ v] (do! e :css/font-kerning    (->len v))) ;; add validation
 (defmethod do! :font-height     [e _ v] (do! e :css/line-height     (->len v))) ;; add validation
-
-(defmethod do! :float           [e _ v] (do! e :css/float           (->float v)))
 
 (defmethod do! :selectable  [e _ v] (do! e :css/user-select       v))
 
