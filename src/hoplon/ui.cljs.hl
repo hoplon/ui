@@ -118,7 +118,6 @@
     :else             (throw (js/Error. (str "Color value " v " invalid.")))))
 
 (defn ->len [v]
-  (prn :len v)
   (cond
     (list?    v) (let [[op x y] v] (str "calc(" (->len x) " " op " " (->len y) ")"))
     (integer? v) (str    v "px")
@@ -321,13 +320,14 @@
    :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
 
 (defn box [tag & args]
-  (let [[{:keys [g gh gv av] :as attrs} elems] (#'hoplon.core/parse-args args)
-        g->m {:g :m :gh :mh :gv :mv} g->f {:g :f :gh :fh :gv :fv}]
-    (->> elems
-        (map #(if (ifn? %) (% (rename-keys (select-keys attrs (keys g->m)) g->m)) %))
-        (tag in-attrs  (assoc (apply dissoc (rename-keys attrs g->f) (concat mid-attr-keys out-attr-keys)) :css/height (if av "auto" "inherit")))
-        (div mid-attrs (select-keys attrs mid-attr-keys))
-        (div out-attrs (select-keys attrs out-attr-keys)))))
+  (let [[attrs elems] (#'hoplon.core/parse-args args)
+        g->m          {:g :m :gh :mh :gv :mv}
+        g->f          {:g :f :gh :fh :gv :fv}
+        set-margins   #(if (ifn? %) (% (rename-keys (select-keys attrs (keys g->m)) g->m)) %)]
+    (->> (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-margins %) (set-margins %))) (set-margins %)) elems)
+         (tag in-attrs  (assoc (apply dissoc (rename-keys attrs g->f) (concat mid-attr-keys out-attr-keys)) :css/height (if (:av attrs) "auto" "inherit")))
+         (div mid-attrs (select-keys attrs mid-attr-keys))
+         (div out-attrs (select-keys attrs out-attr-keys)))))
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
