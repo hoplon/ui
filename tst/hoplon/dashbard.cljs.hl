@@ -1,0 +1,66 @@
+(page "dashboard.html"
+  (:require
+    [hoplon.ui :as u]))
+
+;;; MODELS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defc fuzes    [:ir :vis :gps])
+(defc warheads [:chem :nuke :bio :he :frag :rod :shaped])
+
+(defc alert    nil)
+(defc missiles {})
+(defc targets  {(random-uuid) {:name "Micha's Car" :url "target.jpeg"}})
+(defc target   (random-uuid))
+
+;;; COMMANDS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn add-missile [missiles fuze warhead]
+  (assoc missiles (random-uuid) {:fuze fuze :warhead warhead}))
+
+(defn arm-missile [missiles id]
+  (assoc-in missiles [id :armed] true))
+
+(defn fire-missile [missiles missile-id target-id]
+  (let [missile (missiles missile-id)]
+    (if (:armed missile)
+        (dissoc missiles missile-id)
+        (reset! alert "Missile Unarmed"))))
+
+;;; QUERIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defc= num-missiles (count missiles))
+
+;;; VIEWS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; breakpoints
+(def sm 736)
+(def lg 1069)
+
+(u/window
+  :title       "Command Center"
+  :query       (cell= {:target target})
+  :route       ["targets"]
+  (u/elem :w "100%" :p 8 :av :middle
+    (u/elem :w ["100%" sm 230]
+      (u/image :w 50 :h 50 :url "hoplon-logo.png")
+      (u/elem :ml 8 :font-size 21 :font-height 50 "Command Center"))
+    (u/elem :w ["100%" sm '(- "100%" 230)] :ah :right :g 4
+      (u/dropdown :w ["100%" sm 200] :h 50 :prompt "Select Fuze"    :options (cell= (map name fuzes)))
+      (u/dropdown :w ["100%" sm 200] :h 50 :prompt "Select Warhead" :options (cell= (map name warheads)))
+      (u/button hoplon.ui/+success-button+ :w ["100%" sm 200] :h 50 :click #(swap! missiles add-missile :vis :nuke) "Add Missile")
+      (u/button hoplon.ui/+warning-button+ :w ["100%" sm 200] :h 50 :click #(swap! missiles add-missile :vis :nuke) "Arm Missile")
+      (u/button hoplon.ui/+danger-button+  :w ["100%" sm 200] :h 50 :click #(swap! missiles pop) "Fire Missile")))
+  (u/elem :w "100%" :color 0x222 :p 20
+    (u/elem :ah :left :font-color 0xEEE :font-size 18 "Selected Target")
+    (u/elem :w "100%" :h "100%" :p 30 :g 50 :ah :center :av :middle
+      (for-tpl [[id {:keys [name url] :as target}] targets]
+        (u/image :w+ 400 :r 400 :url url))))
+  (u/elem :w "100%" :h "60%" :pv 10 :ph [0 sm 10] :g 10
+    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+      "Targets")
+    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+      "Missiles")
+    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+      "Locations")
+    (u/elem :w "100%" :h 200 :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+      "Log")))

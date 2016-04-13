@@ -30,7 +30,7 @@
   :route       ["tests"]
   (u/elem :w "100%" :p 8 :av :middle :sb 1 :s-color 0xCCC :shadow "0 1px 4px 0 rgba(0,0,0,0.37)"
     (u/elem :w ["100%" sm 160]
-      (u/image :w 50 :h 50 :url "http://hoplon.io/images/logos/hoplon-logo.png")
+      (u/image :w 50 :h 50 :url "hoplon-logo.png")
       (u/elem :ml 8 :font-size 21 :font-height 50 "Hoplon UI"))
     (u/elem :w ["100%" sm '(- "100%" 160)] :ah :right :g 4
       (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Add Thing")
