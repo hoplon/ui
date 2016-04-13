@@ -323,7 +323,7 @@
   (let [[attrs elems] (#'hoplon.core/parse-args args)
         g->m          {:g :m :gh :mh :gv :mv}
         g->f          {:g :f :gh :fh :gv :fv}
-        set-margins   #(if (ifn? %) (% (rename-keys (select-keys attrs (keys g->m)) g->m)) %)]
+        set-margins   #(if (ifn? %) (% (into {} (map (fn [[k v]] (vector k (/ v 2))) (rename-keys (select-keys attrs (keys g->m)) g->m)))) %)]
     (->> (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-margins %) (set-margins %))) (set-margins %)) elems)
          (tag in-attrs  (assoc (apply dissoc (rename-keys attrs g->f) (concat mid-attr-keys out-attr-keys)) :css/height (if (:av attrs) "auto" "inherit")))
          (div mid-attrs (select-keys attrs mid-attr-keys))
@@ -382,14 +382,15 @@
     (dissoc attrs :prompt)
     (cons prompt elems)))
 
-(defelem image [{:keys [label url] :as attrs} _]
+(defelem image [{:keys [label url] :as attrs} elems]
   (let [empty-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="]
     (box
-     (hoplon.core/img
-      :css/width "100%"
-      :src       (cell= (or url empty-url))
-      :alt       label)
-     :w :auto
+      (hoplon.core/img
+        :css/width "100%"
+        :src       (cell= (or url empty-url))
+        :alt       label)
+      :w        :auto
+      :overflow "hidden"
      (dissoc attrs :label :url))))
 
 ;;; forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
