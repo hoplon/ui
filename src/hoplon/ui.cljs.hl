@@ -1,6 +1,6 @@
 (ns hoplon.ui
   (:refer-clojure :exclude [range time floats])
-  (:refer-hoplon  :exclude [button elem form])
+  (:refer-hoplon  :exclude [body button elem form])
   (:require-macros
     [hoplon.ui :as r])
   (:require
@@ -157,6 +157,12 @@
     (string?  v) (string  v)
     :else        (throw (js/Error. (str "Vertical align value " v " invalid.")))))
 
+(defn ->font-family [v]
+  (cond
+    (keyword? v) (namekw v globals)
+    (string?  v) v
+    :else        (throw (js/Error. (str "Font family value " v " invalid.")))))
+
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; position (outer)
@@ -260,6 +266,7 @@
 (defmethod do! :image       [e _ v] (do! e :css/background (str "url(" v ") no-repeat 50% 50% / cover")))
 (defmethod do! :opacity     [e _ v] (do! e :css/opacity v))
 
+(defmethod do! :font-family     [e _ v] (do! e :css/font-family     (->font-family v)))
 (defmethod do! :font-color      [e _ v] (do! e :css/color           (->color v)))
 (defmethod do! :font-size       [e _ v] (do! e :css/font-size       (px v)))
 (defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
@@ -331,16 +338,16 @@
 
 ;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn box-xf [ctr]
+(defn box-xf [ctr & [inv]]
   "implements the box model by evaluating the element constructor and wrapping
    it in two additional divs. attributes are filtered out and applied to the
    middle and outer divs as appropriate, with the remaining attributes being
    passed to the original element constructor."
   (fn [attrs elems]
     (->> elems
-         (ctr in-attrs  (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
-         (div mid-attrs (select-keys attrs mid-attr-keys))
-         (div out-attrs (select-keys attrs out-attr-keys)))))
+         ((if inv div ctr) in-attrs  (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
+         (div              mid-attrs (select-keys attrs mid-attr-keys))
+         ((if inv ctr div) out-attrs (select-keys attrs out-attr-keys)))))
 
 (defn height-xf [ctr]
   "set vertical height of the inner element to auto when the align vertical (av)
@@ -367,8 +374,11 @@
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defelem elem [attrs args]
-  (box div attrs args))
+(defelem body [attrs elems]
+  ((-> hoplon.core/body (box-xf :invert) height-xf gutter-xf) attrs elems))
+
+(defelem elem [attrs elems]
+  (box div attrs elems))
 
 (defelem form* [{:keys [submit] :as attrs} elems]
   (let [elem (elem (dissoc attrs :submit) elems)
@@ -562,8 +572,8 @@
         (link :rel "icon" :href (or (:icon attrs) "data:;base64,iVBORw0KGgo="))
         (for-tpl [s styles]  (link :rel "stylesheet" :href s))
         (for-tpl [s scripts] (script :src s)))
-      (body
-        (merge {:css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" :css/margin "0" :css/height "100%"} (dissoc attrs :alert :metadata :title :icon :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange))
+      (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
+        (dissoc attrs :alert :metadata :title :icon :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange)
         elems))))
 
 (defelem alert [{:keys [alert] :as attrs} _]
