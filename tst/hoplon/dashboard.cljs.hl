@@ -40,11 +40,11 @@
   :title       "Command Center"
   :query       (cell= {:target target})
   :route       ["targets"]
-  (u/elem :w "100%" :p 8 :av :middle
+  (u/elem :w "100%" :p 6 :av :middle
     (u/elem :w ["100%" sm 230]
       (u/image :w 50 :h 50 :url "hoplon-logo.png")
-      (u/elem :ml 8 :font-size 21 :font-height 50 "Command Center"))
-    (u/elem :w ["100%" sm '(- "100%" 230)] :ah :right :g 4
+      (u/elem :ml 6 :font-size 21 :font-height 50 "Command Center"))
+    (u/elem :w ["100%" sm '(- "100%" 230)] :ah :right :g 6
       (u/dropdown :w ["100%" sm 200] :h 50 :prompt "Select Fuze"    :options (cell= (map name fuzes)))
       (u/dropdown :w ["100%" sm 200] :h 50 :prompt "Select Warhead" :options (cell= (map name warheads)))
       (u/button hoplon.ui/+success-button+ :w ["100%" sm 200] :h 50 :click #(swap! missiles add-missile :vis :nuke) "Add Missile")
@@ -55,12 +55,12 @@
     (u/elem :w "100%" :h "100%" :p 30 :g 50 :ah :center :av :middle
       (for-tpl [[id {:keys [name url] :as target}] targets]
         (u/image :w+ 400 :r 400 :url url))))
-  (u/elem :w "100%" :h "60%" :pv 10 :ph [0 sm 10] :g 10
-    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+  (u/elem :w "100%" :h "60%" :pv 6 :ph [0 sm 6] :g 6 :ah :center
+    (u/elem :w ["100%" sm 0.33333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
       "Targets")
-    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+    (u/elem :w ["100%" sm 0.33333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
       "Missiles")
-    (u/elem :w ["100%" sm 0.333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+    (u/elem :w ["100%" sm 0.33333] :h "100%" :p 8 :color 0xEEE :s 2 :s-color 0xCCC
       "Locations")
-    (u/elem :w "100%" :h 200 :p 8 :color 0xEEE :s 2 :s-color 0xCCC
+    (u/elem :w "100%" :h 200 :p 6 :color 0xEEE :s 2 :s-color 0xCCC
       "Log")))

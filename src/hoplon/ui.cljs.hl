@@ -92,6 +92,8 @@
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def parse-args #'hoplon.core/parse-args)
+
 (defn chop  [string]    (subs string 0 (dec (count string))))
 (defn lastchar  [string]    (subs string (dec (count string)) (count string)))
 
@@ -303,7 +305,11 @@
    :css/text-align     "initial"})     ;; prevent inheritance of alignment from parent
 
 (def out-attr-keys
-  [:x :y :z :w :w- :w+ :h :h- :h+ :c :cl :cr :ct :cb :ch :cv :m :ml :mr :mt :mb :mh :mv :o :ol :or :ot :ob :oh :ov])
+  [:x :y :z
+   :w :w- :w+ :h :h- :h+
+   :c :cl :cr :ct :cb :ch :cv
+   :m :ml :mr :mt :mb :mh :mv
+   :o :ol :or :ot :ob :oh :ov])
 
 (def mid-attrs
   {:css/box-sizing "border-box" ;; include border and padding in dimensions
@@ -311,7 +317,11 @@
    :css/height     "inherit"})  ;; assume the height of the parent and proxy it to the inner div
 
 (def mid-attr-keys
-  [:s :sl :sr :st :sb :s-color :color :shadow :opacity :r :rtl :rtr :rbl :rbr :overflow :overflow-h :overflow-y :av :ah :toggle])
+  [:av :ah
+   :s :sl :sr :st :sb :s-color
+   :r :rtl :rtr :rbl :rbr
+   :overflow :overflow-h :overflow-y
+   :color :shadow :opacity :toggle])
 
 (def in-attrs
   {:css/box-sizing "border-box" ;; include border and padding in dimensions
@@ -319,20 +329,46 @@
    :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
    :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
 
-(defn box [tag & args]
-  (let [[attrs elems] (#'hoplon.core/parse-args args)
-        g->m          {:g :m :gh :mh :gv :mv}
-        g->f          {:g :f :gh :fh :gv :fv}
-        set-margins   #(if (ifn? %) (% (into {} (map (fn [[k v]] (vector k (/ v 2))) (rename-keys (select-keys attrs (keys g->m)) g->m)))) %)]
-    (->> (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-margins %) (set-margins %))) (set-margins %)) elems)
-         (tag in-attrs  (assoc (apply dissoc (rename-keys attrs g->f) (concat mid-attr-keys out-attr-keys)) :css/height (if (:av attrs) "auto" "inherit")))
+;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn box-xf [ctr]
+  "implements the box model by evaluating the element constructor and wrapping
+   it in two additional divs. attributes are filtered out and applied to the
+   middle and outer divs as appropriate, with the remaining attributes being
+   passed to the original element constructor."
+  (fn [attrs elems]
+    (->> elems
+         (ctr in-attrs  (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
          (div mid-attrs (select-keys attrs mid-attr-keys))
          (div out-attrs (select-keys attrs out-attr-keys)))))
 
+(defn height-xf [ctr]
+  "set vertical height of the inner element to auto when the align vertical (av)
+   attribute is set."
+  (fn [{:keys [av] :as attrs} elems]
+    (-> (assoc attrs :css/height (cell= (if av "auto" "inherit")))
+        (ctr elems))))
+
+(defn gutter-xf [ctr]
+  "replace gutters (g gh gv) with margins (m mh mv) and fences (f fh fv) on the
+   attribute map."
+  (fn [attrs elems]
+    (let [gk->fk {:g :f :gh :fh :gv :fv}
+          fk->mk {:f :m :fh :mh :fv :mv}
+          gv->fv #(.floor js/Math (/ % 2))
+          fkv    (some (fn [[k v]] (if-let [k (gk->fk k)] [k (gv->fv v)])) attrs)
+          set-m  #(if (ifn? %) (% (fk->mk (first fkv)) (second fkv)) %)
+          attrs  (apply dissoc (merge attrs fkv) (keys gk->fk))
+          elems  (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-m %) (set-m %))) (set-m %)) elems)]
+      (ctr attrs elems))))
+
+(defn box [ctr & args]
+  (apply (-> ctr box-xf height-xf gutter-xf) (parse-args args)))
+
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defelem elem [& args]
-  (apply box div args))
+(defelem elem [attrs args]
+  (box div attrs args))
 
 (defelem form* [{:keys [submit] :as attrs} elems]
   (let [elem (elem (dissoc attrs :submit) elems)
