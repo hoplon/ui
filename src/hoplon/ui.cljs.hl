@@ -9,6 +9,8 @@
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def empty-url "data:;base64,iVBORw0KGgo=")
+
 (def ^:dynamic *data*   nil)
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
@@ -28,7 +30,6 @@
 (def +info-button-down+    {:color 0x31b0d5 :s-color 0x269abc :font-color 0xfff})
 (def +danger-button+       {:color 0xd9534f :s-color 0xd43f3a :font-color 0xfff})
 (def +danger-button-down+  {:color 0xac2925 :s-color 0x761c19 :font-color 0xfff})
-
 
 (def +success+ {:color 0xdff0d8 :s-color 0xd6e9c6 :font-color 0x3c763d})
 (def +warning+ {:color 0xfcf8e3 :s-color 0xfaebcc :font-color 0x8a6d3b})
@@ -82,10 +83,10 @@
               :text :vertical-text :w-resize :wait :zoom-in :zoom-out])
 
 (def decorations [:none :underline :overline :line-through])
-(def weights [:normal :bold :bolder :lighter :number])
+(def styles      [:normal :italic :oblique])
+(def weights     [:normal :bold :bolder :lighter :number])
 
 (def haligns [:left :right :center :justify])
-
 (def valigns [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
 
 (def floats [:left :right])
@@ -137,6 +138,11 @@
   (cond
     (keyword? v) (namekw v decorations globals)
     :else        (throw (js/Error. (str "Decoration value " v " invalid.")))))
+
+(defn ->style [v]
+  (cond
+    (keyword? v) (namekw v styles globals)
+    :else        (throw (js/Error. (str "Style value " v " invalid.")))))
 
 (defn ->weight [v]
   (cond
@@ -269,8 +275,9 @@
 (defmethod do! :font-family     [e _ v] (do! e :css/font-family     (->font-family v)))
 (defmethod do! :font-color      [e _ v] (do! e :css/color           (->color v)))
 (defmethod do! :font-size       [e _ v] (do! e :css/font-size       (px v)))
-(defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
 (defmethod do! :font-decoration [e _ v] (do! e :css/text-decoration (->decoration v)))
+(defmethod do! :font-style      [e _ v] (do! e :css/font-style      (->style v)))
+(defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
 (defmethod do! :font-spacing    [e _ v] (do! e :css/letter-spacing  (->len v))) ;; add validation
 (defmethod do! :font-smoothing  [e _ v] (do! e :css/font-smooth     (->len v))) ;; add validation
 (defmethod do! :font-kerning    [e _ v] (do! e :css/font-kerning    (->len v))) ;; add validation
@@ -389,21 +396,12 @@
 
 ;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defelem anchor [{:keys [label url] :as attrs} elems]
-  ( (div
-      :css/box-sizing     "border-box"
-      :css/display        "inline-block"
-      :css/text-align     "initial"
-      :css/vertical-align "top"
-      ( (a
-          :css/box-sizing "border-box"
-          :css/display    "block"
-          :css/width      "100%"
-          :css/color      "inherit"
-          :href           url
-          elems)
-        (apply dissoc attrs :url :alt out-attr-keys)))
-    (select-keys attrs out-attr-keys)))
+(defelem anchor [{:keys [url] :as attrs} elems]
+  (box
+    (hoplon.core/a
+      :href url)
+    (dissoc attrs :url)
+    elems))
 
 (defelem button [{:keys [prompt] :as attrs} elems]
   (box
@@ -413,7 +411,6 @@
       :css/border-style     "none"
       :css/text-align       "inherit")
       ;:css/outline          "none"
-
     :pr         12
     :ph         14
     :pv         10
@@ -428,16 +425,15 @@
     (dissoc attrs :prompt)
     (cons prompt elems)))
 
-(defelem image [{:keys [label url] :as attrs} elems]
-  (let [empty-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="]
-    (box
-      (hoplon.core/img
-        :css/width "100%"
-        :src       (cell= (or url empty-url))
-        :alt       label)
-      :w        :auto
-      :overflow "hidden"
-     (dissoc attrs :label :url))))
+(defelem image [{:keys [label url] :as attrs} _]
+  (box
+    (hoplon.core/img
+      :css/width "100%"
+      :src       (cell= (or url empty-url))
+      :alt       label)
+    ; :w        :auto
+    :overflow "hidden"
+   (dissoc attrs :label :url)))
 
 ;;; forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -569,7 +565,7 @@
         (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
           (html-meta (into {} (for [[k v] m] [k (name v)]))))
         (title (:title attrs))
-        (link :rel "icon" :href (or (:icon attrs) "data:;base64,iVBORw0KGgo="))
+        (link :rel "icon" :href (or (:icon attrs) empty-url))
         (for-tpl [s styles]  (link :rel "stylesheet" :href s))
         (for-tpl [s scripts] (script :src s)))
       (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
