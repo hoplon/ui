@@ -53,7 +53,7 @@
 
 (def lengths [:auto])
 
-(def colors [:antiquewhite :aqua :aquamarine :azure :beige :bisque :black
+(def colors [:transparent :antiquewhite :aqua :aquamarine :azure :beige :bisque :black
              :blanchedalmond :blue :blueviolet :brown :burlywood :cadetblue :chartreuse
              :chocolate :coral :cornflowerblue :cornsilk :crimson :darkblue :darkcyan
              :darkgoldenrod :darkgray :darkgreen :darkgrey :darkkhaki :darkmagenta
@@ -116,12 +116,14 @@
 ;; todo: rgb colors
 (defn ->color [v]
   (cond
-    (number? v)       (str "#" (.toString v 16))
-    (keyword? v)      (namekw v colors globals)
-    :else             (throw (js/Error. (str "Color value " v " invalid.")))))
+    (nil?     v) "initial"
+    (keyword? v) (namekw v colors globals)
+    (number?  v) (str "#" (.toString v 16))
+    :else        (throw (js/Error. (str "Color value " v " invalid.")))))
 
 (defn ->len [v]
   (cond
+    (nil?     v) "initial"
     (list?    v) (let [[op x y] v] (str "calc(" (->len x) " " op " " (->len y) ")"))
     (integer? v) (str    v "px")
     (number?  v) (str (* v 100) "%")
@@ -131,32 +133,38 @@
 
 (defn ->cursor [v]
   (cond
-    (kw-ok? cursors v) (name v)
-    :else              (throw (js/Error. (str "Cursor value " v " invalid.")))))
+    (nil?     v) "initial"
+    (keyword? v) (namekw v cursors globals)
+    :else        (throw (js/Error. (str "Cursor value " v " invalid.")))))
 
 (defn ->decoration [v]
   (cond
+    (nil?     v) "initial"
     (keyword? v) (namekw v decorations globals)
     :else        (throw (js/Error. (str "Decoration value " v " invalid.")))))
 
 (defn ->style [v]
   (cond
+    (nil?     v) "initial"
     (keyword? v) (namekw v styles globals)
     :else        (throw (js/Error. (str "Style value " v " invalid.")))))
 
 (defn ->weight [v]
   (cond
+    (nil?     v) "initial"
     (keyword? v) (namekw v weights globals)
     (integer? v)  v
     :else        (throw (js/Error. (str "Weight value " v " invalid.")))))
 
 (defn ->halign [v]
   (cond
+    (nil?     v) "initial"
     (keyword? v) (namekw v haligns globals)
     :else        (throw (js/Error. (str "Align value " v " invalid.")))))
 
 (defn ->valign [v]
   (cond
+    (nil?     v) "initial"
     (integer? v) (str    v "px")
     (number?  v) (str    v "%")
     (keyword? v) (namekw v valigns globals)
@@ -165,6 +173,7 @@
 
 (defn ->font-family [v]
   (cond
+    (nil?     v) "initial"
     (keyword? v) (namekw v globals)
     (string?  v) v
     :else        (throw (js/Error. (str "Font family value " v " invalid.")))))
@@ -371,7 +380,7 @@
           fk->mk {:f :m :fh :mh :fv :mv}
           gv->fv #(.floor js/Math (/ % 2))
           fkv    (some (fn [[k v]] (if-let [k (gk->fk k)] [k (gv->fv v)])) attrs)
-          set-m  #(if (ifn? %) (% (fk->mk (first fkv)) (second fkv)) %)
+          set-m  #(if (ifn? %) (% (fk->mk (first fkv)) (second fkv)) %) ;; ;; todo: if fixed width or height, apply gutter as offset/css margin instead or add to overall width
           attrs  (apply dissoc (merge attrs fkv) (keys gk->fk))
           elems  (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-m %) (set-m %))) (set-m %)) elems)]
       (ctr attrs elems))))
