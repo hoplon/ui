@@ -399,7 +399,8 @@
 (defelem anchor [{:keys [url] :as attrs} elems]
   (box
     (hoplon.core/a
-      :href url)
+      :html/href   url
+      :html/target "_blank")
     (dissoc attrs :url)
     elems))
 
