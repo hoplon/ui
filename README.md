@@ -1,38 +1,50 @@
 # UI
-experiment to create a cohesive and responsive user interface component library for the browser that uses hoplon primitives to abstract away css and html.
+Experiment to create a cohesive and responsive user interface component library for the browser that uses hoplon primitives to abstract away css and html.
 
 [](dependency)
 ```clojure
-[hoplon/ui "0.0.1-SNAPSHOT"] ;; latest release
+[hoplon/ui "0.0.1-SNAPSHOT"] ;; latest release, not yet available to clojar.
 ```
 [](/dependency)
 
-## disclaimer
-this is an experimental, early stage work in progress. bugs lurk everywhere. the api will change constantly. use at your own peril.
+## Usage
+### Disclaimer
+This is an experimental, early stage work in progress. Bugs lurk everywhere. The api will change constantly. Use at your own peril.
 
-## demonstration
-execute `boot run` then navigate to `localhost:3010` in a browser to view functional tests. resize the browser window to test responsive layout features.  ui currently requires the `responsive-layout-attributes` branch of hoplon to be installed in order to function correctly.
+### Installation
+`ui` currently requires the `responsive-layout-attributes` branch of hoplon to be installed in order to function correctly.
 
-## development
-continuously rebuild and reinstall the jar as changes are made.
+### Demonstration
+Execute `boot run` then navigate to `localhost:3010` in a browser to view functional tests. Resize the browser window to test responsive layout features.
+
+### Development
+Continuously rebuild and reinstall the jar as changes are made.
 ```bash
 boot develop
 ```
 
-build the library for distribution.
+Build the library for distribution.
 ```bash
 boot build
 ```
 
-functionally test the library.
+Functionally test the library.
 ```bash
 boot run
 ```
 
-## credits
-makes use of the [glyhpicon halflings](http://glyphicons.com/) font distributed with bootstrap.
+## Help
 
-## license
+### FAQ
+You can find frequently asked questions here : https://github.com/hoplon/ui/wiki/FAQ
+
+### Support
+The best way to get support is to ask questions in the [hoplon slack channel](https://clojurians.slack.com/messages/hoplon/)
+
+## Credits
+Makes use of the [glyhpicon halflings](http://glyphicons.com/) font distributed with bootstrap.
+
+## License
 
 ```
 copyright (c) jumblerg & contributors. all rights reserved.
