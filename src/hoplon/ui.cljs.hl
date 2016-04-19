@@ -9,7 +9,8 @@
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def empty-url "data:;base64,iVBORw0KGgo=")
+(def empty-icon-url  "data:;base64,iVBORw0KGgo=")
+(def empty-image-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")
 
 (def ^:dynamic *data*   nil)
 (def ^:dynamic *error*  nil)
@@ -306,9 +307,9 @@
 
 (defn set-fragment! [route & [query]]
   (let [pair  (fn [[k v]] (str (name k) "=" v))
-        route (when (seq route) (apply str "/" (interpose "/" (map name route))))
+        route (when (seq route) (apply str     (interpose "/" (map name route))))
         query (when (seq query) (apply str "?" (interpose "&" (map pair query))))]
-    (set! js/window.location.hash (str route query))))
+    (set! js/window.location.hash (str "/" route query))))
 
 (defn split-if [str re]
   (if str (split str re)))
@@ -439,8 +440,8 @@
   (box
     (hoplon.core/img
       :css/width "100%"
-      :src       (cell= (or url empty-url))
-      :alt       label)
+      :html/src  (cell= (or url empty-image-url))
+      :html/alt  label)
     ; :w        :auto
     :overflow "hidden"
    (dissoc attrs :label :url)))
@@ -575,7 +576,7 @@
         (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
           (html-meta (into {} (for [[k v] m] [k (name v)]))))
         (title (:title attrs))
-        (link :rel "icon" :href (or (:icon attrs) empty-url))
+        (link :rel "icon" :href (or (:icon attrs) empty-icon-url))
         (for-tpl [s styles]  (link :rel "stylesheet" :href s))
         (for-tpl [s scripts] (script :src s)))
       (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
