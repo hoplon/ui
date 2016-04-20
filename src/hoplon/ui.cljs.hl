@@ -90,7 +90,8 @@
 (def haligns [:left :right :center :justify])
 (def valigns [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
 
-(def floats [:left :right])
+(def floats    [:left :right])
+(def overflows [:visible :hidden :scroll :auto])
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -162,6 +163,12 @@
     (nil?     v) "initial"
     (keyword? v) (namekw v haligns globals)
     :else        (throw (js/Error. (str "Align value " v " invalid.")))))
+
+(defn ->overflow [v]
+  (cond
+    (nil?     v) "initial"
+    (keyword? v) (namekw v overflows globals)
+    :else        (throw (js/Error. (str "Overflow value " v " invalid.")))))
 
 (defn ->valign [v]
   (cond
@@ -271,9 +278,9 @@
 (defmethod do! :rbr         [e _ v] (do! e :css/border-bottom-left-radius (->len v)))
 
 ; overflow (inner)
-(defmethod do! :overflow    [e _ v] (do! e :css/overflow           v))
-(defmethod do! :overflow-h  [e _ v] (do! e :css/overflow-x         v))
-(defmethod do! :overflow-y  [e _ v] (do! e :css/overflow-y         v))
+(defmethod do! :overflow    [e _ v] (do! e :css/overflow           (->overflow v)))
+(defmethod do! :overflow-h  [e _ v] (do! e :css/overflow-x         (->overflow v)))
+(defmethod do! :overflow-y  [e _ v] (do! e :css/overflow-y         (->overflow v)))
 
 ;;; inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -338,6 +345,7 @@
 (def mid-attrs
   {:css/box-sizing "border-box" ;; include border and padding in dimensions
    :css/display    "table-cell" ;; cells in tables enable sane vertical alignment
+   ;:css/width      "inherit"    ;  assume the width of the parent and proxy it to the inner div
    :css/height     "inherit"})  ;; assume the height of the parent and proxy it to the inner div
 
 (def mid-attr-keys
@@ -351,6 +359,7 @@
   {:css/box-sizing "border-box" ;; include border and padding in dimensions
    :css/display    "block"      ;; prevent white space from creeping in around inline elements
    :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
+  ; :css/width      "inherit"    ;; prevent children with absolute widths from expanding width of parent
    :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
 
 ;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,7 +452,7 @@
       :html/src  (cell= (or url empty-image-url))
       :html/alt  label)
     ; :w        :auto
-    :overflow "hidden"
+    :overflow :hidden
    (dissoc attrs :label :url)))
 
 ;;; forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

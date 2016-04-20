@@ -3,7 +3,7 @@ Experiment to create a cohesive and responsive user interface component library 
 
 [](dependency)
 ```clojure
-[hoplon/ui "0.0.1-SNAPSHOT"] ;; latest release, not yet available to clojar.
+[hoplon/ui "0.0.1-SNAPSHOT"] ;; latest release
 ```
 [](/dependency)
 
