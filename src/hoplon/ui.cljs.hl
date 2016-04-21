@@ -104,6 +104,7 @@
 (defn str->int [s] (if (re-find #"^\d+$" s) (js/parseInt s) s))
 
 (defn route->hash [[path & [qmap]]]
+  (prn :path path :qmap qmap)
   "transforms a urlstate of the form [[\"foo\" \"bar\"] {:baz \"barf\"}]
    to hash string in the form \"foo/bar&baz=barf\""
   (let [pair (fn [[k v]] (str (name k) "=" v))
@@ -116,7 +117,7 @@
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
   (let [[rstr qstr] (split (subs hash 2) #"\?")
         pair        #(let [[k v] (split % #"=")] [(keyword k) (str->int v)])
-        qmap        (into {} (map pair (split qstr #"&")))
+        qmap        (into {} (when (not-empty qstr) (map pair (split qstr #"&"))))
         path        (vec (split rstr #"/"))]
     (vec (remove empty? [path qmap]))))
 
@@ -577,7 +578,7 @@
   (cell= (set! js/location.hash (route->hash route)))
   (when routechanged
     (.addEventListener js/window "hashchange"
-      #(when-not (= (route->hash route) js/location.hash)
+      #(when-not (= (route->hash @route) js/location.hash)
         (routechanged (hash->route js/location.hash)))))
   (when initialized
     (add-initfn! #(initialized (.-navigator js/window))))
