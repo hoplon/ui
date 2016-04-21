@@ -93,16 +93,38 @@
 (def floats    [:left :right])
 (def overflows [:visible :hidden :scroll :auto])
 
-;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn split-if [str re]
+  (if str (split str re)))
+
+(defn subs-if [str start end]
+  (if str (subs str start end)))
+
+(defn str->int [s] (if (re-find #"^\d+$" s) (js/parseInt s) s))
+
+(defn route->hash [[path & [qmap]]]
+  "transforms a urlstate of the form [[\"foo\" \"bar\"] {:baz \"barf\"}]
+   to hash string in the form \"foo/bar&baz=barf\""
+  (let [pair (fn [[k v]] (str (name k) "=" v))
+        pstr (when path (apply str "/" (interpose "/" (map name path))))
+        qstr (when qmap (apply str "?" (interpose "&" (map pair qmap))))]
+    (str "#" pstr qstr)))
+
+(defn hash->route [hash]
+  "transforms a hash string to a urlstate of the form
+   [[\"foo\" \"bar\"] {:baz \"barf\"}]"
+  (let [[rstr qstr] (split (subs hash 2) #"\?")
+        pair        #(let [[k v] (split % #"=")] [(keyword k) (str->int v)])
+        qmap        (into {} (map pair (split qstr #"&")))
+        path        (vec (split rstr #"/"))]
+    (vec (remove empty? [path qmap]))))
 
 (def parse-args #'hoplon.core/parse-args)
 
-(defn chop  [string]    (subs string 0 (dec (count string))))
-(defn lastchar  [string]    (subs string (dec (count string)) (count string)))
-
 (defn px    [v]  (if (number? v) (str v "px") v))
 
-(defn kw-ok?  [kws v] (and (keyword? v) (some #{v} (conj kws globals))))
+;;; validators ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn namekw [v & kws]
   (if (some #{v} (apply concat kws))
@@ -309,23 +331,6 @@
     (let [val #(.val (js/jQuery (.-target %)))]
       ; (fn [] (.keyup    (j e) #(if (= (.-which %) 13) (c (val %)))))  #_(.-is % ":focus")
       (fn [] (.change (js/jQuery e) #(c (val %)))))))
-
-;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn set-fragment! [route & [query]]
-  (let [pair  (fn [[k v]] (str (name k) "=" v))
-        route (when (seq route) (apply str     (interpose "/" (map name route))))
-        query (when (seq query) (apply str "?" (interpose "&" (map pair query))))]
-    (set! js/window.location.hash (str "/" route query))))
-
-(defn split-if [str re]
-  (if str (split str re)))
-
-(defn subs-if [str start end]
-  (if str (subs str start end)))
-
-(defn parse-if-int [v]
-  (if-let [n (js/parseInt v)] n v))
 
 ;;; box model ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -568,29 +573,28 @@
 (defelem password       [attrs _] (field (merge {:type "password"}       attrs)))
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
-(defelem window [{:keys [alert metadata query route scripts styles initialized focuschange querychange routechange] :as attrs} elems]
-  (let [frag   (route-cell "#")
-        parts  (cell= (split (subs frag 2) #"\?"))
-        route* (cell= (->> (split (first parts) #"/") (map keyword)))
-        query* (cell= (->> (split (second parts) #"&") (map #(split % #"=")) (map (fn [[k v]] [(keyword k) (parse-if-int v)])) (into {})))]
-    (cell= (set-fragment! route query))
-    (cell= (if (and querychange (seq query*) (not= query* query)) (querychange query*)))
-    (cell= (if (and routechange (seq route*) (not= route* route)) (routechange route*)))
-    (if initialized (add-initfn! #(initialized js/window.navigator)))
-    (html :lang (:lang attrs "en") :css/height "100%"
-      (head
-        (html-meta :charset "utf-8")
-        (html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
-        (html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
-        (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
-          (html-meta (into {} (for [[k v] m] [k (name v)]))))
-        (title (:title attrs))
-        (link :rel "icon" :href (or (:icon attrs) empty-icon-url))
-        (for-tpl [s styles]  (link :rel "stylesheet" :href s))
-        (for-tpl [s scripts] (script :src s)))
-      (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
-        (dissoc attrs :alert :metadata :title :icon :query :route :lang :styles :scripts :initialized :focuschange :querychange :routechange)
-        elems))))
+(defelem window [{:keys [alert metadata route scripts styles initialized statuschanged routechanged] :as attrs} elems]
+  (cell= (set! js/location.hash (route->hash route)))
+  (when routechanged
+    (.addEventListener js/window "hashchange"
+      #(when-not (= (route->hash route) js/location.hash)
+        (routechanged (hash->route js/location.hash)))))
+  (when initialized
+    (add-initfn! #(initialized (.-navigator js/window))))
+  (html :lang (:lang attrs "en") :css/height "100%"
+    (head
+      (html-meta :charset "utf-8")
+      (html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
+      (html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
+      (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
+        (html-meta (into {} (for [[k v] m] [k (name v)]))))
+      (title (:title attrs))
+      (link :rel "icon" :href (or (:icon attrs) empty-icon-url))
+      (for-tpl [s styles]  (link :rel "stylesheet" :href s))
+      (for-tpl [s scripts] (script :src s)))
+    (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
+      (dissoc attrs :alert :metadata :title :icon :route :lang :styles :scripts :initialized :statuschanged :routechanged)
+      elems)))
 
 (defelem alert [{:keys [alert] :as attrs} _]
   (let [detail  (cell false)

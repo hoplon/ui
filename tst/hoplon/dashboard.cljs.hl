@@ -37,9 +37,8 @@
 (def lg 1069)
 
 (u/window
-  :title       "Command Center"
-  :query       (cell= {:target target})
-  :route       ["targets"]
+  :title "Command Center"
+  :route [["targets"] {:target target}]
   (u/elem :w "100%" :p 6 :av :middle
     (u/elem :w ["100%" sm 230]
       (u/image :w 50 :h 50 :url "hoplon-logo.png")

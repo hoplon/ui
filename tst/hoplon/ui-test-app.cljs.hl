@@ -23,11 +23,9 @@
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (u/window
-  :title       "Hoplon UI"
-  :description "Functional tests of Hoplon UI."
-  :metadata    metadata
-  :query       {:foo "bar" :baz "barf"}
-  :route       ["tests"]
+  :title    "Hoplon UI"
+  :route    [["tests"] {:foo "bar" :baz "barf"}]
+  :metadata metadata
   (u/elem :w "100%" :p 6 :av :middle :sb 1 :s-color 0xCCC :shadow "0 1px 4px 0 rgba(0,0,0,0.37)"
     (u/elem :w ["100%" sm 160]
       (u/image :w 50 :h 50 :url "hoplon-logo.png")
