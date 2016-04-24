@@ -117,9 +117,16 @@
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
   (let [[rstr qstr] (split (subs hash 2) #"\?")
         pair        #(let [[k v] (split % #"=")] [(keyword k) (str->int v)])
-        qmap        (into {} (when (not-empty qstr) (map pair (split qstr #"&"))))
-        path        (vec (split rstr #"/"))]
+        qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
+        path        (->> (split rstr #"/") (remove empty?) (vec))]
     (vec (remove empty? [path qmap]))))
+
+(def visibility->status
+  "maps the visibility string to a status keyword"
+  {"visible"   :foreground
+   "hidden"    :background
+   "prerender" :background
+   "unloaded"  :terminated})
 
 (def parse-args #'hoplon.core/parse-args)
 
@@ -574,11 +581,20 @@
 (defelem password       [attrs _] (field (merge {:type "password"}       attrs)))
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
-(defelem window [{:keys [alert metadata route scripts styles initialized statuschanged routechanged] :as attrs} elems]
-  (let [change-route #(when-not (= (route->hash @route) js/location.hash) (routechanged (hash->route js/location.hash)))]
-    (when routechanged (change-route) (.addEventListener js/window "hashchange" change-route))
-    (when initialized  (add-initfn! (initialized (.-navigator js/window))))
-    (add-initfn! #(cell= (set! js/location.hash (route->hash route)))))
+(defelem window [{:keys [alert metadata route scripts styles initiated statuschanged routechanged] :as attrs} elems]
+  (let [get-agent  #(-> js/window .-navigator)
+        get-hash   #(-> js/window .-location .-hash)
+        get-route  #(-> js/window .-location .-hash hash->route)
+        get-status #(-> js/window .-document .-visibilityState visibility->status)]
+    (when initiated
+      (initiated (get-route) (get-status) (get-agent)))
+    (when routechanged
+      (.addEventListener js/window "hashchange"
+        #(when-not (= (route->hash @route) (get-hash)) (routechanged (get-route)))))
+    (when statuschanged
+      (.addEventListener js/window "visibilitychange"
+        #(statuschanged (get-status))))
+    (cell= (set! js/location.hash (route->hash route))))
   (html :lang (:lang attrs "en") :css/height "100%"
     (head
       (html-meta :charset "utf-8")
@@ -591,7 +607,7 @@
       (for-tpl [s styles]  (link :rel "stylesheet" :href s))
       (for-tpl [s scripts] (script :src s)))
     (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
-      (dissoc attrs :alert :metadata :title :icon :route :lang :styles :scripts :initialized :statuschanged :routechanged)
+      (dissoc attrs :alert :metadata :title :icon :route :lang :styles :scripts :initiated :statuschanged :routechanged)
       elems)))
 
 (defelem alert [{:keys [alert] :as attrs} _]
