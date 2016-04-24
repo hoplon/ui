@@ -575,13 +575,10 @@
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
 (defelem window [{:keys [alert metadata route scripts styles initialized statuschanged routechanged] :as attrs} elems]
-  (cell= (set! js/location.hash (route->hash route)))
-  (when routechanged
-    (.addEventListener js/window "hashchange"
-      #(when-not (= (route->hash @route) js/location.hash)
-        (routechanged (hash->route js/location.hash)))))
-  (when initialized
-    (add-initfn! #(initialized (.-navigator js/window))))
+  (let [change-route #(when-not (= (route->hash @route) js/location.hash) (routechanged (hash->route js/location.hash)))]
+    (when routechanged (change-route) (.addEventListener js/window "hashchange" change-route))
+    (when initialized  (add-initfn! (initialized (.-navigator js/window))))
+    (add-initfn! #(cell= (set! js/location.hash (route->hash route)))))
   (html :lang (:lang attrs "en") :css/height "100%"
     (head
       (html-meta :charset "utf-8")
