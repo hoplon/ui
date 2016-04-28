@@ -101,13 +101,10 @@
 (defn subs-if [str start end]
   (if str (subs str start end)))
 
-(defn str->int [s] (if (re-find #"^\d+$" s) (js/parseInt s) s))
-
 (defn route->hash [[path & [qmap]]]
-  (prn :path path :qmap qmap)
   "transforms a urlstate of the form [[\"foo\" \"bar\"] {:baz \"barf\"}]
    to hash string in the form \"foo/bar&baz=barf\""
-  (let [pair (fn [[k v]] (str (name k) "=" v))
+  (let [pair (fn [[k v]] (str (name k) "=" (pr-str v)))
         pstr (when path (apply str "/" (interpose "/" (map name path))))
         qstr (when qmap (apply str "?" (interpose "&" (map pair qmap))))]
     (str "#" pstr qstr)))
@@ -116,7 +113,7 @@
   "transforms a hash string to a urlstate of the form
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
   (let [[rstr qstr] (split (subs hash 2) #"\?")
-        pair        #(let [[k v] (split % #"=")] [(keyword k) (str->int v)])
+        pair        #(let [[k v] (split % #"=")] [(keyword k) (cljs.reader/read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (vec))]
     (vec (remove empty? [path qmap]))))
@@ -426,7 +423,7 @@
     (.keypress (js/jQuery elem) #(if (= (.-which %) 13) (submit @data)))
     elem))
 
-;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem anchor [{:keys [url] :as attrs} elems]
   (box
@@ -460,7 +457,7 @@
 
 (defelem image [{:keys [label url] :as attrs} _]
   (box
-    (hoplon.core/img
+    (hoplon.core/img ;; implement using css, bg image instead to make a container, or make image outer div?
       :css/width "100%"
       :html/src  (cell= (or url empty-image-url))
       :html/alt  label)
@@ -476,6 +473,18 @@
 ;   :font-size          +p+
 ;   :ph                 6
 ;   label )
+
+(defelem checkbox [{:keys [name label selected g] :as attrs} _]
+  (box
+    (hoplon.core/label
+      (hoplon.core/input
+        :type               "checkbox"
+        :name               name
+        :checked            selected
+        :css/margin-right   (px (or g 8))
+        :css/vertical-align "text-bottom")
+      label)
+    (dissoc attrs :name :label :selected)))
 
 (defelem field* [{:keys [autocorrect autocapitalize name label prompt type value] :as attrs} _]
   (box
@@ -559,7 +568,7 @@
         data *data*]
     (button :click #((or submit @subm) @data) (dissoc attrs :submit) elems)))
 
-(defelem checkbox       [attrs _] (field (merge {:type "checkbox"}       attrs)))
+; (defelem checkbox       [attrs _] (field (merge {:type "checkbox"}       attrs)))
 (defelem color          [attrs _] (field (merge {:type "color"}          attrs)))
 (defelem date           [attrs _] (field (merge {:type "date"}           attrs)))
 (defelem datetime       [attrs _] (field (merge {:type "datetime"}       attrs)))
@@ -582,7 +591,8 @@
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
 (defelem window [{:keys [alert metadata route scripts styles initiated statuschanged routechanged] :as attrs} elems]
-  (let [get-agent  #(-> js/window .-navigator)
+  (let [ready?     #(-> js/window .-document .-readyState (= "complete"))
+        get-agent  #(-> js/window .-navigator)
         get-hash   #(-> js/window .-location .-hash)
         get-route  #(-> js/window .-location .-hash hash->route)
         get-status #(-> js/window .-document .-visibilityState visibility->status)]
@@ -594,7 +604,7 @@
     (when statuschanged
       (.addEventListener js/window "visibilitychange"
         #(statuschanged (get-status))))
-    (cell= (set! js/location.hash (route->hash route))))
+    (cell= (when (ready?) (set! js/location.hash (route->hash route)))))
   (html :lang (:lang attrs "en") :css/height "100%"
     (head
       (html-meta :charset "utf-8")
@@ -609,6 +619,8 @@
     (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
       (dissoc attrs :alert :metadata :title :icon :route :lang :styles :scripts :initiated :statuschanged :routechanged)
       elems)))
+
+;;; element components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem alert [{:keys [alert] :as attrs} _]
   (let [detail  (cell false)
