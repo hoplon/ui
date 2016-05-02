@@ -115,7 +115,7 @@
   (let [[rstr qstr] (split (subs hash 2) #"\?")
         pair        #(let [[k v] (split % #"=")] [(keyword k) (cljs.reader/read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
-        path        (->> (split rstr #"/") (remove empty?) (vec))]
+        path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
     (vec (remove empty? [path qmap]))))
 
 (def visibility->status
@@ -372,8 +372,6 @@
   ; :css/width      "inherit"    ;; prevent children with absolute widths from expanding width of parent
    :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
 
-;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn box-xf [ctr & [inv]]
   "implements the box model by evaluating the element constructor and wrapping
    it in two additional divs. attributes are filtered out and applied to the
@@ -384,6 +382,8 @@
          ((if inv div ctr) in-attrs  (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
          (div              mid-attrs (select-keys attrs mid-attr-keys))
          ((if inv ctr div) out-attrs (select-keys attrs out-attr-keys)))))
+
+;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn height-xf [ctr]
   "set vertical height of the inner element to auto when the align vertical (av)
@@ -467,14 +467,7 @@
 
 ;;; forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; (hoplon.core/label
-;   :css/box-sizing     "border-box"
-;   :css/display        "block"
-;   :font-size          +p+
-;   :ph                 6
-;   label )
-
-(defelem checkbox [{:keys [name label selected g] :as attrs} _]
+(defelem checkbox [{:keys [name label prompt selected g] :as attrs} _]
   (box
     (hoplon.core/label
       (hoplon.core/input
@@ -483,7 +476,7 @@
         :checked            selected
         :css/margin-right   (px (or g 8))
         :css/vertical-align "text-bottom")
-      label)
+      (or prompt label))
     (dissoc attrs :name :label :selected)))
 
 (defelem field* [{:keys [autocorrect autocapitalize name label prompt type value] :as attrs} _]
@@ -590,9 +583,10 @@
 (defelem password       [attrs _] (field (merge {:type "password"}       attrs)))
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
+;; todo: window rel=noopener
+
 (defelem window [{:keys [alert metadata route scripts styles initiated statuschanged routechanged] :as attrs} elems]
-  (let [ready?     #(-> js/window .-document .-readyState (= "complete"))
-        get-agent  #(-> js/window .-navigator)
+  (let [get-agent  #(-> js/window .-navigator)
         get-hash   #(-> js/window .-location .-hash)
         get-route  #(-> js/window .-location .-hash hash->route)
         get-status #(-> js/window .-document .-visibilityState visibility->status)]
@@ -604,7 +598,7 @@
     (when statuschanged
       (.addEventListener js/window "visibilitychange"
         #(statuschanged (get-status))))
-    (cell= (when (ready?) (set! js/location.hash (route->hash route)))))
+    (cell= (set! js/location.hash (route->hash route))))
   (html :lang (:lang attrs "en") :css/height "100%"
     (head
       (html-meta :charset "utf-8")
