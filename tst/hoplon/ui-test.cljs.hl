@@ -1,0 +1,267 @@
+(page "index.html"
+  (:refer-clojure :exclude
+    [test])
+  (:require
+    [hoplon.ui :as u]))
+
+(defc things [0 1 2])
+
+(def metadata
+  [{:property "og:url"                   :content "http://www.mysite.com/"}
+   {:name    "image_src"                 :content "http://www.mysite.com/images/logo-fb.png"}
+   {:property "og:image"                 :content "http://www.mysite.com/images/logo-180.png"}
+   {:property "og:image:width"           :content "180"}
+   {:property "og:image:height"          :content "110"}
+   {:property "og:image"                 :content "http://www.mysite.com/images/logo-250.png"}
+   {:property "og:image:width"           :content "250"}
+   {:property "og:image:height"          :content "250"}
+   {:content  "text/html; charset=UTF-8" :http-equiv "content-type"}])
+
+;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def sm 736)
+(def lg 1069)
+
+(def gutter 4)
+
+(def stroke-grey 0xCCC)
+(def fill-grey   0xEEE)
+(def font-grey   0x888)
+
+(def fail-color  0xd43f3a)
+(def pass-color  0x4cae4c)
+
+
+
+; (defn time-it [] (u/console-time (dotimes [n 1000] (u/elem :color :green (u/elem "hello")))))
+
+; (defn time-it [] (u/console-time
+;                    (dotimes [n 1000]
+;                     (u/component ["div" "div" "div"]))))
+
+; (defn time-it [] (u/console-time
+;                    (dotimes [n 1000]
+;                     (u/element-list ["div" "div" "div"]))))
+
+;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defelem suite [{:keys [title pass code] :as attrs} elems]
+  (u/elem :w "100%" :h "100%" :p gutter :g gutter
+    (u/elem :w "100%" :ph gutter
+      (u/elem :font-size 21 :font-color font-grey
+        title)
+      (u/elem :cr 0 :p gutter :ah :right :color fill-grey :s 1 :s-color stroke-grey :r 3
+        code))
+    attrs elems))
+
+(defelem box [attrs elems]
+  (u/elem :w 40 :h 40 :ah :center :av :middle :color 0xFFF :s 2 :s-color stroke-grey
+    attrs elems))
+
+(defelem test [{:keys [title pass] :as attrs} elems]
+  (u/elem :w 300
+    (u/elem :ph gutter :gh gutter
+      (u/elem :h 6 :w 6 :r 6 :color (cell= (if pass pass-color fail-color)))
+      (u/elem :font-color font-grey :font-size 10 title))
+    (u/elem :w 200 :h 200 :p gutter :g gutter :color fill-grey :s 2 :s-color stroke-grey
+      (dissoc attrs :title)
+      elems)))
+
+(u/window
+  :title    "Hoplon UI"
+  :route    [["tests"] {:foo "bar" :baz "barf"}]
+  :metadata metadata
+  (u/elem :w "100%" :p 6 :av :middle :sb 2 :s-color stroke-grey
+    (u/image :w 50 :url "hoplon-logo.png")
+    (u/elem :pl 6 :font-size 21 "Hoplon UI Live Reference & Functional Tests"))
+  (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
+    (test :ah :left   :av :top    :title "box aligns horizontal left & vertical top" :pass true
+      (box "a"))
+    (test :ah :center :av :top    :title "box aligns horizontal center & vertical top" :pass true
+      (box "a"))
+    (test :ah :right  :av :top    :title "box aligns horizontal right & vertical top" :pass true
+      (box "a"))
+    (test :ah :left   :av :middle :title "box aligns horizontal left & vertical middle" :pass true
+      (box "a"))
+    (test :ah :center :av :middle :title "box aligns horizontal center & vertical middle" :pass true
+      (box "a"))
+    (test :ah :right  :av :middle :title "box aligns horizontal right & vertical middle" :pass true
+      (box "a"))
+    (test :ah :left   :av :bottom :title "box aligns horizontal left & vertical bottom" :pass true
+      (box "a"))
+    (test :ah :center :av :bottom :title "box aligns horizontal center & vertical bottom" :pass true
+      (box "a"))
+    (test :ah :right  :av :bottom :title "box aligns horizontal right & vertical bottom" :pass true
+      (box "a"))
+    (test :ah :left   :av :top    :title "boxes align horizontal left & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :center :av :top    :title "boxes align horizontal center & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :right  :av :top    :title "boxes align horizontal right & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :left   :av :middle :title "boxes align horizontal left & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :center :av :middle :title "boxes align horizontal center & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :right  :av :middle :title "boxes align horizontal right & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :left   :av :bottom :title "boxes align horizontal left & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :center :av :bottom :title "boxes align horizontal center & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :right  :av :bottom :title "boxes align horizontal right & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c"))
+    (test :ah :left  :av :top :title "boxes align horizontal left & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :center :av :top :title "boxes align horizontal center & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :right  :av :top :title "boxes align horizontal right & vertical top" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :left  :av :middle :title "boxes align horizontal left & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :center :av :middle :title "boxes align horizontal center & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :right  :av :middle :title "boxes align horizontal right & vertical middle" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :left  :av :bottom :title "boxes align horizontal left & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :center  :av :bottom :title "boxes align horizontal center & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :right  :av :bottom :title "boxes align horizontal right & vertical bottom" :pass true
+      (box :h 60 "a")
+      (box :h 40 "b")
+      (box :h 20 "c")
+      (box :h 40 "d")
+      (box :h 60 "e")
+      (box :h 60 "f")
+      (box :h 40 "g")
+      (box :h 20 "h")
+      (box :h 40 "i")
+      (box :h 40 "j"))
+    (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
+      (cell (box "a"))))
+  (suite :title "layouts"
+    (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
+      (u/elem
+        (box :w "100%" "a")
+        (box "b")))
+    (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
+      ;; caused by
+      (u/elem
+        (u/elem :font-size 10 "a")
+        (box "b")))
+    (test :ah :center :av :middle :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
+      ;; solution: apply lengths to middle, but percentages to outer
+      (u/elem :g 50
+        (box "a"))))
+  (suite))
+
+(u/elem :w ["100%" sm '(- "100%" 220)] :ah :right :g 6
+  ; (u/button   :w ["100%" sm 200] :h 50 :click #(time-it) "Time It")
+  (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Run Tests")
+  (u/dropdown :w ["100%" sm 200] :h 50 :prompt "ChangeThing" :options (cell= (map str things))))
+
+    ; (u/elem :w ["100%" sm sm] :ah :center :g 10
+    ;
+    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
+    ;     "Foo")
+    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
+    ;     "Bar")
+    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
+    ;     "Baz")
+    ;   (u/elem :w "100%" :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
+    ;     (let [w (cell= (str (/ 100 (count things)) "%"))]
+    ;       (for-tpl [thing things]
+    ;         (u/elem :w w :ah :center thing)))))
+    ; (u/elem :w "100%"
+    ;   (u/checkbox "Test"))))

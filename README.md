@@ -14,8 +14,8 @@ This is an experimental, early stage work in progress. Bugs lurk everywhere. The
 ### Installation
 `ui` currently requires the `responsive-layout-attributes` branch of hoplon to be installed in order to function correctly.
 
-### Demonstration
-Execute `boot run` then navigate to `localhost:3010` in a browser to view functional tests. Resize the browser window to test responsive layout features.
+### Functional Tests
+Execute `boot test` then navigate to `localhost:5000` in a browser to view functional tests. Resize the browser window to test responsive layout features.
 
 ### Development
 Continuously rebuild and reinstall the jar as changes are made.

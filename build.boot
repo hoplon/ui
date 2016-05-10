@@ -4,7 +4,7 @@
   :test-paths   #{"tst"}
   :target-path  "tgt"
   :dependencies '[[org.clojure/clojure       "1.7.0"     :scope "provided"]
-                  [org.clojure/clojurescript "1.7.228"   :scope "provided"]
+                  [org.clojure/clojurescript "1.8.51"    :scope "provided"]
                   [org.clojure/tools.nrepl   "0.2.12"    :scope "test"]
                   [adzerk/boot-cljs          "1.7.228-1" :scope "test"]
                   [adzerk/boot-cljs-repl     "0.3.0"     :scope "test"]
@@ -36,7 +36,7 @@
 (deftask develop []
   (comp (watch) (speak) (hoplon :manifest true) (pom) (jar) (install)))
 
-(deftask run []
+(deftask test []
   (as-> (get-env) $
         (clojure.set/union (:source-paths $) (:test-paths $))
         (set-env! :source-paths $))
@@ -49,4 +49,4 @@
           :url         "https://github.com/hoplon/ui"
           :scm         {:url "https://github.com/hoplon/ui"}
           :license     {"EPL" "http://www.eclipse.org/legal/epl-v10.html"}}
-  serve {:port        3010})
+  serve {:port        5000})

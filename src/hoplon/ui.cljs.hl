@@ -331,6 +331,9 @@
 
 (defmethod do! :cursor      [e _ v] (do! e :css/cursor    (->cursor v)))
 
+;; todo: baseline-shift
+;; todo: shadow
+
 (defmethod on! :update [e _ c]
   (when-dom e
     (let [val #(.val (js/jQuery (.-target %)))]
@@ -385,12 +388,20 @@
 
 ;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn height-xf [ctr]
+(defn with-elem [f]
+  (fn [e]
+    (cond ;(cell?   e) (cell= ((with-elem f) e))
+          (ifn? e) (f e)
+          :else e)))
+
+(defn valign-xf [ctr]
   "set vertical height of the inner element to auto when the align vertical (av)
-   attribute is set."
+   attribute is set. also proxy the vertical alignment of the parent to the outer
+   element of each child to ensure that not only is the line of children aligned
+   within the elem, but also that children are aligned within the line as well."
   (fn [{:keys [av] :as attrs} elems]
     (-> (assoc attrs :css/height (cell= (if av "auto" "inherit")))
-        (ctr elems))))
+        (ctr (mapv (with-elem #(% :css/vertical-align (->valign av))) elems)))))
 
 (defn gutter-xf [ctr]
   "replace gutters (g gh gv) with margins (m mh mv) and fences (f fh fv) on the
@@ -406,12 +417,12 @@
       (ctr attrs elems))))
 
 (defn box [ctr & args]
-  (apply (-> ctr box-xf height-xf gutter-xf) (parse-args args)))
+  (apply (-> ctr box-xf valign-xf gutter-xf) (parse-args args)))
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem body [attrs elems]
-  ((-> hoplon.core/body (box-xf :invert) height-xf gutter-xf) attrs elems))
+  ((-> hoplon.core/body (box-xf :invert) valign-xf gutter-xf) attrs elems))
 
 (defelem elem [attrs elems]
   (box div attrs elems))
@@ -584,8 +595,9 @@
 (defelem username       [attrs _] (field (merge {:type "text" :autocorrect "off" :autocapitalize "off"} attrs)))
 
 ;; todo: window rel=noopener
+;; todo: finish mousechanged
 
-(defelem window [{:keys [alert metadata route scripts styles initiated statuschanged routechanged] :as attrs} elems]
+(defelem window [{:keys [alert metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged] :as attrs} elems]
   (let [get-agent  #(-> js/window .-navigator)
         get-hash   #(-> js/window .-location .-hash)
         get-route  #(-> js/window .-location .-hash hash->route)
@@ -598,7 +610,14 @@
     (when statuschanged
       (.addEventListener js/window "visibilitychange"
         #(statuschanged (get-status))))
-    (cell= (set! js/location.hash (route->hash route))))
+    (when scrollchanged
+       (.addEventListener js/window "scroll"
+         #(let [[x y :as new-scroll] (vector (.-scrollX js/window) (.-scrollY js/window))]
+            (when-not (= new-scroll scroll)
+              (scrollchanged x y)))))
+    (cell= (set! js/location.hash (route->hash route)))
+    (.addEventListener js/document "DOMContentLoaded"
+      #(cell= (.scroll js/window (first scroll) (second scroll)))))
   (html :lang (:lang attrs "en") :css/height "100%"
     (head
       (html-meta :charset "utf-8")
@@ -611,7 +630,7 @@
       (for-tpl [s styles]  (link :rel "stylesheet" :href s))
       (for-tpl [s scripts] (script :src s)))
     (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
-      (dissoc attrs :alert :metadata :title :icon :route :lang :styles :scripts :initiated :statuschanged :routechanged)
+      (dissoc attrs :alert :scroll :metadata :title :icon :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged)
       elems)))
 
 ;;; element components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
