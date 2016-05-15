@@ -221,10 +221,6 @@
 (defmethod do! :y           [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
 (defmethod do! :z           [e _ v] (do! e :css/z-index               v)) ;:max :min
 
-; alignment (?)
-(defmethod do! :ah          [e _ v] (do! e :css/text-align     (->halign v))) ;i
-(defmethod do! :av          [e _ v] (do! e :css/vertical-align (->valign v)))
-
 ; constraint (outer)
 (defmethod do! :c           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")) ;; todo: refactor
                                     (do! e :css/right          (->len v) (do! e :css/position "absolute"))
@@ -349,8 +345,7 @@
    :css/height     "inherit"})  ;; assume the height of the parent and proxy it to the inner div
 
 (def mid-attr-keys
-  [:av :ah
-   :s :sl :sr :st :sb :s-color
+  [:s :sl :sr :st :sb :s-color
    :r :rtl :rtr :rbl :rbr
    :overflow :overflow-h :overflow-y
    :color :shadow :opacity :toggle])
@@ -378,12 +373,6 @@
 (defn mid [e] (-> e .-firstChild))
 (defn in  [e] (-> e .-firstChild .-firstChild))
 
-(defn with-elem [f]
-  (fn [e]
-    (cond ;cell?   e) (cell= ((with-elem f) e)
-          (ifn? e) (f e)
-          :else e)))
-
 (defn throw-ui! [elem msg]
   (let [error-msg (str "UI ERROR: " msg)]
     (set! (.. elem -title) error-msg)
@@ -397,7 +386,8 @@
       (cell?    value) (do-watch value #(set-style! elem box-fn style %2))
       (integer? value) (aset (box-fn elem) "style" style (dom (px value)))
       :else            (aset (box-fn elem) "style" style (dom value)))
-    (catch js/Error _
+    (catch js/Error error
+      (prn :error error)
       (throw-ui! elem (str "Attribute \"" style "\" has an invalid value of \"" value "\".")))))
 
 (def sizes
@@ -422,14 +412,24 @@
       (doseq [[s v] (mapv (fn [[a v]] (vector (sizes a) v)) (select-keys attrs (keys sizes)))]
         (set-style! e (if (ratio? v) out mid) s v)))))
 
-(defn valign-xf [ctr]
-  "set vertical height of the inner element to auto when the align vertical (av)
-   attribute is set. also proxy the vertical alignment of the parent to the outer
-   element of each child to ensure that not only is the line of children aligned
-   within the elem, but also that children are aligned within the line as well."
-  (fn [{:keys [av] :as attrs} elems]
-    (-> (assoc attrs :css/height (cell= (if av "auto" "inherit")))
-        (ctr (mapv (with-elem #(% :css/vertical-align (->valign av))) elems)))))
+(defn align [ctor]
+  "set the text-align and vertical-align attributes on the elem and proxy the
+   vertical-align attribute to the outer element of each child.  set vertical
+   height of the inner element to auto when the align vertical attribute is set.
+
+  the vertical alignment is proxied to the outer elements of the children so
+  that, in addition to aligning the lines of children within the elem, the
+  the children are also aligned in the same manner within their respective
+  lines."
+  (fn [{:keys [ah av] :as attrs} elems]
+    (prn :elems elems)
+    (doseq [e elems]
+      (when (ifn? e) ;;cell?   e) (cell= ((with-elem f) e)
+        (set-style! e out "vertical-align" av)))
+    (with-let [e (ctor (dissoc attrs :ah :av) elems)]
+      (set-style! e in  "height"         (cell= (if av :auto :inherit))) ;; initial instead?
+      (set-style! e mid "text-align"     ah)
+      (set-style! e mid "vertical-align" av))))
 
 (defn gutter-xf [ctr]
   "replace gutters (g gh gv) with margins (m mh mv) and fences (f fh fv) on the
@@ -445,12 +445,12 @@
       (ctr attrs elems))))
 
 (defn box [ctr & args]
-  (apply (-> ctr box-xf size valign-xf gutter-xf) (parse-args args)))
+  (apply (-> ctr box-xf align size gutter-xf) (parse-args args)))
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem body [attrs elems]
-  ((-> hoplon.core/body (box-xf :invert) size valign-xf gutter-xf) attrs elems))
+  ((-> hoplon.core/body (box-xf :invert) align size gutter-xf) attrs elems))
 
 (defelem elem [attrs elems]
   (box div attrs elems))

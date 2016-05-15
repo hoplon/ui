@@ -46,7 +46,7 @@
 (extend-type Keyword
   IValue
   (-dom [this]
-    (str this)))
+    (name this)))
 
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
