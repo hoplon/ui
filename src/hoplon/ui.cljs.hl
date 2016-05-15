@@ -1,11 +1,12 @@
 (ns hoplon.ui
   (:refer-clojure :exclude [range time floats])
-  (:refer-hoplon  :exclude [body button elem form])
+  (:refer-hoplon  :exclude [body button elem form rt])
   (:require-macros
     [hoplon.ui :as r])
   (:require
     [clojure.string :refer [split]]
-    [clojure.set    :refer [rename-keys]]))
+    [clojure.set    :refer [rename-keys]]
+    [hoplon.ui.value :refer [ev rt px kw ratio? value? dom]]))
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -127,7 +128,7 @@
 
 (def parse-args #'hoplon.core/parse-args)
 
-(defn px    [v]  (if (number? v) (str v "px") v))
+(defn ->px    [v]  (if (number? v) (str v "px") v))
 
 ;;; validators ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -152,7 +153,7 @@
 
 (defn ->len [v]
   (cond
-    (nil?     v) "initial"
+    (nil?     v) "auto"
     (list?    v) (let [[op x y] v] (str "calc(" (->len x) " " op " " (->len y) ")"))
     (integer? v) (str    v "px")
     (number?  v) (str (* v 100) "%")
@@ -220,14 +221,6 @@
 (defmethod do! :y           [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
 (defmethod do! :z           [e _ v] (do! e :css/z-index               v)) ;:max :min
 
-; size (outer)
-(defmethod do! :w           [e _ v] (do! e :css/width          (->len v)))
-(defmethod do! :w-          [e _ v] (do! e :css/min-width      (->len v)))
-(defmethod do! :w+          [e _ v] (do! e :css/max-width      (->len v)))
-(defmethod do! :h           [e _ v] (do! e :css/height         (->len v)))
-(defmethod do! :h-          [e _ v] (do! e :css/min-height     (->len v)))
-(defmethod do! :h+          [e _ v] (do! e :css/max-height     (->len v)))
-
 ; alignment (?)
 (defmethod do! :ah          [e _ v] (do! e :css/text-align     (->halign v))) ;i
 (defmethod do! :av          [e _ v] (do! e :css/vertical-align (->valign v)))
@@ -263,18 +256,13 @@
 (defmethod do! :ov          [e _ v] (do! e :ot v) (do! e :ob v))
 
 ; fence (inner)
-(defmethod do! :f           [e _ v] (do! e :css/margin         (px (- v))))
-(defmethod do! :fl          [e _ v] (do! e :css/margin-left    (px (- v))))
-(defmethod do! :fr          [e _ v] (do! e :css/margin-right   (px (- v))))
-(defmethod do! :ft          [e _ v] (do! e :css/margin-top     (px (- v))))
-(defmethod do! :fb          [e _ v] (do! e :css/marign-bottom  (px (- v))))
+(defmethod do! :f           [e _ v] (do! e :css/margin         (->px (- v))))
+(defmethod do! :fl          [e _ v] (do! e :css/margin-left    (->px (- v))))
+(defmethod do! :fr          [e _ v] (do! e :css/margin-right   (->px (- v))))
+(defmethod do! :ft          [e _ v] (do! e :css/margin-top     (->px (- v))))
+(defmethod do! :fb          [e _ v] (do! e :css/marign-bottom  (->px (- v))))
 (defmethod do! :fh          [e _ v] (do! e :fl v) (do! e :fr v))
 (defmethod do! :fv          [e _ v] (do! e :ft v) (do! e :fb v))
-
-;; gutter (inner)
-; (defmethod do! :g           [e _ v] (do! e :f  v))
-; (defmethod do! :gh          [e _ v] (do! e :fl v) (do! e :fr v))
-; (defmethod do! :gv          [e _ v] (do! e :ft v) (do! e :fb v))
 
 ; padding (inner)
 (defmethod do! :p           [e _ v] (do! e :css/padding        (->len v)))
@@ -318,7 +306,7 @@
 
 (defmethod do! :font-family     [e _ v] (do! e :css/font-family     (->font-family v)))
 (defmethod do! :font-color      [e _ v] (do! e :css/color           (->color v)))
-(defmethod do! :font-size       [e _ v] (do! e :css/font-size       (px v)))
+(defmethod do! :font-size       [e _ v] (do! e :css/font-size       (->px v)))
 (defmethod do! :font-decoration [e _ v] (do! e :css/text-decoration (->decoration v)))
 (defmethod do! :font-style      [e _ v] (do! e :css/font-style      (->style v)))
 (defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
@@ -350,7 +338,6 @@
 
 (def out-attr-keys
   [:x :y :z
-   :w :w- :w+ :h :h- :h+
    :c :cl :cr :ct :cb :ch :cv
    :m :ml :mr :mt :mb :mh :mv
    :o :ol :or :ot :ob :oh :ov])
@@ -369,8 +356,7 @@
    :color :shadow :opacity :toggle])
 
 (def in-attrs
-  {:css/box-sizing "border-box" ;; include border and padding in dimensions
-   :css/display    "block"      ;; prevent white space from creeping in around inline elements
+  {:css/display    "block"      ;; prevent white space from creeping in around inline elements
    :css/position   "relative"   ;; make positioned children adjust relative to container plus padding
   ; :css/width      "inherit"    ;; prevent children with absolute widths from expanding width of parent
    :css/height     "inherit"})  ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
@@ -388,11 +374,53 @@
 
 ;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn out [e] e)
+(defn mid [e] (-> e .-firstChild))
+(defn in  [e] (-> e .-firstChild .-firstChild))
+
 (defn with-elem [f]
   (fn [e]
-    (cond ;(cell?   e) (cell= ((with-elem f) e))
+    (cond ;cell?   e) (cell= ((with-elem f) e)
           (ifn? e) (f e)
           :else e)))
+
+(defn throw-ui! [elem msg]
+  (let [error-msg (str "UI ERROR: " msg)]
+    (set! (.. elem -title) error-msg)
+    (set! (.. elem -style -border) "4px dotted red")
+    (println error-msg)))
+
+(defn set-style! [elem box-fn style value]
+  (try
+    (cond
+      (nil?     value) value
+      (cell?    value) (do-watch value #(set-style! elem box-fn style %2))
+      (integer? value) (aset (box-fn elem) "style" style (dom (px value)))
+      :else            (aset (box-fn elem) "style" style (dom value)))
+    (catch js/Error _
+      (throw-ui! elem (str "Attribute \"" style "\" has an invalid value of \"" value "\".")))))
+
+(def sizes
+  {:w  "width"
+   :w- "min-width"
+   :w+ "max-width"
+   :h  "height"
+   :h- "min-height"
+   :h+ "max-height"})
+
+(defn size [ctor]
+  "set the size on the outer element when it is expressed as a ratio, and on the
+   inner element when it is a length.
+
+   since ratios are expressed in terms of the parent, they include the margin
+   (implemented as the padding between the inner and outer elements). fixed
+   lengths are set on the middle, however, to exclude the margin so that when a
+   margin is added, it will push out against the parent container instead of
+   being subtracted from the size of the elem."
+  (fn [attrs elems]
+    (with-let [e (ctor (apply dissoc attrs (keys sizes)) elems)]
+      (doseq [[s v] (mapv (fn [[a v]] (vector (sizes a) v)) (select-keys attrs (keys sizes)))]
+        (set-style! e (if (ratio? v) out mid) s v)))))
 
 (defn valign-xf [ctr]
   "set vertical height of the inner element to auto when the align vertical (av)
@@ -417,12 +445,12 @@
       (ctr attrs elems))))
 
 (defn box [ctr & args]
-  (apply (-> ctr box-xf valign-xf gutter-xf) (parse-args args)))
+  (apply (-> ctr box-xf size valign-xf gutter-xf) (parse-args args)))
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem body [attrs elems]
-  ((-> hoplon.core/body (box-xf :invert) valign-xf gutter-xf) attrs elems))
+  ((-> hoplon.core/body (box-xf :invert) size valign-xf gutter-xf) attrs elems))
 
 (defelem elem [attrs elems]
   (box div attrs elems))
@@ -485,7 +513,7 @@
         :type               "checkbox"
         :name               name
         :checked            selected
-        :css/margin-right   (px (or g 8))
+        :css/margin-right   (->px (or g 8))
         :css/vertical-align "text-bottom")
       (or prompt label))
     (dissoc attrs :name :label :selected)))
@@ -629,7 +657,7 @@
       (link :rel "icon" :href (or (:icon attrs) empty-icon-url))
       (for-tpl [s styles]  (link :rel "stylesheet" :href s))
       (for-tpl [s scripts] (script :src s)))
-    (body :h "100%" :w "100%" :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
+    (body :h (rt 1 1) :w (rt 1 1) :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
       (dissoc attrs :alert :scroll :metadata :title :icon :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged)
       elems)))
 

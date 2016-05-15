@@ -1,8 +1,10 @@
 (page "index.html"
   (:refer-clojure :exclude
     [test])
+  (:refer-hoplon :exclude [rt])
   (:require
-    [hoplon.ui :as u]))
+    [hoplon.ui :as u]
+    [hoplon.ui.value :refer [ev rt px]]))
 
 (defc things [0 1 2])
 
@@ -46,13 +48,13 @@
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem suite [{:keys [title pass code] :as attrs} elems]
-  (u/elem :w "100%" :h "100%" :p gutter :g gutter
-    (u/elem :w "100%" :ph gutter
+  (u/elem :w (rt 1 1) :h (rt 1 1) :p gutter :g gutter
+    (u/elem :w (rt 1 1) :ph gutter
       (u/elem :font-size 21 :font-color font-grey
         title)
       (u/elem :cr 0 :p gutter :ah :right :color fill-grey :s 1 :s-color stroke-grey :r 3
         code))
-    attrs elems))
+    (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]
   (u/elem :w 40 :h 40 :ah :center :av :middle :color 0xFFF :s 2 :s-color stroke-grey
@@ -71,7 +73,7 @@
   :title    "Hoplon UI"
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
-  (u/elem :w "100%" :p 6 :av :middle :sb 2 :s-color stroke-grey
+  (u/elem :w (rt 1 1) :p 6 :av :middle :sb 2 :s-color stroke-grey
     (u/image :w 50 :url "hoplon-logo.png")
     (u/elem :pl 6 :font-size 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
@@ -231,9 +233,10 @@
     (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
       (cell (box "a"))))
   (suite :title "layouts"
+
     (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
       (u/elem
-        (box :w "100%" "a")
+        (box :w (rt 1 1) "a")
         (box "b")))
     (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
       ;; caused by
@@ -244,12 +247,16 @@
       ;; solution: apply lengths to middle, but percentages to outer
       (u/elem :g 50
         (box "a"))))
-  (suite))
+    (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
+      (u/elem
+        (box :w (cell 80) "a")))
+  (suite
+    #_(u/elem :h 25 :w [(rt 1 1) sm (ev - (rt 1 1) 220)] :ah :right :g 6)))
 
-(u/elem :w ["100%" sm '(- "100%" 220)] :ah :right :g 6
+
   ; (u/button   :w ["100%" sm 200] :h 50 :click #(time-it) "Time It")
-  (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Run Tests")
-  (u/dropdown :w ["100%" sm 200] :h 50 :prompt "ChangeThing" :options (cell= (map str things))))
+  ; (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Run Tests")
+  ; (u/dropdown :w ["100%" sm 200] :h 50 :prompt "ChangeThing" :options (cell= (map str things))))
 
     ; (u/elem :w ["100%" sm sm] :ah :center :g 10
     ;
@@ -259,9 +266,9 @@
     ;     "Bar")
     ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
     ;     "Baz")
-    ;   (u/elem :w "100%" :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
+    ;   (u/elem :w (rt 1 1) :h 200 :ah :center :av :middle :color fill-grey :s 2 :s-color stroke-grey
     ;     (let [w (cell= (str (/ 100 (count things)) "%"))]
     ;       (for-tpl [thing things]
     ;         (u/elem :w w :ah :center thing)))))
-    ; (u/elem :w "100%"
+    ; (u/elem :w (rt 1 1)
     ;   (u/checkbox "Test"))))
