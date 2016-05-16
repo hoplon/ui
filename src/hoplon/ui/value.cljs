@@ -11,6 +11,14 @@
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(deftype Hexidecimal [v]
+  IPrintWithWriter
+  (-pr-writer [_ w _]
+    (write-all w "0x" (.toString v 16)))
+  IValue
+  (-dom [this]
+    (str "#" (.toString v 16))))
+
 (deftype Ratio [n d]
   IPrintWithWriter
   (-pr-writer [_ w _]
@@ -48,6 +56,11 @@
   (-dom [this]
     (name this)))
 
+; (extend-type Hexidecimal
+;   IValue
+;   (-dom [this]
+;     (str "#" (.toString this 16))))
+
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn dom [v] (-dom v))
@@ -57,6 +70,7 @@
 (defn pixels?      [v]   (instance?  Pixels     v))
 (defn value?       [v]   (satisfies? IValue     v))
 
+(defn hx [v]   (Hexidecimal. v))
 (defn rt [n d] (Ratio. n d))
 (defn px [v]   (Pixels.  v))
 (defn kw [v]   (keyword  v))

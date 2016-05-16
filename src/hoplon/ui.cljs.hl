@@ -1,6 +1,6 @@
 (ns hoplon.ui
   (:refer-clojure :exclude [range time floats])
-  (:refer-hoplon  :exclude [body button elem form rt])
+  (:refer-hoplon  :exclude [body button elem form rt font])
   (:require-macros
     [hoplon.ui :as r])
   (:require
@@ -87,6 +87,7 @@
 (def decorations [:none :underline :overline :line-through])
 (def styles      [:normal :italic :oblique])
 (def weights     [:normal :bold :bolder :lighter :number])
+(def kernings    [:auto :normal :none])
 
 (def haligns [:left :right :center :justify])
 (def valigns [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
@@ -214,116 +215,6 @@
     (string?  v) v
     :else        (throw (js/Error. (str "Font family value " v " invalid.")))))
 
-;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; position (outer)
-(defmethod do! :x           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")))
-(defmethod do! :y           [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
-(defmethod do! :z           [e _ v] (do! e :css/z-index               v)) ;:max :min
-
-; constraint (outer)
-(defmethod do! :c           [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")) ;; todo: refactor
-                                    (do! e :css/right          (->len v) (do! e :css/position "absolute"))
-                                    (do! e :css/top            (->len v) (do! e :css/position "absolute"))
-                                    (do! e :css/bottom         (->len v) (do! e :css/position "absolute")))
-(defmethod do! :cl          [e _ v] (do! e :css/left           (->len v) (do! e :css/position "absolute")))
-(defmethod do! :cr          [e _ v] (do! e :css/right          (->len v) (do! e :css/position "absolute")))
-(defmethod do! :ct          [e _ v] (do! e :css/top            (->len v) (do! e :css/position "absolute")))
-(defmethod do! :cb          [e _ v] (do! e :css/bottom         (->len v) (do! e :css/position "absolute")))
-(defmethod do! :ch          [e _ v] (do! e :l v) (do! e :r v))
-(defmethod do! :cv          [e _ v] (do! e :t v) (do! e :b v))
-
-; margin (outer)
-(defmethod do! :m           [e _ v] (do! e :css/padding         (->len v)))
-(defmethod do! :ml          [e _ v] (do! e :css/padding-left    (->len v)))
-(defmethod do! :mr          [e _ v] (do! e :css/padding-right   (->len v)))
-(defmethod do! :mt          [e _ v] (do! e :css/padding-top     (->len v)))
-(defmethod do! :mb          [e _ v] (do! e :css/padding-bottom  (->len v)))
-(defmethod do! :mh          [e _ v] (do! e :ml v) (do! e :mr v))
-(defmethod do! :mv          [e _ v] (do! e :mt v) (do! e :mb v))
-
-; offset (outer)
-(defmethod do! :o           [e _ v] (do! e :css/margin         (->len v)))
-(defmethod do! :ol          [e _ v] (do! e :css/margin-left    (->len v)))
-(defmethod do! :or          [e _ v] (do! e :css/margin-right   (->len v)))
-(defmethod do! :ot          [e _ v] (do! e :css/margin-top     (->len v)))
-(defmethod do! :ob          [e _ v] (do! e :css/marign-bottom  (->len v)))
-(defmethod do! :oh          [e _ v] (do! e :ol v) (do! e :or v))
-(defmethod do! :ov          [e _ v] (do! e :ot v) (do! e :ob v))
-
-; fence (inner)
-(defmethod do! :f           [e _ v] (do! e :css/margin         (->px (- v))))
-(defmethod do! :fl          [e _ v] (do! e :css/margin-left    (->px (- v))))
-(defmethod do! :fr          [e _ v] (do! e :css/margin-right   (->px (- v))))
-(defmethod do! :ft          [e _ v] (do! e :css/margin-top     (->px (- v))))
-(defmethod do! :fb          [e _ v] (do! e :css/marign-bottom  (->px (- v))))
-(defmethod do! :fh          [e _ v] (do! e :fl v) (do! e :fr v))
-(defmethod do! :fv          [e _ v] (do! e :ft v) (do! e :fb v))
-
-; padding (inner)
-(defmethod do! :p           [e _ v] (do! e :css/padding        (->len v)))
-(defmethod do! :pl          [e _ v] (do! e :css/padding-left   (->len v)))
-(defmethod do! :pr          [e _ v] (do! e :css/padding-right  (->len v)))
-(defmethod do! :pt          [e _ v] (do! e :css/padding-top    (->len v)))
-(defmethod do! :pb          [e _ v] (do! e :css/padding-bottom (->len v)))
-(defmethod do! :ph          [e _ v] (do! e :pl v) (do! e :pr v))
-(defmethod do! :pv          [e _ v] (do! e :pt v) (do! e :pb v))
-
-; stroke (inner)
-(defmethod do! :s           [e _ v] (do! e :css/border-width         (->len v)) (do! e :css/border-style        "solid"))
-(defmethod do! :sl          [e _ v] (do! e :css/border-left-width    (->len v)) (do! e :css/border-left-style   "solid"))
-(defmethod do! :sr          [e _ v] (do! e :css/border-right-width   (->len v)) (do! e :css/border-right-style  "solid"))
-(defmethod do! :st          [e _ v] (do! e :css/border-top-width     (->len v)) (do! e :css/border-top-style    "solid"))
-(defmethod do! :sb          [e _ v] (do! e :css/border-bottom-width  (->len v)) (do! e :css/border-bottom-style "solid"))
-(defmethod do! :sh          [e _ v] (do! e :sl v) (do! e :sr v))
-(defmethod do! :sv          [e _ v] (do! e :st v) (do! e :sb v))
-
-(defmethod do! :s-color     [e _ v] (do! e :css/border-color  (->color v)))
-(defmethod do! :s-style     [e _ v] (do! e :css/border-style  v))
-
-; radius (inner)
-(defmethod do! :r           [e _ v] (do! e :css/border-radius             (->len v)))
-(defmethod do! :rtl         [e _ v] (do! e :css/border-top-left-radius    (->len v)))
-(defmethod do! :rtr         [e _ v] (do! e :css/border-top-left-radius    (->len v)))
-(defmethod do! :rbl         [e _ v] (do! e :css/border-bottom-left-radius (->len v)))
-(defmethod do! :rbr         [e _ v] (do! e :css/border-bottom-left-radius (->len v)))
-
-; overflow (inner)
-(defmethod do! :overflow    [e _ v] (do! e :css/overflow           (->overflow v)))
-(defmethod do! :overflow-h  [e _ v] (do! e :css/overflow-x         (->overflow v)))
-(defmethod do! :overflow-y  [e _ v] (do! e :css/overflow-y         (->overflow v)))
-
-;;; inherited attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmethod do! :color       [e _ v] (do! e :css/background-color   (->color v)))
-(defmethod do! :shadow      [e _ v] (do! e :css/box-shadow    v))
-(defmethod do! :image       [e _ v] (do! e :css/background (str "url(" v ") no-repeat 50% 50% / cover")))
-(defmethod do! :opacity     [e _ v] (do! e :css/opacity v))
-
-(defmethod do! :font-family     [e _ v] (do! e :css/font-family     (->font-family v)))
-(defmethod do! :font-color      [e _ v] (do! e :css/color           (->color v)))
-(defmethod do! :font-size       [e _ v] (do! e :css/font-size       (->px v)))
-(defmethod do! :font-decoration [e _ v] (do! e :css/text-decoration (->decoration v)))
-(defmethod do! :font-style      [e _ v] (do! e :css/font-style      (->style v)))
-(defmethod do! :font-weight     [e _ v] (do! e :css/font-weight     (->weight v)))
-(defmethod do! :font-spacing    [e _ v] (do! e :css/letter-spacing  (->len v))) ;; add validation
-(defmethod do! :font-smoothing  [e _ v] (do! e :css/font-smooth     (->len v))) ;; add validation
-(defmethod do! :font-kerning    [e _ v] (do! e :css/font-kerning    (->len v))) ;; add validation
-(defmethod do! :font-height     [e _ v] (do! e :css/line-height     (->len v))) ;; add validation
-
-(defmethod do! :selectable  [e _ v] (do! e :css/user-select       v))
-
-(defmethod do! :cursor      [e _ v] (do! e :css/cursor    (->cursor v)))
-
-;; todo: baseline-shift
-;; todo: shadow
-
-(defmethod on! :update [e _ c]
-  (when-dom e
-    (let [val #(.val (js/jQuery (.-target %)))]
-      ; (fn [] (.keyup    (j e) #(if (= (.-which %) 13) (c (val %)))))  #_(.-is % ":focus")
-      (fn [] (.change (js/jQuery e) #(c (val %)))))))
-
 ;;; box model ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def out-attrs
@@ -332,23 +223,12 @@
    :css/vertical-align "top"           ;; inline-block/table elems must be explititly told to align themselves to the top
    :css/text-align     "initial"})     ;; prevent inheritance of alignment from parent
 
-(def out-attr-keys
-  [:x :y :z
-   :c :cl :cr :ct :cb :ch :cv
-   :m :ml :mr :mt :mb :mh :mv
-   :o :ol :or :ot :ob :oh :ov])
-
 (def mid-attrs
   {:css/box-sizing "border-box" ;; include border and padding in dimensions
    :css/display    "table-cell" ;; cells in tables enable sane vertical alignment
    ;:css/width      "inherit"    ;  assume the width of the parent and proxy it to the inner div
+   ;:css/overflow   "scroll"
    :css/height     "inherit"})  ;; assume the height of the parent and proxy it to the inner div
-
-(def mid-attr-keys
-  [:s :sl :sr :st :sb :s-color
-   :r :rtl :rtr :rbl :rbr
-   :overflow :overflow-h :overflow-y
-   :color :shadow :opacity :toggle])
 
 (def in-attrs
   {:css/display    "block"      ;; prevent white space from creeping in around inline elements
@@ -363,11 +243,11 @@
    passed to the original element constructor."
   (fn [attrs elems]
     (->> elems
-         ((if inv div ctr) in-attrs  (apply dissoc attrs (concat mid-attr-keys out-attr-keys)))
-         (div              mid-attrs (select-keys attrs mid-attr-keys))
-         ((if inv ctr div) out-attrs (select-keys attrs out-attr-keys)))))
+         ((if inv div ctr) in-attrs)
+         (div              mid-attrs)
+         ((if inv ctr div) out-attrs))))
 
-;;; transforms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn out [e] e)
 (defn mid [e] (-> e .-firstChild))
@@ -379,24 +259,85 @@
     (set! (.. elem -style -border) "4px dotted red")
     (println error-msg)))
 
-(defn set-style! [elem box-fn style value]
-  (try
-    (cond
-      (nil?     value) value
-      (cell?    value) (do-watch value #(set-style! elem box-fn style %2))
-      (integer? value) (aset (box-fn elem) "style" style (dom (px value)))
-      :else            (aset (box-fn elem) "style" style (dom value)))
-    (catch js/Error error
-      (prn :error error)
-      (throw-ui! elem (str "Attribute \"" style "\" has an invalid value of \"" value "\".")))))
+(defn set-value! [elem f k v] ;; todo: mult vs to reduce # of cells
+  (let [e (f elem)]
+    (cond (nil?     v) identity
+          (cell?    v) (do-watch v #(set-value! elem f k %2))
+          (integer? v) (aset e "style" k (dom (px v)))
+          (value?   v) (aset e "style" k (dom v))
+          :else        (throw-ui! elem (str "Attribute \"" k "\" has an invalid value of \"" v "\".")))))
 
-(def sizes
-  {:w  "width"
-   :w- "min-width"
-   :w+ "max-width"
-   :h  "height"
-   :h- "min-height"
-   :h+ "max-height"})
+(defn set-style! [e f k v]
+  (cond (ifn?  e) (set-value! e f k v)
+        (coll? e) (doseq [e e] (set-style! e f k v))
+        (cell? e) (do-watch e #(set-style! @e f k v))
+        :else     e))
+
+;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; todo:
+;; shadow
+;; cursor
+;; margin
+;; fixed
+;; constraint (absolute positioning within parent)
+;; offset     (use outer css margin to move out of current position)
+;; todo, once clear cases become apparent
+;; baseline-shift
+;; background, url (str "url(" v ") no-repeat 50% 50% / cover")
+;; user-select, selectable
+;; :toggle as as mid-attr
+;; update, previously implemented on do multimethod, to form middleware
+
+(defn align [ctor]
+  "set the text-align and vertical-align attributes on the elem and proxy the
+   vertical-align attribute to the outer element of each child.  set vertical
+   height of the inner element to auto when the align vertical attribute is set.
+
+  the vertical alignment is proxied to the outer elements of the children so
+  that, in addition to aligning the lines of children within the elem, the
+  children are also aligned in the same manner within their respective lines."
+  (fn [{:keys [ah av] :as attrs} elems]
+    (doseq [elem elems]
+      (set-style! elem out "vertical-align" av))
+    (with-let [e (ctor (dissoc attrs :ah :av) elems)]
+      (set-style! e in  "height"         (cell= (if av :auto :inherit))) ;; initial instead?
+      (set-style! e mid "text-align"     ah)
+      (set-style! e mid "vertical-align" av))))
+
+(defn color [ctor]
+  "set the background color an the inner element."
+  (fn [{:keys [c o] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :c :o) elems)]
+      (set-style! e mid "background-color" c)
+      (set-style! e mid "opacity"          o))))
+
+(defn overflow [ctor]
+  "set the overflow style on the elem's middle element."
+  (fn [{:keys [v vh vv :as attrs elems]}]
+    (with-let [e (ctor (dissoc attrs :v :vh :vv) elems)]
+      (set-style! e mid "overflow-x" (cell= (or vh v)))
+      (set-style! e mid "overflow-y" (cell= (or vv v))))))
+
+(defn pad [ctor]
+  "set the padding on the elem's inner element.
+
+   this adds space between the edges of the container and its children."
+  (fn [{:keys [p pl pr pt pb ph pv] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :p :pl :pr :pt :pb :ph :pv) elems)]
+      (set-style! e in "padding-left"   (cell= (or pl ph p)))
+      (set-style! e in "padding-right"  (cell= (or pr ph p)))
+      (set-style! e in "padding-top"    (cell= (or pt pv p)))
+      (set-style! e in "padding-bottom" (cell= (or pb pv p))))))
+
+(defn round [ctor]
+  "set the radius on the middle element."
+  (fn [{:keys [r rtl rtr rbl rbr] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :r :rtl :rtr :rbl :rbr) elems)]
+      (set-style! e mid "border-top-left-radius"     (cell= (or rtl r)))
+      (set-style! e mid "border-top-right-radius"    (cell= (or rtr r)))
+      (set-style! e mid "border-bottom-left-radius"  (cell= (or rbl r)))
+      (set-style! e mid "border-bottom-right-radius" (cell= (or rbr r))))))
 
 (defn size [ctor]
   "set the size on the outer element when it is expressed as a ratio, and on the
@@ -407,50 +348,80 @@
    lengths are set on the middle, however, to exclude the margin so that when a
    margin is added, it will push out against the parent container instead of
    being subtracted from the size of the elem."
-  (fn [attrs elems]
-    (with-let [e (ctor (apply dissoc attrs (keys sizes)) elems)]
-      (doseq [[s v] (mapv (fn [[a v]] (vector (sizes a) v)) (select-keys attrs (keys sizes)))]
-        (set-style! e (if (ratio? v) out mid) s v)))))
+  (fn [{:keys [w w- w+ h h- h+] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :w :w- :w+ :h :h- :h+) elems)]
+      (let [f #(if (ratio? %) out mid)]
+        (set-style! e (f w)  "width"  w)
+        (set-style! e (f w-) "width"  w-)
+        (set-style! e (f w+) "width"  w+)
+        (set-style! e (f h)  "height" h)
+        (set-style! e (f h-) "height" h-)
+        (set-style! e (f h+) "height" h+)))))
 
-(defn align [ctor]
-  "set the text-align and vertical-align attributes on the elem and proxy the
-   vertical-align attribute to the outer element of each child.  set vertical
-   height of the inner element to auto when the align vertical attribute is set.
+(defn space [ctor]
+  "set the padding on the outer element of each child and a negative margin on
+   the inner element of the elem itself equal to the padding.
 
-  the vertical alignment is proxied to the outer elements of the children so
-  that, in addition to aligning the lines of children within the elem, the
-  the children are also aligned in the same manner within their respective
-  lines."
-  (fn [{:keys [ah av] :as attrs} elems]
-    (prn :elems elems)
-    (doseq [e elems]
-      (when (ifn? e) ;;cell?   e) (cell= ((with-elem f) e)
-        (set-style! e out "vertical-align" av)))
-    (with-let [e (ctor (dissoc attrs :ah :av) elems)]
-      (set-style! e in  "height"         (cell= (if av :auto :inherit))) ;; initial instead?
-      (set-style! e mid "text-align"     ah)
-      (set-style! e mid "vertical-align" av))))
+   outer padding on the children creates an even gutter between them, while the
+   negative inner margin on the elem itself offsets this padding to fencepost
+   the children flush with the edges of the container."
+  (fn [{:keys [g gh gv] :as attrs} elems]
+    (let [mh (cell= (/ (or gh g) 2))
+          mv (cell= (/ (or gh g) 2))
+          ph (cell= (- mh))
+          pv (cell= (- mv))]
+      (doseq [elem elems]
+        (set-style! elem out "padding-left"   mh)
+        (set-style! elem out "padding-right"  mh)
+        (set-style! elem out "padding-top"    mv)
+        (set-style! elem out "padding-bottom" mv))
+      (with-let [e (ctor (dissoc attrs g gh gv) elems)]
+        (set-style! e in "margin-left"   ph)
+        (set-style! e in "margin-right"  ph)
+        (set-style! e in "margin-top"    pv)
+        (set-style! e in "margin-bottom" pv)))))
 
-(defn gutter-xf [ctr]
-  "replace gutters (g gh gv) with margins (m mh mv) and fences (f fh fv) on the
-   attribute map."
-  (fn [attrs elems]
-    (let [gk->fk {:g :f :gh :fh :gv :fv}
-          fk->mk {:f :m :fh :mh :fv :mv}
-          gv->fv #(.floor js/Math (/ % 2))
-          fkv    (some (fn [[k v]] (if-let [k (gk->fk k)] [k (gv->fv v)])) attrs)
-          set-m  #(if (ifn? %) (% (fk->mk (first fkv)) (second fkv)) %) ;; ;; todo: if fixed width or height, apply gutter as offset/css margin instead or add to overall width
-          attrs  (apply dissoc (merge attrs fkv) (keys gk->fk))
-          elems  (mapv #(if (cell? %) (cell= (if (coll? %) (mapv set-m %) (set-m %))) (set-m %)) elems)]
-      (ctr attrs elems))))
+(defn stroke [ctor]
+  "set the border on the elem's middle element.
 
-(defn box [ctr & args]
-  (apply (-> ctr box-xf align size gutter-xf) (parse-args args)))
+   this adds space between the edges of the container and its children."
+  (fn [{:keys [s sl sr st sb sh sv sc scl scr sct scb sch scv] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :s :sl :sr :st :sb :sh :sv :sw :scl :scr :sct :scb :sch :scv) elems)]
+      (set-style! e mid "border-left-width"   (cell= (or sl sh s)))
+      (set-style! e mid "border-left-color"   (cell= (or scl sch sc)))
+      (set-style! e mid "border-left-style"   (cell= (when (or sl sh s) :solid)))
+      (set-style! e mid "border-right-width"  (cell= (or sr sh s)))
+      (set-style! e mid "border-right-color"  (cell= (or scr sch sc)))
+      (set-style! e mid "border-right-style"  (cell= (when (or sr sh s) :solid)))
+      (set-style! e mid "border-top-width"    (cell= (or st sv s)))
+      (set-style! e mid "border-top-color"    (cell= (or sct scv sc)))
+      (set-style! e mid "border-top-style"    (cell= (when (or st sv s) :solid)))
+      (set-style! e mid "border-bottom-width" (cell= (or sb sv s)))
+      (set-style! e mid "border-bottom-color" (cell= (or scb scv sc)))
+      (set-style! e mid "border-bottom-style" (cell= (when (or sb sv s) :solid))))))
+
+(defn font [ctor]
+  "set the text styles pertaining to the attribute"
+  (fn [{:keys [f fw fh ft ff fc fu fi fm fk] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fm :fk) elems)]
+      (set-style! e mid "font-size"       f)
+      (set-style! e mid "letter-spacing"  fw)
+      (set-style! e mid "line-height"     fh)
+      (set-style! e mid "font-weight"     ft)
+      (set-style! e mid "font-family"     ff)
+      (set-style! e mid "color"           fc)
+      (set-style! e mid "text-decoration" fu)
+      (set-style! e mid "font-style"      fi)
+      (set-style! e mid "font-smooth"     fm)
+      (set-style! e mid "font-kerning"    fk))))
 
 ;;; containers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn box [ctr & args]
+  (apply (-> ctr box-xf font align size pad color stroke round space) (parse-args args)))
+
 (defelem body [attrs elems]
-  ((-> hoplon.core/body (box-xf :invert) align size gutter-xf) attrs elems))
+  ((-> hoplon.core/body (box-xf :invert) font align size pad color stroke round space) attrs elems))
 
 (defelem elem [attrs elems]
   (box div attrs elems))
@@ -601,7 +572,7 @@
     (button :click #((or submit @subm) @data) (dissoc attrs :submit) elems)))
 
 ; (defelem checkbox       [attrs _] (field (merge {:type "checkbox"}       attrs)))
-(defelem color          [attrs _] (field (merge {:type "color"}          attrs)))
+; (defelem color          [attrs _] (field (merge {:type "color"}          attrs)))
 (defelem date           [attrs _] (field (merge {:type "date"}           attrs)))
 (defelem datetime       [attrs _] (field (merge {:type "datetime"}       attrs)))
 (defelem datetime-local [attrs _] (field (merge {:type "datetime-local"} attrs)))
@@ -657,7 +628,7 @@
       (link :rel "icon" :href (or (:icon attrs) empty-icon-url))
       (for-tpl [s styles]  (link :rel "stylesheet" :href s))
       (for-tpl [s scripts] (script :src s)))
-    (body :h (rt 1 1) :w (rt 1 1) :o 0 :font-family "Helvetica Neue, Helvetica, Arial, sans-serif"
+    (body :h (rt 1 1) :w (rt 1 1) :css/margin 0 :css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" ;; font-size 100%, neutralize body dflts
       (dissoc attrs :alert :scroll :metadata :title :icon :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged)
       elems)))
 
