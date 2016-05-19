@@ -24,7 +24,7 @@
 (def sm 736)
 (def lg 1069)
 
-(def gutter 4)
+(def gutter 6)
 
 (def stroke-grey (hx 0xCCC))
 (def fill-grey   (hx 0xEEE))
@@ -32,18 +32,6 @@
 
 (def fail-color  (hx 0xd43f3a))
 (def pass-color  (hx 0x4cae4c))
-
-
-
-; (defn time-it [] (u/console-time (dotimes [n 1000] (u/elem :c :green (u/elem "hello")))))
-
-; (defn time-it [] (u/console-time
-;                    (dotimes [n 1000]
-;                     (u/component ["div" "div" "div"]))))
-
-; (defn time-it [] (u/console-time
-;                    (dotimes [n 1000]
-;                     (u/element-list ["div" "div" "div"]))))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -61,12 +49,12 @@
     attrs elems))
 
 (defelem test [{:keys [title pass] :as attrs} elems]
-  (u/elem :w 300
-    (u/elem :ph gutter :gh gutter
+  (u/elem :w 200
+    (u/elem :h 26 :ph gutter :gh gutter :av :middle
       (u/elem :h 6 :w 6 :r 6 :c (cell= (if pass pass-color fail-color)))
-      (u/elem :f 10 :fc font-grey title))
+      (u/elem :w 170 :f 10 :fc font-grey :vh :hidden title))
     (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey
-      (dissoc attrs :title)
+      (dissoc attrs :pass :title)
       elems)))
 
 (u/window
@@ -74,7 +62,7 @@
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
   (u/elem :w (rt 1 1) :p 6 :av :middle :sb 2 :sc stroke-grey
-    (u/image :w 50 :url "hoplon-logo.png")
+    (u/image :h 50 :url "hoplon-logo.png")
     (u/elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
     (test :ah :left   :av :top    :title "box aligns horizontal left & vertical top" :pass true
@@ -232,6 +220,7 @@
       (box :h 40 "j"))
     (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
       (cell (box "a"))))
+
   (suite :title "layouts"
 
     (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
@@ -250,25 +239,6 @@
     (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
       (u/elem
         (box :w (cell 80) "a")))
-  (suite
+  (suite :title "controls"
+      (u/button "Click Me")
     #_(u/elem :h 25 :w [(rt 1 1) sm (ev - (rt 1 1) 220)] :ah :right :g 6)))
-
-
-  ; (u/button   :w ["100%" sm 200] :h 50 :click #(time-it) "Time It")
-  ; (u/button   :w ["100%" sm 200] :h 50 :click #(swap! things conj (count @things)) "Run Tests")
-  ; (u/dropdown :w ["100%" sm 200] :h 50 :prompt "ChangeThing" :options (cell= (map str things))))
-
-    ; (u/elem :w ["100%" sm sm] :ah :center :g 10
-    ;
-    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :c fill-grey :s 2 :s-color stroke-grey
-    ;     "Foo")
-    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :c fill-grey :s 2 :s-color stroke-grey
-    ;     "Bar")
-    ;   (u/elem :w ["100%" sm 0.333] :h 200 :ah :center :av :middle :c fill-grey :s 2 :s-color stroke-grey
-    ;     "Baz")
-    ;   (u/elem :w (rt 1 1) :h 200 :ah :center :av :middle :c fill-grey :s 2 :s-color stroke-grey
-    ;     (let [w (cell= (str (/ 100 (count things)) "%"))]
-    ;       (for-tpl [thing things]
-    ;         (u/elem :w w :ah :center thing)))))
-    ; (u/elem :w (rt 1 1)
-    ;   (u/checkbox "Test"))))
