@@ -1,9 +1,11 @@
 (ns hoplon.ui.elems
   (:require
+    [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
     [hoplon.core     :refer [do-watch]]
-    [hoplon.ui.value :refer [IDOM ev rt px kw hx ratio? model? model]])
+    [hoplon.ui.value :refer [IDOM ev rt px kw hx ratio? model? hex? model]])
   (:require-macros
+    [hoplon.ui.elems :refer [bind-in!]]
     [javelin.core    :refer [cell= with-let]]))
 
 (declare elem?)
@@ -17,29 +19,25 @@
       (set! (.. elem -style -border) "2px dotted red"))
     (println error-msg)))
 
-(defn set-prop! [elem f k v] ;; todo: mult vs to reduce # of cells
-  (let [e (f elem)]
-    (cond (cell?    v) (do-watch v #(set-prop! elem f k %2))
-          (integer? v) (aset e k (model (px v)))
-          (model?   v) (aset e k (model v))
-          (nil?     v) identity
-          (string?  v) (aset e k v)
-          :else        (throw-ui! elem "Property " k " has an invalid value of " v "."))))
+(defn ->attr [v]
+  (cond (number?  v) (model (px v))
+        (model?   v) (model v)
+        (string?  v) v
+        (nil?     v) ""))
 
-(defn set-style! [elem f k v] ;; todo: mult vs to reduce # of cells
-  (let [e (f elem)]
-    (cond (cell?    v) (do-watch v #(set-style! elem f k %2))
-          (integer? v) (aset e "style" k (model (px v)))
-          (model?   v) (aset e "style" k (model v))
-          (nil?     v) identity
-          :else        (throw-ui! elem "Attribute " k " has an invalid value of " v "."))))
+(defn vstr [vs]
+  (join " " (map ->attr vs)))
 
-(defn swap-elems! [e f v]
-  (cond (cell?   e) (do-watch e #(f @e %2))
-        (vector? e) (doseq [e e] (swap-elems! e f v)) ;; loop?
-        (elem?   e) (f e v)
+(defn bind-with [f vs]
+  (let [watch (fn [i v] (if (cell? v) @(add-watch v (gensym) #(f (assoc vs i %4))) v))]
+    (f (map-indexed watch vs))))
+
+(defn swap-elems! [e f & vs]
+  (cond (cell?   e) (do-watch e #(apply f @e %&))
+        (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;; loop?
+        (elem?   e) (apply f e vs)
         (string? e) identity
-        :else       (throw-ui! e "Invalid child of type " (type e) " with value " v ".")))
+        :else       (throw-ui! e "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn- child-vec
   [this]
@@ -111,6 +109,7 @@
 
 (defn mkelem [& tags]
   (fn [attrs elems]
+    #_{:pre [(empty? attrs)]}
     (let [o #(.. % -style)
           m #(.. % -firstChild -style)
           i #(.. % -firstChild -firstChild -style)
@@ -136,6 +135,196 @@
 (defn mid [e] (-mid e))
 (defn in  [e] (-in  e))
 
+;;; validations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def globals     [:initial :inherit])
+(def adjusts     [:none])
+(def haligns     [:left :right :center :justify])
+(def valigns     [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
+(def colors      [:transparent :antiquewhite :aqua :aquamarine :azure :beige
+                  :bisque :black :blanchedalmond :blue :blueviolet :brown
+                  :burlywood :cadetblue :chartreuse :chocolate :coral
+                  :cornflowerblue :cornsilk :crimson :darkblue :darkcyan
+                  :darkgoldenrod :darkgray :darkgreen :darkgrey :darkkhaki
+                  :darkmagenta :darkolivegreen :darkorange :darkorchid :darkred
+                  :darksalmon :darkseagreen :darkslateblue :darkslategray
+                  :darkslategrey :darkturquoise :darkviolet :deeppink
+                  :deepskyblue :dimgray :dimgrey :dodgerblue :firebrick
+                  :floralwhite :forestgreen :fuchsia :gainsboro :ghostwhite
+                  :gold :goldenrod :gray :green :greenyellow :grey :honeydew
+                  :hotpink :indianred :indigo :ivory :khaki :lavender
+                  :lavenderblush :lawngreen :lemonchiffon :lightblue :lightcoral
+                  :lightcyan :lightgoldenrodyellow :lightgray :lightgreen
+                  :lightgrey :lightpink :lightsalmon :lightseagreen
+                  :lightskyblue :lightslategray :lightslategrey :lightsteelblue
+                  :lightyellow :lime :limegreen :linen :maroon :mediumaquamarine
+                  :mediumblue :mediumorchid :mediumpurple :mediumseagreen
+                  :mediumslateblue :mediumspringgreen :mediumturquoise
+                  :mediumvioletred :midnightblue :mintcream :mistyrose :moccasin
+                  :navajowhite :navy :oldlace :olive :olivedrab :orangered
+                  :orchid :palegoldenrod :palegreen :paleturquoise
+                  :palevioletred :papayawhip :peachpuff :peru :pink :plum
+                  :powderblue :purple :rebeccapurple :red :rosybrown :royalblue
+                  :saddlebrown :salmon :sandybrown :seagreen :seashell :sienna
+                  :silver :skyblue :slateblue :slategray :slategrey :snow
+                  :springgreen :steelblue :tan :teal :thistle :tomato :turquoise
+                  :violet :wheat :white :whitesmoke :yellow :yellowgreen])
+(def cursors     [:alias :all-scroll :auto :cell :context-menu :col-resize :copy
+                  :crosshair :default :e-resize :ew-resize :grab :grabbing :help
+                  :move :n-resize :ne-resize :nesw-resize :ns-resize :nw-resize
+                  :nwse-resize :no-drop :none :not-allowed :pointer :progress
+                  :row-resize :s-resize :se-resize :sw-resize :text
+                  :vertical-text :w-resize :wait :zoom-in :zoom-out])
+(def decorations [:none :underline :overline :line-through])
+(def families    [:serif :sans-serif :monospace :cursive :fantasy])
+(def kernings    [:auto :normal :none])
+(def lengths     [:auto])
+(def sizes       [:xx-small :x-small :small :medium :large :x-large :xx-large :larger :smaller])
+(def spacings    [:normal])
+(def stretches   [:ultra-condensed :extra-condensed :condensed :semi-condensed :normal :semi-expanded :expanded :extra-expanded :ultra-expanded])
+(def styles      [:normal :italic :oblique])
+(def syntheses   [:none :weight :style :weight-style])
+(def overflows   [:visible :hidden :scroll :auto])
+(def weights     [:normal :bold :bolder :lighter])
+
+(defn adjust? [v]
+  (cond
+    (cell?    v) (adjust? @(add-watch v (gensym) #(adjust? %4)))
+    (keyword? v) (apply some #{v} adjusts globals)
+    (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
+    (nil?     v) true
+    :else        false))
+
+(defn alignh? [v]
+  (cond
+    (cell?    v) (alignh? @(add-watch v (gensym) #(alignh? %4)))
+    (keyword? v) (some #{v} (apply conj haligns lengths globals))
+    (number?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn alignv? [v]
+  (cond
+    (cell?    v) (alignv? @(add-watch v (gensym) #(alignv? %4)))
+    (keyword? v) (some #{v} (apply conj valigns lengths globals))
+    (number?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn color? [v]
+  (cond
+    (cell?    v) (color? @(add-watch v (gensym) #(color? %4)))
+    (keyword? v) (apply some #{v} colors globals)
+    (hex?     v) v
+    (nil?     v) true
+    :else        false))
+
+(defn cursor? [v]
+  (cond
+    (cell?    v) (cursor? @(add-watch v (gensym) #(cursor? %4)))
+    (keyword? v) (some #{v} (apply conj cursors globals))
+    (nil?     v) true
+    :else        false))
+
+(defn family? [v] ;; todo: support other units
+  (cond
+    (cell?    v) (family? @(add-watch v (gensym) #(family? %4)))
+    (keyword? v) (some #{v} (apply conj families globals))
+    (string?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn italic? [v]
+  (cond
+    (cell?    v) (italic? @(add-watch v (gensym) #(italic? %4)))
+    (keyword? v) (some #{v} (apply conj styles globals))
+    (nil?     v) true
+    :else        false))
+
+(defn kerning? [v]
+  (cond
+    (cell?    v) (kerning? @(add-watch v (gensym) #(kerning? %4)))
+    (keyword? v) (some #{v} (apply conj kernings globals))
+    (nil?     v) true
+    :else        false))
+
+(defn length? [v] ;; todo: lengths & ration/pcts are diff types
+  (cond
+    (cell?    v) (length? @(add-watch v (gensym) #(length? %4)))
+    (keyword? v) (some #{v} (apply conj lengths globals))
+    (ratio?   v) v
+    (number?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn opacity? [v]
+  (cond
+    (cell?    v) (opacity? @(add-watch v (gensym) #(opacity? %4)))
+    (keyword? v) (some #{v} globals)
+    (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
+    (nil?     v) true
+    :else        false))
+
+(defn overflow? [v]
+  (cond
+    (cell?    v) (overflow? @(add-watch v (gensym) #(overflow? %4)))
+    (keyword? v) (some #{v} (apply conj overflows globals))
+    (nil?     v) true
+    :else        false))
+
+(defn size? [v] ;; todo: support other units
+  (cond
+    (cell?    v) (size? @(add-watch v (gensym) #(size? %4)))
+    (keyword? v) (some #{v} (apply conj sizes globals))
+    (ratio?   v) v
+    (number?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn spacing? [v]
+  (cond
+    (cell?    v) (spacing? @(add-watch v (gensym) #(spacing? %4)))
+    (keyword? v) (some #{v} (apply conj spacings globals))
+    (ratio?   v) v
+    (number?  v) v
+    (nil?     v) true
+    :else        false))
+
+(defn stretch? [v]
+  (cond
+    (cell?    v) (stretch? @(add-watch v (gensym) #(stretch? %4)))
+    (keyword? v) (apply some #{v} stretches globals)
+    (nil?     v) true
+    :else        false))
+
+(defn synthesis? [v]
+  (cond
+    (cell?    v) (synthesis? @(add-watch v (gensym) #(synthesis? %4)))
+    (keyword? v) (apply some #{v} syntheses globals)
+    (nil?     v) true
+    :else        false))
+
+(defn underline? [v]
+  (cond
+    (cell?    v) (cursor? @(add-watch v (gensym) #(cursor? %4)))
+    (keyword? v) (some #{v} (apply conj decorations globals))
+    (nil?     v) true
+    :else        false))
+
+(defn weight? [v]
+  (cond
+    (cell?    v) (weight? @(add-watch v (gensym) #(weight? %4)))
+    (keyword? v) (some #{v} (apply conj weights globals))
+    (integer? v) (and (>= v 100) (<= v 900) (= (mod v 100)))
+    (nil?     v) true
+    :else        false))
+
+(defn colors? [& vs]
+  (every? color? vs))
+
+(defn lengths? [& vs]
+  (every? length? vs))
+
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn align [ctor]
@@ -147,46 +336,52 @@
   that, in addition to aligning the lines of children within the elem, the
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [ah av] :as attrs} elems]
-    (swap-elems! elems #(set-style! %1 out "vertical-align" %2) av)
+    {:pre [(alignh? ah) (alignv? av)]}
+    (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) av)
     (with-let [e (ctor (dissoc attrs :ah :av) elems)]
-      (set-style! e in  "height"         (cell= (if av :auto :inherit))) ;; initial instead?
-      (set-style! e mid "text-align"     ah)
-      (set-style! e mid "vertical-align" av))))
+      (bind-in! e [in  .-style .-height]        (cell= (if av :auto :inherit))) ;; initial instead?
+      (bind-in! e [mid .-style .-textAlign]     ah)
+      (bind-in! e [mid .-style .-verticalAlign] av))))
 
 (defn color [ctor]
   "set the background color an the inner element."
   (fn [{:keys [c o m] :as attrs} elems]
+    {:pre [(color? c) (opacity? o) (cursor? m)]}
     (with-let [e (ctor (dissoc attrs :c :o :m) elems)]
-      (set-style! e mid "background-color" c)
-      (set-style! e mid "opacity"          o)
-      (set-style! e in  "cursor"           m))))
+      (bind-in! e [mid .-style .-backgroundColor] c)
+      (bind-in! e [mid .-style .-opacity]         o)
+      (bind-in! e [in  .-style .-cursor]          m))))
 
 (defn overflow [ctor]
   "set the overflow style on the elem's middle element."
   (fn [{:keys [v vh vv] :as attrs} elems]
+    {:pre [(overflow? v) (overflow? vh) (overflow? vv)]}
     (with-let [e (ctor (dissoc attrs :v :vh :vv) elems)]
-      (set-style! e in "overflow-x" (cell= (or vh v)))
-      (set-style! e in "overflow-y" (cell= (or vv v))))))
+      (bind-in! e [in .-style .-overflow] (or vh v) (or vv v)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
 
    this adds space between the edges of the container and its children."
   (fn [{:keys [p pl pr pt pb ph pv] :as attrs} elems]
+    {:pre [(lengths? p pl pr pt pb ph pv)]}
+    ;; todo: dissallow pct based paddings since tied to opposite dimension
     (with-let [e (ctor (dissoc attrs :p :pl :pr :pt :pb :ph :pv) elems)]
-      (set-style! e in "padding-left"   (cell= (or pl ph p)))
-      (set-style! e in "padding-right"  (cell= (or pr ph p)))
-      (set-style! e in "padding-top"    (cell= (or pt pv p)))
-      (set-style! e in "padding-bottom" (cell= (or pb pv p))))))
+      (bind-in! e [in .-style .-padding] (or pt pv p) (or pr ph p) (or pb pv p) (or pl ph p)))))
 
 (defn round [ctor]
   "set the radius on the middle element."
   (fn [{:keys [r rtl rtr rbl rbr] :as attrs} elems]
+    {:pre [(lengths? r rtl rtr rbl rbr)]}
     (with-let [e (ctor (dissoc attrs :r :rtl :rtr :rbl :rbr) elems)]
-      (set-style! e mid "border-top-left-radius"     (cell= (or rtl r)))
-      (set-style! e mid "border-top-right-radius"    (cell= (or rtr r)))
-      (set-style! e mid "border-bottom-left-radius"  (cell= (or rbl r)))
-      (set-style! e mid "border-bottom-right-radius" (cell= (or rbr r))))))
+      (bind-in! e [mid .-style .-borderRadius] (or rtl r) (or rtr r) (or rbr r) (or rbl r)))))
+
+(defn shadow [ctor]
+  "set the shadow on the middle element."
+  (fn [{:keys [d dh dv db ds dc] :as attrs} elems]
+    {:pre [(lengths? d dh dv db ds) (color? dc)]}
+    (with-let [e (ctor (dissoc attrs :d :dh :dv :db :ds :dc) elems)]
+      (bind-in! e [mid .-style .-boxShadow] (or dh d) (or dv d) (or db 1) ds dc))))
 
 (defn size [ctor]
   "set the size on the outer element when it is expressed as a ratio, and on the
@@ -198,14 +393,15 @@
    margin is added, it will push out against the parent container instead of
    being subtracted from the size of the elem."
   (fn [{:keys [w w- w+ h h- h+] :as attrs} elems]
+    {:pre [(lengths? w w- w+ h h- h+)]}
     (with-let [e (ctor (dissoc attrs :w :w- :w+ :h :h- :h+) elems)]
-      (let [f #(if (ratio? %) out mid)]
-        (set-style! e (f w)  "width"  w)
-        (set-style! e (f w-) "width"  w-)
-        (set-style! e (f w+) "width"  w+)
-        (set-style! e (f h)  "height" h)
-        (set-style! e (f h-) "height" h-)
-        (set-style! e (f h+) "height" h+)))))
+      (let [box #(if (ratio? %) out mid)]
+        (bind-in! e [(box w)  .-style .-width]     w)
+        (bind-in! e [(box w-) .-style .-minWidth]  w-)
+        (bind-in! e [(box w+) .-style .-maxWidth]  w+)
+        (bind-in! e [(box h)  .-style .-height]    h)
+        (bind-in! e [(box h-) .-style .-minHeight] h-)
+        (bind-in! e [(box h+) .-style .-maxHeight] h+)))))
 
 (defn space [ctor]
   "set the padding on the outer element of each child and a negative margin on
@@ -215,53 +411,43 @@
    negative inner margin on the elem itself offsets this padding to fencepost
    the children flush with the edges of the container."
   (fn [{:keys [g gh gv] :as attrs} elems]
+    {:pre [(lengths? g gh gv)]}
     (let [mh (cell= (/ (or gh g) 2))
           mv (cell= (/ (or gv g) 2))
           ph (cell= (- mh))
           pv (cell= (- mv))]
-      (swap-elems! elems #(set-style! % out "padding-left"   %2) mh)
-      (swap-elems! elems #(set-style! % out "padding-right"  %2) mh)
-      (swap-elems! elems #(set-style! % out "padding-top"    %2) mv)
-      (swap-elems! elems #(set-style! % out "padding-bottom" %2) mv)
+      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2) mv mh mv mh)
       (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
-        (set-style! e in "margin-left"   ph)
-        (set-style! e in "margin-right"  ph)
-        (set-style! e in "margin-top"    pv)
-        (set-style! e in "margin-bottom" pv)))))
+        (bind-in! e [in .-style .-margin] pv ph)))))
 
 (defn stroke [ctor]
   "set the border on the elem's middle element.
 
    this adds space between the edges of the container and its children."
   (fn [{:keys [s sl sr st sb sh sv sc scl scr sct scb sch scv] :as attrs} elems]
+    {:pre [(lengths? s sl sr st sb sh sv) (colors? sc scl scr sct scb sch scv)]}
     (with-let [e (ctor (dissoc attrs :s :sl :sr :st :sb :sh :sv :sw :sc :scl :scr :sct :scb :sch :scv) elems)]
-      (set-style! e mid "border-left-width"   (cell= (or sl sh s)))
-      (set-style! e mid "border-left-color"   (cell= (or scl sch sc)))
-      (set-style! e mid "border-left-style"   (cell= (when (or sl sh s) :solid)))
-      (set-style! e mid "border-right-width"  (cell= (or sr sh s)))
-      (set-style! e mid "border-right-color"  (cell= (or scr sch sc)))
-      (set-style! e mid "border-right-style"  (cell= (when (or sr sh s) :solid)))
-      (set-style! e mid "border-top-width"    (cell= (or st sv s)))
-      (set-style! e mid "border-top-color"    (cell= (or sct scv sc)))
-      (set-style! e mid "border-top-style"    (cell= (when (or st sv s) :solid)))
-      (set-style! e mid "border-bottom-width" (cell= (or sb sv s)))
-      (set-style! e mid "border-bottom-color" (cell= (or scb scv sc)))
-      (set-style! e mid "border-bottom-style" (cell= (when (or sb sv s) :solid))))))
+      (bind-in! e [mid .-style .-borderWidth] (or st sv s 0)    (or sr sh s 0)    (or sb sv s 0)    (or sl sh s 0))
+      (bind-in! e [mid .-style .-borderColor] (or sct scv sc) (or scr sch sc) (or scb scv sc) (or scl sch sc))
+      (bind-in! e [mid .-style .-borderStyle] :solid))))
 
 (defn font [ctor]
   "set the font styles pertaining to the attribute"
-  (fn [{:keys [f fw fh ft ff fc fu fi fm fk] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fm :fk) elems)]
-      (set-style! e mid "font-size"       f)
-      (set-style! e mid "letter-spacing"  fw)
-      (set-style! e mid "line-height"     fh)
-      (set-style! e mid "font-weight"     ft)
-      (set-style! e mid "font-family"     ff)
-      (set-style! e mid "color"           fc)
-      (set-style! e mid "text-decoration" fu)
-      (set-style! e mid "font-style"      fi)
-      (set-style! e mid "font-smooth"     fm)
-      (set-style! e mid "font-kerning"    fk))))
+  (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fy] :as attrs} elems]
+    {:pre [(size? f) (spacing? fw) (spacing? fh) (weight? ft) (family? ff) (color? fc) (underline? fu) (italic? fi) (adjust? fa) (stretch? fs) (synthesis? fy)]}
+    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fy) elems)]
+      (bind-in! e [in .-style .-fontSize]       f)
+      (bind-in! e [in .-style .-letterSpacing]  fw)
+      (bind-in! e [in .-style .-lineHeight]     fh)
+      (bind-in! e [in .-style .-fontWeight]     ft)
+      (bind-in! e [in .-style .-fontFamily]     ff)
+      (bind-in! e [in .-style .-color]          fc)
+      (bind-in! e [in .-style .-textDecoration] fu)
+      (bind-in! e [in .-style .-fontStyle]      fi)
+      (bind-in! e [in .-style .-fontKerning]    fk)
+      (bind-in! e [in .-style .-fontSizeAdjust] fa)
+      (bind-in! e [in .-style .-fontStretch]    fs)
+      (bind-in! e [in .-style .-fontSynthesis]  fy))))
 
 (defn destyle [ctor]
   "neutralize the default styling of the inner element.
@@ -270,21 +456,31 @@
   the middle element."
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (set-style! e in "background-color"  :transparent)
-      (set-style! e in "border-style"      :none)
-      (set-style! e in "text-align"        :inherit)))) ;; cursor: pointer, :width: 100%
+      (bind-in! e [in .-style .-backgroundColor] :transparent)
+      (bind-in! e [in .-style .-borderStyle]     :none)
+      (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
+
+(defn error [ctor]
+  "handle any errors corresponding to the component by highlighting the
+   corresponding component."
+  (fn [attrs elems]
+    (let [e (atom nil)]
+      (try (ctor attrs elems)
+           (catch js/Object err
+            ;  (bind-in! @e [out .-title msg] err)
+            ;  (bind-in! @e [out .-style .-border] 2 :dotted :red)
+             (.log js/console (str "caught exception" @e)))))))
 
 (defn img [ctor]
   (fn [{:keys [url] :as attrs} elems]
     (with-let [e (ctor (dissoc attrs :url) elems)]
-      (set-prop! e in "src" url))))
+      (bind-in! e [in .-src] url))))
 
 (defn parse-args [ctor]
   (fn [& args]
      (apply ctor (#'hoplon.core/parse-args args))))
 
 ;; todo:
-;; shadow
 ;; margin
 ;; fixed
 ;; constraint (absolute positioning within parent)
@@ -298,6 +494,6 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem   (-> (mkelem "div" "div" "div")    color font overflow size pad stroke round align space parse-args))
-(def button (-> (mkelem "div" "div" "button") destyle color font overflow size pad stroke round align parse-args))
-(def image  (-> (mkelem "div" "div" "img")    color font overflow size pad stroke round img parse-args))
+(def elem   (-> (mkelem "div" "div" "div")    color font overflow size pad stroke round shadow align space error parse-args))
+(def button (-> (mkelem "div" "div" "button") destyle color font overflow size pad stroke round shadow align error parse-args))
+(def image  (-> (mkelem "div" "div" "img")    color font overflow size pad stroke round shadow img error parse-args))

@@ -53,7 +53,7 @@
     (u/elem :h 26 :ph gutter :gh gutter :av :middle
       (u/elem :h 6 :w 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (u/elem :w 170 :f 10 :fc font-grey :vh :hidden title))
-    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey
+    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey :d 3 :dc (hx 0xAAA)
       (dissoc attrs :pass :title)
       elems)))
 

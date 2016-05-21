@@ -75,6 +75,7 @@
 (defn calculation? [v]   (instance?  Evaluation v))
 (defn pixels?      [v]   (instance?  Pixels     v))
 (defn model?       [v]   (satisfies? IDOM       v))
+(defn hex?         [v]   (instance? Hexidecimal v))
 
 (defn hx [v]   (Hexidecimal. v))
 (defn rt [n d] (Ratio. n d))
