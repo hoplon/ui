@@ -14,7 +14,7 @@
                   [hoplon/boot-hoplon        "0.1.13"    :scope "test"]
                   [tailrecursion/boot-jetty  "0.1.3"     :scope "test"]
                   [weasel                    "0.7.0"     :scope "test"]
-                  [hoplon                    "6.0.0-alpha13"]]
+                  [hoplon                    "6.0.0-alpha14"]]
   :repositories  [["clojars"       "https://clojars.org/repo/"]
                   ["maven-central" "https://repo1.maven.org/maven2/"]])
 
