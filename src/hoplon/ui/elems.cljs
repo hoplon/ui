@@ -120,7 +120,9 @@
       (set! (-> b o .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
       (set! (-> b m .-boxSizing)     "border-box")   ;; include border and padding in dimensions
       (set! (-> b m .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
+      (set! (-> b m .-position)      "relative")     ;; for svg skin
       (set! (-> b m .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
+      (set! (-> b i .-cursor)        "inherit")      ;; inherit mouse
       (set! (-> b i .-display)       "block")        ;; prevent white space from creeping in around inline elements
       (set! (-> b i .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
       (set! (-> b i .-height)        "inherit")      ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
@@ -350,7 +352,7 @@
     (with-let [e (ctor (dissoc attrs :c :o :m) elems)]
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
-      (bind-in! e [in  .-style .-cursor]          m))))
+      (bind-in! e [mid .-style .-cursor]          m))))
 
 (defn overflow [ctor]
   "set the overflow style on the elem's middle element."
@@ -456,6 +458,9 @@
   the middle element."
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
+      (bind-in! e [in .-style .-width]  (rt 1 1))
+      (bind-in! e [in .-style .-height] (rt 1 1))
+      (bind-in! e [in .-style .-outline] :none)
       (bind-in! e [in .-style .-backgroundColor] :transparent)
       (bind-in! e [in .-style .-borderStyle]     :none)
       (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
@@ -470,6 +475,26 @@
             ;  (bind-in! @e [out .-title msg] err)
             ;  (bind-in! @e [out .-style .-border] 2 :dotted :red)
              (.log js/console (str "caught exception" @e)))))))
+
+(defn skin [ctor]
+  "add an svg skin to the component."
+  (fn [attrs elems]
+    (with-let [e (ctor attrs elems)]
+      (let [skin (.createElementNS js/document "http://www.w3.org/2000/svg" "svg")]
+        (set! (.. skin -style -position) "absolute")
+        ; (set! (.. skin -style -left)  "0px")
+        ; (set! (.. skin -right) "0px")
+        (set! (.. skin -style -top)  "0")
+        (set! (.. skin -style -left)  "0")
+        (set! (.. skin -style -width)  "100%")
+        (set! (.. skin -style -height) "100%")
+        ; (set! (.. skin -viewBox)  "1 1 auto")
+        (set! (.. skin -style -zIndex) "-1")
+        (set! (.. skin -innerHTML) "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
+        (.appendChild (mid e) skin)))))
+
+
+
 
 (defn img [ctor]
   (fn [{:keys [url] :as attrs} elems]
@@ -495,5 +520,5 @@
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def elem   (-> (mkelem "div" "div" "div")    color font overflow size pad stroke round shadow align space error parse-args))
-(def button (-> (mkelem "div" "div" "button") destyle color font overflow size pad stroke round shadow align error parse-args))
+(def button (-> (mkelem "div" "div" "button") destyle skin color font overflow size pad stroke round shadow align error parse-args))
 (def image  (-> (mkelem "div" "div" "img")    color font overflow size pad stroke round shadow img error parse-args))

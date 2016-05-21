@@ -87,7 +87,7 @@
   (e/elem attrs elems))
 
 (defelem button [attrs elems]
-  (e/button :ph 14 :pv 10 :r 5 :c (hx 0xFFF) :s 1 :sc (hx 0xCCC) :ah :center :f p :fc (hx 0x333)
+  (e/button :ph 14 :pv 10 :m :pointer  :ah :center  :f p ;:r 5 :c (hx 0xFFF) :s 1 :sc (hx 0xCCC):f p :fc (hx 0x333)
     attrs elems))
 
 (defelem image [attrs elems]
