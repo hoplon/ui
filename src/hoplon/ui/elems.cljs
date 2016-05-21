@@ -32,6 +32,11 @@
   (let [watch (fn [i v] (if (cell? v) @(add-watch v (gensym) #(f (assoc vs i %4))) v))]
     (f (map-indexed watch vs))))
 
+(defn bind-cells [f]
+  (fn [& vs]
+    (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc vs i %4))) v))]
+      (apply f (map-indexed watch vs)))))
+
 (defn swap-elems! [e f & vs]
   (cond (cell?   e) (do-watch e #(apply f @e %&))
         (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;; loop?
@@ -62,7 +67,7 @@
 (defprotocol IContain
   (-sync [e elems]))
 
-(defprotocol IRender ;; outer, events bubble to outer
+(defprotocol IRender
   (-attach [e])
   (-detach [e]))
 
@@ -189,143 +194,124 @@
 (def overflows   [:visible :hidden :scroll :auto])
 (def weights     [:normal :bold :bolder :lighter])
 
+(defn in?            [v & kwvecs]  (some #{v} (apply conj kwvecs)))
+(defn validate-cells [validator]  #(partial every? (comp bind-cells validator) %))
+
 (defn adjust? [v]
-  (cond
-    (cell?    v) (adjust? @(add-watch v (gensym) #(adjust? %4)))
-    (keyword? v) (apply some #{v} adjusts globals)
-    (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v adjusts globals)
+        (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
+        (nil?     v) true
+        :else        false))
 
 (defn alignh? [v]
-  (cond
-    (cell?    v) (alignh? @(add-watch v (gensym) #(alignh? %4)))
-    (keyword? v) (some #{v} (apply conj haligns lengths globals))
-    (number?  v) v
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v haligns lengths globals)
+        (number?  v) v
+        (nil?     v) true
+        :else        false))
 
 (defn alignv? [v]
-  (cond
-    (cell?    v) (alignv? @(add-watch v (gensym) #(alignv? %4)))
-    (keyword? v) (some #{v} (apply conj valigns lengths globals))
-    (number?  v) v
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v valigns lengths globals)
+        (number?  v) v
+        (nil?     v) true
+        :else        false))
 
 (defn color? [v]
-  (cond
-    (cell?    v) (color? @(add-watch v (gensym) #(color? %4)))
-    (keyword? v) (apply some #{v} colors globals)
-    (hex?     v) v
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v colors globals)
+        (hex?     v) v
+        (nil?     v) true
+        :else        false))
 
 (defn cursor? [v]
-  (cond
-    (cell?    v) (cursor? @(add-watch v (gensym) #(cursor? %4)))
-    (keyword? v) (some #{v} (apply conj cursors globals))
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v cursors globals)
+        (nil?     v) true
+        :else        false))
 
-(defn family? [v] ;; todo: support other units
-  (cond
-    (cell?    v) (family? @(add-watch v (gensym) #(family? %4)))
-    (keyword? v) (some #{v} (apply conj families globals))
-    (string?  v) v
-    (nil?     v) true
-    :else        false))
+(defn family? [v]
+  (cond (keyword? v) (in? v families globals)
+        (string?  v) v
+        (nil?     v) true
+        :else        false))
 
-(defn italic? [v]
-  (cond
-    (cell?    v) (italic? @(add-watch v (gensym) #(italic? %4)))
-    (keyword? v) (some #{v} (apply conj styles globals))
-    (nil?     v) true
-    :else        false))
+(defn style? [v]
+  (cond (keyword? v) (in? v styles globals)
+        (nil?     v) true
+        :else        false))
 
 (defn kerning? [v]
-  (cond
-    (cell?    v) (kerning? @(add-watch v (gensym) #(kerning? %4)))
-    (keyword? v) (some #{v} (apply conj kernings globals))
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v kernings globals)
+        (nil?     v) true
+        :else        false))
 
-(defn length? [v] ;; todo: lengths & ration/pcts are diff types
-  (cond
-    (cell?    v) (length? @(add-watch v (gensym) #(length? %4)))
-    (keyword? v) (some #{v} (apply conj lengths globals))
-    (ratio?   v) v
-    (number?  v) v
-    (nil?     v) true
-    :else        false))
+(defn length? [v]
+  (cond (keyword? v) (in? v lengths globals)
+        (ratio?   v) v
+        (number?  v) v
+        (nil?     v) true
+        :else        false))
 
 (defn opacity? [v]
-  (cond
-    (cell?    v) (opacity? @(add-watch v (gensym) #(opacity? %4)))
-    (keyword? v) (some #{v} globals)
-    (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v globals)
+        (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
+        (nil?     v) true
+        :else        false))
 
 (defn overflow? [v]
-  (cond
-    (cell?    v) (overflow? @(add-watch v (gensym) #(overflow? %4)))
-    (keyword? v) (some #{v} (apply conj overflows globals))
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v overflows globals)
+        (nil?     v) true
+        :else        false))
 
 (defn size? [v] ;; todo: support other units
-  (cond
-    (cell?    v) (size? @(add-watch v (gensym) #(size? %4)))
-    (keyword? v) (some #{v} (apply conj sizes globals))
-    (ratio?   v) v
-    (number?  v) v
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v sizes globals)
+        (ratio?   v) v
+        (number?  v) v
+        (nil?     v) true
+        :else        false))
 
 (defn spacing? [v]
-  (cond
-    (cell?    v) (spacing? @(add-watch v (gensym) #(spacing? %4)))
-    (keyword? v) (some #{v} (apply conj spacings globals))
-    (ratio?   v) v
-    (number?  v) v
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v spacings globals)
+        (ratio?   v) v
+        (number?  v) v
+        (nil?     v) true
+        :else        false))
 
 (defn stretch? [v]
-  (cond
-    (cell?    v) (stretch? @(add-watch v (gensym) #(stretch? %4)))
-    (keyword? v) (apply some #{v} stretches globals)
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v stretches globals)
+        (nil?     v) true
+        :else        false))
 
 (defn synthesis? [v]
-  (cond
-    (cell?    v) (synthesis? @(add-watch v (gensym) #(synthesis? %4)))
-    (keyword? v) (apply some #{v} syntheses globals)
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? v syntheses globals)
+        (nil?     v) true
+        :else        false))
 
-(defn underline? [v]
-  (cond
-    (cell?    v) (cursor? @(add-watch v (gensym) #(cursor? %4)))
-    (keyword? v) (some #{v} (apply conj decorations globals))
-    (nil?     v) true
-    :else        false))
+(defn decoration? [v]
+  (cond (keyword? v) (in? v decorations globals)
+        (nil?     v) true
+        :else        false))
 
 (defn weight? [v]
-  (cond
-    (cell?    v) (weight? @(add-watch v (gensym) #(weight? %4)))
-    (keyword? v) (some #{v} (apply conj weights globals))
-    (integer? v) (and (>= v 100) (<= v 900) (= (mod v 100)))
-    (nil?     v) true
-    :else        false))
+  (cond (keyword? v) (in? weights globals)
+        (integer? v) (and (>= v 100) (<= v 900) (= (mod v 100)))
+        (nil?     v) true
+        :else        false))
 
-(defn colors? [& vs]
-  (every? color? vs))
-
-(defn lengths? [& vs]
-  (every? length? vs))
+(def adjusts?     (validate-cells adjust?))
+(def alignhs?     (validate-cells alignh?))
+(def alignvs?     (validate-cells alignv?))
+(def colors?      (validate-cells color?))
+(def cursors?     (validate-cells cursor?))
+(def decorations? (validate-cells decoration?))
+(def families?    (validate-cells family?))
+(def kernings?    (validate-cells kerning?))
+(def lengths?     (validate-cells length?))
+(def opacities?   (validate-cells opacity?))
+(def overflows?   (validate-cells overflow?))
+(def sizes?       (validate-cells size?))
+(def spacings?    (validate-cells spacing?))
+(def stretches?   (validate-cells stretch?))
+(def styles?      (validate-cells style?))
+(def syntheses?   (validate-cells synthesis?))
+(def weights?     (validate-cells weight?))
 
 ;;; attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -338,7 +324,7 @@
   that, in addition to aligning the lines of children within the elem, the
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [ah av] :as attrs} elems]
-    {:pre [(alignh? ah) (alignv? av)]}
+    {:pre [(alignhs? ah) (alignvs? av)]}
     (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) av)
     (with-let [e (ctor (dissoc attrs :ah :av) elems)]
       (bind-in! e [in  .-style .-height]        (cell= (if av :auto :inherit))) ;; initial instead?
@@ -348,7 +334,7 @@
 (defn color [ctor]
   "set the background color an the inner element."
   (fn [{:keys [c o m] :as attrs} elems]
-    {:pre [(color? c) (opacity? o) (cursor? m)]}
+    {:pre [(colors? c) (opacities? o) (cursors? m)]}
     (with-let [e (ctor (dissoc attrs :c :o :m) elems)]
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
@@ -357,7 +343,7 @@
 (defn overflow [ctor]
   "set the overflow style on the elem's middle element."
   (fn [{:keys [v vh vv] :as attrs} elems]
-    {:pre [(overflow? v) (overflow? vh) (overflow? vv)]}
+    {:pre [(overflows? v vh vv)]}
     (with-let [e (ctor (dissoc attrs :v :vh :vv) elems)]
       (bind-in! e [in .-style .-overflow] (or vh v) (or vv v)))))
 
@@ -381,7 +367,7 @@
 (defn shadow [ctor]
   "set the shadow on the middle element."
   (fn [{:keys [d dh dv db ds dc] :as attrs} elems]
-    {:pre [(lengths? d dh dv db ds) (color? dc)]}
+    {:pre [(lengths? d dh dv db ds) (colors? dc)]}
     (with-let [e (ctor (dissoc attrs :d :dh :dv :db :ds :dc) elems)]
       (bind-in! e [mid .-style .-boxShadow] (or dh d) (or dv d) (or db 1) ds dc))))
 
@@ -436,7 +422,7 @@
 (defn font [ctor]
   "set the font styles pertaining to the attribute"
   (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fy] :as attrs} elems]
-    {:pre [(size? f) (spacing? fw) (spacing? fh) (weight? ft) (family? ff) (color? fc) (underline? fu) (italic? fi) (adjust? fa) (stretch? fs) (synthesis? fy)]}
+    {:pre [(sizes? f) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy)]}
     (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fy) elems)]
       (bind-in! e [in .-style .-fontSize]       f)
       (bind-in! e [in .-style .-letterSpacing]  fw)
@@ -458,43 +444,34 @@
   the middle element."
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (bind-in! e [in .-style .-width]  (rt 1 1))
-      (bind-in! e [in .-style .-height] (rt 1 1))
-      (bind-in! e [in .-style .-outline] :none)
+      (bind-in! e [in .-style .-width]           (rt 1 1)) ;; display block should force to 100%
+      (bind-in! e [in .-style .-height]          (rt 1 1))
+      (bind-in! e [in .-style .-outline]         :none)
       (bind-in! e [in .-style .-backgroundColor] :transparent)
       (bind-in! e [in .-style .-borderStyle]     :none)
       (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
 
 (defn error [ctor]
-  "handle any errors corresponding to the component by highlighting the
-   corresponding component."
+  "handle errors by highlighting the corresponding component"
   (fn [attrs elems]
     (let [e (atom nil)]
       (try (ctor attrs elems)
            (catch js/Object err
-            ;  (bind-in! @e [out .-title msg] err)
-            ;  (bind-in! @e [out .-style .-border] 2 :dotted :red)
-             (.log js/console (str "caught exception" @e)))))))
+              (.log js/console (str "caught exception" e)))))))
 
 (defn skin [ctor]
   "add an svg skin to the component."
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (let [skin (.createElementNS js/document "http://www.w3.org/2000/svg" "svg")]
+      (let [skin (.createElementNS js/document "http://www.w3.org/2000/svg" "svg")] ;; if skin then hide mid styles
         (set! (.. skin -style -position) "absolute")
-        ; (set! (.. skin -style -left)  "0px")
-        ; (set! (.. skin -right) "0px")
-        (set! (.. skin -style -top)  "0")
-        (set! (.. skin -style -left)  "0")
-        (set! (.. skin -style -width)  "100%")
-        (set! (.. skin -style -height) "100%")
-        ; (set! (.. skin -viewBox)  "1 1 auto")
-        (set! (.. skin -style -zIndex) "-1")
-        (set! (.. skin -innerHTML) "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
+        (set! (.. skin -style -top)      "0")
+        (set! (.. skin -style -left)     "0")
+        (set! (.. skin -style -width)    "100%")
+        (set! (.. skin -style -height)   "100%")
+        (set! (.. skin -style -zIndex)   "-1")
+        (set! (.. skin -innerHTML)       "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
         (.appendChild (mid e) skin)))))
-
-
-
 
 (defn img [ctor]
   (fn [{:keys [url] :as attrs} elems]

@@ -240,5 +240,8 @@
       (u/elem
         (box :w (cell 80) "a")))
   (suite :title "controls"
-      (u/button "Click Me")
+      (u/button :w 300 :h 150 "Click Me")
+      (u/button :w 150 :h 75 :fc :white "Click Me")
+      (u/button :w 300 :h 200 "Click Me")
+      (u/button :w 300 :h 200 "Click Me")
     #_(u/elem :h 25 :w [(rt 1 1) sm (ev - (rt 1 1) 220)] :ah :right :g 6)))
