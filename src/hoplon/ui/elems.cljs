@@ -66,14 +66,18 @@
 
 (deftype Elem [root]
   IBox
-  (-out [_]     root)
-  (-mid [_] (-> root .-firstChild))
-  (-in  [_] (-> root .-firstChild .-firstChild))
+  (-out [_]
+    root)
+  (-mid [_]
+   (-> root .-firstChild))
+  (-in  [_]
+   (-> root .-firstChild .-firstChild))
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w "#<Elem: " (.-tagName (-out this)) " " (.-tagName (-mid this)) " "(.-tagName (-in this)) ">"))
   IElem
-  (-toElem [_] root)
+  (-toElem [_]
+    root)
   IContain
   (-sync [this elems]
     (let [new  (remove nil? (flatten elems))
@@ -102,29 +106,29 @@
       (.appendChild e (nest tags)))))
 
 (defn mkelem [& tags]
-  (fn [attrs elems]
-    #_{:pre [(empty? attrs)]}
-    (let [o #(.. % -style)
-          m #(.. % -firstChild -style)
-          i #(.. % -firstChild -firstChild -style)
-          b (nest tags)]
-      (set! (-> b o .-boxSizing)     "border-box")   ;; include border and padding in dimensions to prevent visual errors from shifting layout
-      (set! (-> b o .-display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
-      (set! (-> b o .-verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
-      (set! (-> b o .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
-      (set! (-> b m .-boxSizing)     "border-box")   ;; include border and padding in dimensions
-      (set! (-> b m .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
-      (set! (-> b m .-position)      "relative")     ;; for svg skin
-      (set! (-> b m .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
-      (set! (-> b i .-cursor)        "inherit")      ;; inherit mouse
-      (set! (-> b i .-display)       "block")        ;; prevent white space from creeping in around inline elements
-      (set! (-> b i .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
-      (set! (-> b i .-height)        "inherit")      ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
-      (with-let [e (Elem. b) #_(.cloneNode b true)]
+  (let [o #(.. % -style)
+        m #(.. % -firstChild -style)
+        i #(.. % -firstChild -firstChild -style)
+        b (nest tags)]
+    (set! (-> b o .-boxSizing)     "border-box")   ;; include border and padding in dimensions to prevent visual errors from shifting layout
+    (set! (-> b o .-display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
+    (set! (-> b o .-verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
+    (set! (-> b o .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
+    (set! (-> b m .-boxSizing)     "border-box")   ;; include border and padding in dimensions
+    (set! (-> b m .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
+    (set! (-> b m .-position)      "relative")     ;; for svg skin
+    (set! (-> b m .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
+    (set! (-> b i .-cursor)        "inherit")      ;; inherit mouse
+    (set! (-> b i .-display)       "block")        ;; prevent white space from creeping in around inline elements
+    (set! (-> b i .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
+    (set! (-> b i .-height)        "inherit")      ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
+    (fn [attrs elems]
+      #_{:pre [(empty? attrs)]}
+      (with-let [e (Elem. (.cloneNode b true))]
         (doseq [[k v] attrs]
           (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
+        ;; todo: throw ui exception if elems not IElem
         (-sync e (mapv (bind-cells ->elem) elems))))))
-
 
 #_(defn elem? [v] (satisfies? IElem v))
 (defn elem? [v] (instance? Elem v)) ;; todo depend on interface instead, require strings, numbers to be Elems
