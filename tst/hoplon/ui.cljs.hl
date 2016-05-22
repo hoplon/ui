@@ -41,7 +41,7 @@
       (u/elem :f 21 :fc font-grey
         title)
       (when code
-        (u/elem :cr 0 :bt "gr" :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
+        (u/elem :cr 0 :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
           code)))
     (dissoc attrs :code :pass :title) elems))
 
@@ -237,9 +237,9 @@
       ;; solution: apply lengths to middle, but percentages to outer
       (u/elem :g 50
         (box "a"))))
-    (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
-      (u/elem
-        (box :w (cell 80) "a")))
+  (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
+    (u/elem
+      (box :w (cell 80) "a")))
   (suite :title "controls"
       (u/button :w 300 :h 150 "Click Me")
       (u/button :w 150 :h 75 :fc :white "Click Me")

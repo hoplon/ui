@@ -5,8 +5,8 @@
     [hoplon.ui.elems :as e]
     [clojure.string        :refer [split]]
     [javelin.core          :refer [cell]]
-    [hoplon.ui.attrs       :refer [rt hx ev bk ->elem]]
-    [hoplon.ui.elems       :refer [mkelem]]
+    [hoplon.ui.attrs       :refer [rt hx ev bk]]
+    [hoplon.ui.elems       :refer [mkelem ->elem]]
     [hoplon.ui.middlewares :refer [parse-args handle-exception align shadow round stroke pad size overflow font color destyle skin space img]])
   (:require-macros
     [hoplon.core  :refer [defelem for-tpl]]

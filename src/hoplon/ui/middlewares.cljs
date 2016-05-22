@@ -2,8 +2,8 @@
   (:require
     [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
-    [hoplon.ui.attrs :refer [IElemValue rt hx ev bk ratio? hex? eval? break? ->attr ->elem attr?]] ;;todo: user attr? in validations?
-    [hoplon.ui.elems :refer [*exceptions* throw-ui-exception out mid in bind-cells elem?]])
+    [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr attr?]] ;;todo: user attr? in validations?
+    [hoplon.ui.elems :refer [*exceptions* throw-ui-exception out mid in bind-cells ->elem elem?]])
   (:require-macros
     [hoplon.ui.middlewares :refer [bind-in! set-in!]]
     [javelin.core          :refer [cell= with-let]]))

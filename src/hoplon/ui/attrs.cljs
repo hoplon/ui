@@ -8,35 +8,22 @@
   "Serialize to DOM Attr"
   (-toAttr [_]))
 
-(defprotocol IElemValue
-  "Serialize to DOM Element"
-  (-toElem [_]))
-
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extend-type nil
   IAttr
   (-toAttr [this]
-    "initial")
-  IElemValue
-  (-toElem [this]
-    nil))
+    "initial"))
 
 (extend-type js/Number
   IAttr
   (-toAttr [this]
-    (str this "px"))
-  IElemValue
-  (-toElem [this] ;; todo: construct elem with texnode at center
-    (.createTextNode js/document (str this))))
+    (str this "px")))
 
 (extend-type js/String
   IAttr
   (-toAttr [this]
-    this) ;;todo: consider impact of blank? "initial"
-  IElemValue
-  (-toElem [this] ;; todo: construct elem with textnode at center
-    (.createTextNode js/document this)))
+    this)) ;;todo: consider impact of blank? "initial"
 
 (extend-type function
   IAttr
@@ -105,7 +92,5 @@
 (defn break? [v] (instance? Break v))
 
 (defn attr? [v] (satisfies? IAttr v))
-(defn elem? [v] (satisfies? IElemValue v))
 
 (defn ->attr [v] (-toAttr v))
-(defn ->elem [v] (-toElem v))

@@ -1,13 +1,13 @@
 (ns hoplon.ui.elems
   (:require
-    [clojure.string        :refer [join]]
-    [javelin.core          :refer [cell?]]
-    [hoplon.core           :refer [do-watch]]
-    [hoplon.ui.attrs       :refer [IElemValue rt hx ev bk ratio? hex? eval? break? ->attr ->elem]])
+    [clojure.string  :refer [join]]
+    [javelin.core    :refer [cell?]]
+    [hoplon.core     :refer [do-watch]]
+    [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr]])
   (:require-macros
-    [javelin.core          :refer [cell= with-let]]))
+    [javelin.core    :refer [cell= with-let]]))
 
-(declare elem?)
+(declare elem? ->elem)
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -36,6 +36,10 @@
   (-mid [e])
   (-in  [e]))
 
+(defprotocol IElem
+  "Serialize to DOM Element"
+  (-toElem [_]))
+
 (defprotocol IContain ;; todo: factor out
   (-sync [e elems]))
 
@@ -43,7 +47,22 @@
   (-attach [e])
   (-detach [e]))
 
-;;; elem box model ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(extend-type nil
+  IElem
+  (-toElem [this]
+    nil))
+
+(extend-type js/Number
+  IElem
+  (-toElem [this] ;; todo: construct elem with texnode at center
+    (.createTextNode js/document (str this))))
+
+(extend-type js/String
+  IElem
+  (-toElem [this] ;; todo: construct elem with textnode at center
+    (.createTextNode js/document this)))
 
 (deftype Elem [root]
   IBox
@@ -53,7 +72,7 @@
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w "#<Elem: " (.-tagName (-out this)) " " (.-tagName (-mid this)) " "(.-tagName (-in this)) ">"))
-  IElemValue
+  IElem
   (-toElem [_] root)
   IContain
   (-sync [this elems]
@@ -106,7 +125,10 @@
           (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
         (-sync e (mapv (bind-cells ->elem) elems))))))
 
-(defn elem? [v] (instance? Elem v))
+
+#_(defn elem? [v] (satisfies? IElem v))
+(defn elem? [v] (instance? Elem v)) ;; todo depend on interface instead, require strings, numbers to be Elems
+(defn ->elem [v] (-toElem v))
 
 (defn out [e] (-out e))
 (defn mid [e] (-mid e))
