@@ -40,8 +40,9 @@
     (u/elem :w (rt 1 1) :ph gutter
       (u/elem :f 21 :fc font-grey
         title)
-      (u/elem :cr 0 :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
-        code))
+      (when code
+        (u/elem :cr 0 :bt "gr" :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
+          code)))
     (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]

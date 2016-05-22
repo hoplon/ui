@@ -5,19 +5,17 @@
     [hoplon.core     :refer [do-watch]]
     [hoplon.ui.value :refer [IDOM ev rt px kw hx ratio? model? hex? model]])
   (:require-macros
-    [hoplon.ui.elems :refer [bind-in!]]
+    [hoplon.ui.elems :refer [bind-in! set-in!]]
     [javelin.core    :refer [cell= with-let]]))
 
 (declare elem?)
 
+(def ^:dynamic *exceptions* nil)
+
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn throw-ui! [elem & msg]
-  (let [error-msg (apply str "UI ERROR: " msg)]
-    (when elem.style
-      (set! (.. elem -title) error-msg)
-      (set! (.. elem -style -border) "2px dotted red"))
-    (println error-msg)))
+(defn throw-ui-exception [& msg]
+  (swap! *exceptions* conj {:msg (apply str msg)}))
 
 (defn ->attr [v]
   (cond (number?  v) (model (px v))
@@ -42,7 +40,7 @@
         (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;; loop?
         (elem?   e) (apply f e vs)
         (string? e) identity
-        :else       (throw-ui! e "Invalid child of type " (type e) " with values " vs ".")))
+        :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn- child-vec
   [this]
@@ -133,7 +131,7 @@
       (set! (-> b i .-height)        "inherit")      ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
       (with-let [e (Elem. b) #_(.cloneNode b true)]
         (doseq [[k v] attrs]
-          (throw-ui! (-out e) "Attribute " k " with value " v " cannot be applied to element."))
+          (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
         (-sync e elems)))))
 
 (defn elem? [v] (instance? Elem v))
@@ -195,104 +193,110 @@
 (def weights     [:normal :bold :bolder :lighter])
 
 (defn in?            [v & kwvecs]  (some #{v} (apply conj kwvecs)))
-(defn validate-cells [validator]  #(partial every? (comp bind-cells validator) %))
+
+(defn validate-cells [validator]
+  (fn [& vs]
+    (doseq [v vs :let [valid? (bind-cells validator)]]
+      (when-not (valid? v)
+        (throw-ui-exception (str "Error validating attribute value " v "."))))
+    true))
 
 (defn adjust? [v]
   (cond (keyword? v) (in? v adjusts globals)
         (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn alignh? [v]
   (cond (keyword? v) (in? v haligns lengths globals)
         (number?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn alignv? [v]
   (cond (keyword? v) (in? v valigns lengths globals)
         (number?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn color? [v]
   (cond (keyword? v) (in? v colors globals)
         (hex?     v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn cursor? [v]
   (cond (keyword? v) (in? v cursors globals)
-        (nil?     v) true
+        (nil?     v) :inital
         :else        false))
 
 (defn family? [v]
   (cond (keyword? v) (in? v families globals)
         (string?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn style? [v]
   (cond (keyword? v) (in? v styles globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn kerning? [v]
   (cond (keyword? v) (in? v kernings globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn length? [v]
   (cond (keyword? v) (in? v lengths globals)
         (ratio?   v) v
         (number?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn opacity? [v]
   (cond (keyword? v) (in? v globals)
         (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn overflow? [v]
   (cond (keyword? v) (in? v overflows globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn size? [v] ;; todo: support other units
   (cond (keyword? v) (in? v sizes globals)
         (ratio?   v) v
         (number?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn spacing? [v]
   (cond (keyword? v) (in? v spacings globals)
         (ratio?   v) v
         (number?  v) v
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn stretch? [v]
   (cond (keyword? v) (in? v stretches globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn synthesis? [v]
   (cond (keyword? v) (in? v syntheses globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn decoration? [v]
   (cond (keyword? v) (in? v decorations globals)
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (defn weight? [v]
   (cond (keyword? v) (in? weights globals)
         (integer? v) (and (>= v 100) (<= v 900) (= (mod v 100)))
-        (nil?     v) true
+        (nil?     v) :initial
         :else        false))
 
 (def adjusts?     (validate-cells adjust?))
@@ -415,7 +419,7 @@
   (fn [{:keys [s sl sr st sb sh sv sc scl scr sct scb sch scv] :as attrs} elems]
     {:pre [(lengths? s sl sr st sb sh sv) (colors? sc scl scr sct scb sch scv)]}
     (with-let [e (ctor (dissoc attrs :s :sl :sr :st :sb :sh :sv :sw :sc :scl :scr :sct :scb :sch :scv) elems)]
-      (bind-in! e [mid .-style .-borderWidth] (or st sv s 0)    (or sr sh s 0)    (or sb sv s 0)    (or sl sh s 0))
+      (bind-in! e [mid .-style .-borderWidth] (or st sv s 0)  (or sr sh s 0)  (or sb sv s 0)  (or sl sh s 0))
       (bind-in! e [mid .-style .-borderColor] (or sct scv sc) (or scr sch sc) (or scb scv sc) (or scl sch sc))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
 
@@ -451,13 +455,16 @@
       (bind-in! e [in .-style .-borderStyle]     :none)
       (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
 
-(defn error [ctor]
+(defn handle-exception [ctor]
   "handle errors by highlighting the corresponding component"
   (fn [attrs elems]
-    (let [e (atom nil)]
-      (try (ctor attrs elems)
-           (catch js/Object err
-              (.log js/console (str "caught exception" e)))))))
+    (binding [*exceptions* (atom [])]
+      (with-let [e (ctor attrs elems)]
+        (when (not-empty @*exceptions*)
+          (doseq [{:keys [msg]} @*exceptions*]
+            (.log js/console msg))
+          (bind-in! e [out .-title] (join "\n" (mapv :msg @*exceptions*)))
+          (bind-in! e [out .-style .-border] 3 :solid :red))))))
 
 (defn skin [ctor]
   "add an svg skin to the component."
@@ -496,6 +503,8 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem   (-> (mkelem "div" "div" "div")    color font overflow size pad stroke round shadow align space error parse-args))
-(def button (-> (mkelem "div" "div" "button") destyle skin color font overflow size pad stroke round shadow align error parse-args))
-(def image  (-> (mkelem "div" "div" "img")    color font overflow size pad stroke round shadow img error parse-args))
+(def common (comp parse-args handle-exception align shadow round stroke pad size overflow font color))
+
+(def elem   (-> (mkelem "div" "div" "div") space common))
+(def button (-> (mkelem "div" "div" "button") destyle skin common))
+(def image  (-> (mkelem "div" "div" "img") img common))
