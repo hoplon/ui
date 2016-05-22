@@ -1,4 +1,4 @@
-(ns hoplon.ui.elems)
+(ns hoplon.ui.middlewares)
 
 (defmacro set-in! [elem path & values]
   `(set! ~(reduce #(list %2 %1) elem path) (vstr ~values)))

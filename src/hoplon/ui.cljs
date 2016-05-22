@@ -3,9 +3,11 @@
   (:require
     [hoplon.core     :as h]
     [hoplon.ui.elems :as e]
-    [clojure.string  :refer [split]]
-    [javelin.core    :refer [cell]]
-    [hoplon.ui.value :refer [rt hx ev bk ->elem]]) ;;todo: factor out ->elem in body
+    [clojure.string        :refer [split]]
+    [javelin.core          :refer [cell]]
+    [hoplon.ui.attrs       :refer [rt hx ev bk ->elem]]
+    [hoplon.ui.elems       :refer [mkelem]]
+    [hoplon.ui.middlewares :refer [parse-args handle-exception align shadow round stroke pad size overflow font color destyle skin space img]])
   (:require-macros
     [hoplon.core  :refer [defelem for-tpl]]
     [javelin.core :refer [cell=]]))
@@ -45,6 +47,14 @@
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
 
+;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def common (comp parse-args handle-exception align shadow round stroke pad size overflow font color))
+
+(def elem    (-> (mkelem "div" "div" "div") space common))
+(def button* (-> (mkelem "div" "div" "button") destyle skin common))
+(def image*  (-> (mkelem "div" "div" "img") img common))
+
 ;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def +sm+ 736)
@@ -81,33 +91,32 @@
 
 (def bgcolor :grey)
 
+
+
 ;;; elements ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defelem elem [attrs elems]
-  (e/elem attrs elems))
-
 (defelem button [attrs elems]
-  (e/button :ph 14 :pv 10 :m :pointer  :ah :center  :f p ;:r 5 :c (hx 0xFFF) :s 1 :sc (hx 0xCCC):f p :fc (hx 0x333)
+  (button* :ph 14 :pv 10 :m :pointer  :ah :center  :f p ;:r 5 :c (hx 0xFFF) :s 1 :sc (hx 0xCCC):f p :fc (hx 0x333)
     attrs elems))
 
 (defelem image [attrs elems]
-  (e/image attrs elems))
+  (image* attrs elems))
 
 (defelem card [{:keys [header media title text actions] :as attrs} elems]
-  (e/elem :w 300 :h 600 :s 2 :sc (hx 0xCCC) :d 3 :db 3 :ds 3 :dc (hx 0xCCC)
+  (elem :w 300 :h 600 :s 2 :sc (hx 0xCCC) :d 3 :db 3 :ds 3 :dc (hx 0xCCC)
     (dissoc attrs :header :media :title :text :actions)
     elems))
 
 (defelem card-header [{:keys [icon title subtitle] :as attrs} elems]
-  (e/elem :w (rt 1 1) :h 50 :p 16 :g 16 :s 2 :av :middle (dissoc attrs :icon :title :subtitle)
-    (e/image :w 40 :h 40 :r 40 :url icon)
-    (e/elem :w (ev - (rt 1 1) 56)
-      (e/elem :w (rt 1 1) title)
-      (e/elem :w (rt 1 1) subtitle))))
+  (elem :w (rt 1 1) :h 50 :p 16 :g 16 :s 2 :av :middle (dissoc attrs :icon :title :subtitle)
+    (image :w 40 :h 40 :r 40 :url icon)
+    (elem :w (ev - (rt 1 1) 56)
+      (elem :w (rt 1 1) title)
+      (elem :w (rt 1 1) subtitle))))
 
 (defelem card-media [{:keys [url] :as attrs} elems]
-  (e/elem :w (rt 1 1) :h 500
-    (e/image :w 40 :h 40 :r 40 :url url)
+  (elem :w (rt 1 1) :h 500
+    (image :w 40 :h 40 :r 40 :url url)
     (dissoc attrs :url)
     elems))
 

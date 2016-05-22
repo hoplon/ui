@@ -1,11 +1,10 @@
-(ns hoplon.ui.value
+(ns hoplon.ui.attrs
   (:require
-    [clojure.string :refer [join]]
-    [javelin.core   :refer [Cell]]))
+    [clojure.string :refer [join]]))
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defprotocol IAttrValue
+(defprotocol IAttr
   "Serialize to DOM Attr"
   (-toAttr [_]))
 
@@ -16,7 +15,7 @@
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extend-type nil
-  IAttrValue
+  IAttr
   (-toAttr [this]
     "initial")
   IElemValue
@@ -24,28 +23,28 @@
     nil))
 
 (extend-type js/Number
-  IAttrValue
+  IAttr
   (-toAttr [this]
     (str this "px"))
   IElemValue
-  (-toElem [this]
+  (-toElem [this] ;; todo: construct elem with texnode at center
     (.createTextNode js/document (str this))))
 
 (extend-type js/String
-  IAttrValue
+  IAttr
   (-toAttr [this]
-    this) ;; blank? "initial"
+    this) ;;todo: consider impact of blank? "initial"
   IElemValue
-  (-toElem [this]
+  (-toElem [this] ;; todo: construct elem with textnode at center
     (.createTextNode js/document this)))
 
 (extend-type function
-  IAttrValue
+  IAttr
   (-toAttr [this]
-    "-")) ;;todo: capture symbol as macro
+    "-")) ;;todo: capture symbol via macro
 
 (extend-type Keyword
-  IAttrValue
+  IAttr
   (-toAttr [this]
     (name this)))
 
@@ -53,7 +52,7 @@
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w "0x" (.toString v 16)))
-  IAttrValue
+  IAttr
   (-toAttr [this]
     (if this (str "#" (.toString v 16)) "initial")))
 
@@ -61,7 +60,7 @@
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w n "/" d))
-  IAttrValue
+  IAttr
   (-toAttr [_]
     (if n (str (* (/ n d) 100) "%") "initial")))
 
@@ -69,7 +68,7 @@
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w v " pixels"))
-  IAttrValue
+  IAttr
   (-toAttr [_]
     (if v (str v "px") "initial")))
 
@@ -80,7 +79,7 @@
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w (.toString this)))
-  IAttrValue
+  IAttr
   (-toAttr [_]
     (let [vstrs (mapv -toAttr vs)]
       (if vs (str "calc(" (join (str " "(nth vstrs 0) " ") (subvec vstrs 1)) ")") "initial"))))
@@ -89,7 +88,7 @@
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w v " breakpoints"))
-  IAttrValue
+  IAttr
   (-toAttr [_]
     v))
 
@@ -105,7 +104,7 @@
 (defn eval?  [v] (instance? Eval  v))
 (defn break? [v] (instance? Break v))
 
-(defn attr? [v] (satisfies? IAttrValue v))
+(defn attr? [v] (satisfies? IAttr v))
 (defn elem? [v] (satisfies? IElemValue v))
 
 (defn ->attr [v] (-toAttr v))
