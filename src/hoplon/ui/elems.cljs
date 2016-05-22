@@ -1,20 +1,13 @@
 (ns hoplon.ui.elems
   (:require
-    [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
-    [hoplon.core     :refer [do-watch]]
     [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr]])
   (:require-macros
-    [javelin.core    :refer [cell= with-let]]))
+    [javelin.core    :refer [with-let]]))
 
 (declare elem? ->elem)
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def ^:dynamic *exceptions* nil)
-
-(defn throw-ui-exception [& msg]
-  (swap! *exceptions* conj {:msg (apply str msg)}))
 
 (defn bind-cells [f]
   (fn [& vs]
@@ -29,6 +22,10 @@
       (or (and (= i l) (persistent! ret))
           (recur (inc i) (conj! ret (.item x i)))))))
 
+(defn out* [e] e)
+(defn mid* [e] (-> e .-firstChild))
+(defn in*  [e] (-> e .-firstChild .-firstChild))
+
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol IBox
@@ -38,14 +35,11 @@
 
 (defprotocol IElem
   "Serialize to DOM Element"
-  (-toElem [_]))
-
-(defprotocol IContain ;; todo: factor out
-  (-sync [e elems]))
+  (-toElem [e]))
 
 (defprotocol IRender
-  (-attach [e])
-  (-detach [e]))
+  (-attach [e elems]))
+#_(-detach [e elems])
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -67,19 +61,19 @@
 (deftype Elem [root]
   IBox
   (-out [_]
-    root)
+    (out* root))
   (-mid [_]
-   (-> root .-firstChild))
+    (mid* root))
   (-in  [_]
-   (-> root .-firstChild .-firstChild))
+    (in* root))
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w "#<Elem: " (.-tagName (-out this)) " " (.-tagName (-mid this)) " "(.-tagName (-in this)) ">"))
   IElem
   (-toElem [_]
     root)
-  IContain
-  (-sync [this elems]
+  IRender
+  (-attach [this elems]
     (let [new  (remove nil? (flatten elems))
           new? (set new)]
       (loop [[x & xs] new
@@ -95,40 +89,32 @@
                           :else   (with-let [_ elems]
                                     (.insertBefore (-in this) x) k))))))))
 
-(defn observe [target callback]
-  (doto (js/MutationObserver. callback)
-        (.observe target #js{:childList true})))
-
 (defn nest [tags]
   "construct a linked list of dom elements from a vector of html tags"
   (with-let [e (.createElement js/document (nth tags 0))]
     (when-let [tags (not-empty (subvec tags 1))]
       (.appendChild e (nest tags)))))
 
+(defn elem-from [tags]
+  (with-let [b (nest tags)]
+    (set! (-> b out* .-style .-boxSizing)     "border-box")   ;; include border and padding in dimensions to prevent visual errors from shifting layout
+    (set! (-> b out* .-style .-display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
+    (set! (-> b out* .-style .-verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
+    (set! (-> b out* .-style .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
+    (set! (-> b mid* .-style .-boxSizing)     "border-box")   ;; include border and padding in dimensions
+    (set! (-> b mid* .-style .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
+    (set! (-> b mid* .-style .-position)      "relative")     ;; support an absolutely positioned svg skin in the background
+    (set! (-> b mid* .-style .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
+    (set! (-> b in*  .-style .-cursor)        "inherit")      ;; inherit mouse cursor, set in middleware?
+    (set! (-> b in*  .-style .-display)       "block")        ;; prevent white space from creeping in around inline elements
+    (set! (-> b in*  .-style .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
+    (set! (-> b in*  .-style .-height)        "inherit")))    ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
+
 (defn mkelem [& tags]
-  (let [o #(.. % -style)
-        m #(.. % -firstChild -style)
-        i #(.. % -firstChild -firstChild -style)
-        b (nest tags)]
-    (set! (-> b o .-boxSizing)     "border-box")   ;; include border and padding in dimensions to prevent visual errors from shifting layout
-    (set! (-> b o .-display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
-    (set! (-> b o .-verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
-    (set! (-> b o .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
-    (set! (-> b m .-boxSizing)     "border-box")   ;; include border and padding in dimensions
-    (set! (-> b m .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
-    (set! (-> b m .-position)      "relative")     ;; for svg skin
-    (set! (-> b m .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
-    (set! (-> b i .-cursor)        "inherit")      ;; inherit mouse
-    (set! (-> b i .-display)       "block")        ;; prevent white space from creeping in around inline elements
-    (set! (-> b i .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
-    (set! (-> b i .-height)        "inherit")      ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
-    (fn [attrs elems]
-      #_{:pre [(empty? attrs)]}
-      (with-let [e (Elem. (.cloneNode b true))]
-        (doseq [[k v] attrs]
-          (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
-        ;; todo: throw ui exception if elems not IElem
-        (-sync e (mapv (bind-cells ->elem) elems))))))
+  (let [elem (elem-from tags)]
+    (fn [_ elems]
+      (with-let [e (Elem. (.cloneNode elem true))]
+        (-attach e (mapv (bind-cells ->elem) elems))))))
 
 #_(defn elem? [v] (satisfies? IElem v))
 (defn elem? [v] (instance? Elem v)) ;; todo depend on interface instead, require strings, numbers to be Elems

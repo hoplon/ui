@@ -1,10 +1,8 @@
 (ns hoplon.ui
-  (:refer-clojure :exclude [range time])
+  (:refer-clojure :exclude [range])
   (:require
-    [hoplon.core     :as h]
-    [hoplon.ui.elems :as e]
+    [hoplon.core :as h]
     [clojure.string        :refer [split]]
-    [javelin.core          :refer [cell]]
     [hoplon.ui.attrs       :refer [rt hx ev bk]]
     [hoplon.ui.elems       :refer [mkelem ->elem]]
     [hoplon.ui.middlewares :refer [parse-args handle-exception align shadow round stroke pad size overflow font color destyle skin space img]])
@@ -162,8 +160,7 @@
 ;;; element components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem alert [{:keys [alert] :as attrs} _]
-  (let [detail  (cell false)
-        palette #(palettes (keyword "hoplon.ui" (name (or (:severity %) "info"))))]
+  (let [palette #(palettes (keyword "hoplon.ui" (name (or (:severity %) "info"))))]
     (elem
       :ph         15
       :pv         10

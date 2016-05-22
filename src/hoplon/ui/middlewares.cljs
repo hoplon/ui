@@ -3,12 +3,14 @@
     [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
     [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr attr?]] ;;todo: user attr? in validations?
-    [hoplon.ui.elems :refer [*exceptions* throw-ui-exception out mid in bind-cells ->elem elem?]])
+    [hoplon.ui.elems :refer [out mid in bind-cells ->elem elem?]])
   (:require-macros
-    [hoplon.ui.middlewares :refer [bind-in! set-in!]]
+    [hoplon.ui.middlewares :refer [bind-in!]]
     [javelin.core          :refer [cell= with-let]]))
 
-;;; validation constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *exceptions* nil)
 
 (def globals     [:initial :inherit])
 (def adjusts     [:none])
@@ -61,6 +63,9 @@
 (def weights     [:normal :bold :bolder :lighter])
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn throw-ui-exception [& msg]
+  (swap! *exceptions* conj {:msg (apply str msg)}))
 
 (defn vstr [vs]
   (join " " (map ->attr vs)))
@@ -375,6 +380,17 @@
 (defn parse-args [ctor]
   (fn [& args]
      (apply ctor (#'hoplon.core/parse-args args))))
+
+; (defn attrs? [attrs]
+;   (doseq [[k v] attrs]
+;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
+;   true)
+;
+; (defn elems? [attrs]
+;   (doseq [[k v] elems]
+;     ()
+;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element.")
+;     true))
 
 ;; todo:
 ;; margin
