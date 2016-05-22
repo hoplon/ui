@@ -3,7 +3,7 @@
     [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
     [hoplon.core     :refer [do-watch]]
-    [hoplon.ui.value :refer [IDOM ev rt px kw hx ratio? model? hex? model]])
+    [hoplon.ui.value :refer [IElemValue rt hx ev bk ratio? hex? eval? break? ->attr ->elem]])
   (:require-macros
     [hoplon.ui.elems :refer [bind-in! set-in!]]
     [javelin.core    :refer [cell= with-let]]))
@@ -17,16 +17,10 @@
 (defn throw-ui-exception [& msg]
   (swap! *exceptions* conj {:msg (apply str msg)}))
 
-(defn ->attr [v]
-  (cond (number?  v) (model (px v))
-        (model?   v) (model v)
-        (string?  v) v
-        (nil?     v) ""))
-
 (defn vstr [vs]
   (join " " (map ->attr vs)))
 
-(defn bind-with [f vs]
+(defn bind-with [f vs] ;;todo: consolidate with bind-cells
   (let [watch (fn [i v] (if (cell? v) @(add-watch v (gensym) #(f (assoc vs i %4))) v))]
     (f (map-indexed watch vs))))
 
@@ -35,11 +29,11 @@
     (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc vs i %4))) v))]
       (apply f (map-indexed watch vs)))))
 
-(defn swap-elems! [e f & vs]
+(defn swap-elems! [e f & vs] ;; todo: factor out
   (cond (cell?   e) (do-watch e #(apply f @e %&))
-        (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;; loop?
+        (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled by IElemValue if (hoplon.ui/elem?)
         (elem?   e) (apply f e vs)
-        (string? e) identity
+        (string? e) identity ;;todo: string literals should construct their own elems
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn- child-vec
@@ -50,11 +44,6 @@
       (or (and (= i l) (persistent! ret))
           (recur (inc i) (conj! ret (.item x i)))))))
 
-(defn- ->node [x]
-  (cond (elem?   x) (model x)
-        (string? x) (.createTextNode js/document x)
-        (number? x) (.createTextNode js/document (str x)))) ;; :else throw-ui
-
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol IBox
@@ -62,7 +51,7 @@
   (-mid [e])
   (-in  [e]))
 
-(defprotocol IContain
+(defprotocol IContain ;; todo: factor out
   (-sync [e elems]))
 
 (defprotocol IRender
@@ -79,8 +68,8 @@
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w "#<Elem: " (.-tagName (-out this)) " " (.-tagName (-mid this)) " "(.-tagName (-in this)) ">"))
-  IDOM
-  (-model [_] root)
+  IElemValue
+  (-toElem [_] root)
   IContain
   (-sync [this elems]
     (let [new  (remove nil? (flatten elems))
@@ -90,15 +79,13 @@
         (when (or x k)
           (recur xs (cond (= x k) ks
                           (not k) (with-let [ks ks]
-                                    (if (cell? x)
-                                      (do-watch x #(-sync this (->node %2)))
-                                      (.appendChild (-in this) (->node x))))
+                                    (.appendChild (-in this) x))
                           (not x) (with-let [ks ks]
                                     (when-not (new? k)
-                                        ;; remove handlers
-                                        (.removeChild (-in this) (->node k))))
+                                      ;; todo: remove handlers
+                                      (.removeChild (-in this) k)))
                           :else   (with-let [_ elems]
-                                    (.insertBefore (-in this) (->node x) (->node k))))))))))
+                                    (.insertBefore (-in this) x) k))))))))
 
 (defn observe [target callback]
   (doto (js/MutationObserver. callback)
@@ -132,7 +119,7 @@
       (with-let [e (Elem. b) #_(.cloneNode b true)]
         (doseq [[k v] attrs]
           (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
-        (-sync e elems)))))
+        (-sync e (mapv (bind-cells ->elem) elems))))))
 
 (defn elem? [v] (instance? Elem v))
 
@@ -197,8 +184,8 @@
 (defn validate-cells [validator]
   (fn [& vs]
     (doseq [v vs :let [valid? (bind-cells validator)]]
-      (when-not (valid? v)
-        (throw-ui-exception (str "Error validating attribute value " v "."))))
+      (when-not (valid? v) ;
+        (throw-ui-exception "Error validating attribute value " v ".")))
     true))
 
 (defn adjust? [v]
@@ -248,6 +235,7 @@
 
 (defn length? [v]
   (cond (keyword? v) (in? v lengths globals)
+        (eval?    v) v
         (ratio?   v) v
         (number?  v) v
         (nil?     v) :initial
@@ -387,7 +375,7 @@
   (fn [{:keys [w w- w+ h h- h+] :as attrs} elems]
     {:pre [(lengths? w w- w+ h h- h+)]}
     (with-let [e (ctor (dissoc attrs :w :w- :w+ :h :h- :h+) elems)]
-      (let [box #(if (ratio? %) out mid)]
+      (let [box #(if (or (ratio? %) (eval? %)) out mid)]
         (bind-in! e [(box w)  .-style .-width]     w)
         (bind-in! e [(box w-) .-style .-minWidth]  w-)
         (bind-in! e [(box w+) .-style .-maxWidth]  w+)

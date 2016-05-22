@@ -4,7 +4,7 @@
   (:refer-hoplon :exclude [rt])
   (:require
     [hoplon.ui :as u]
-    [hoplon.ui.value :refer [ev rt hx px]]))
+    [hoplon.ui.value :refer [rt hx ev bk]]))
 
 (defc things [0 1 2])
 

@@ -3,84 +3,110 @@
     [clojure.string :refer [join]]
     [javelin.core   :refer [Cell]]))
 
-;; todo: support additional units
-
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defprotocol IDOM
-  (-model [_]))
+(defprotocol IAttrValue
+  "Serialize to DOM Attr"
+  (-toAttr [_]))
+
+(defprotocol IElemValue
+  "Serialize to DOM Element"
+  (-toElem [_]))
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(deftype Hexidecimal [v]
+(extend-type nil
+  IAttrValue
+  (-toAttr [this]
+    "initial")
+  IElemValue
+  (-toElem [this]
+    nil))
+
+(extend-type js/Number
+  IAttrValue
+  (-toAttr [this]
+    (str this "px"))
+  IElemValue
+  (-toElem [this]
+    (.createTextNode js/document (str this))))
+
+(extend-type js/String
+  IAttrValue
+  (-toAttr [this]
+    this) ;; blank? "initial"
+  IElemValue
+  (-toElem [this]
+    (.createTextNode js/document this)))
+
+(extend-type function
+  IAttrValue
+  (-toAttr [this]
+    "-")) ;;todo: capture symbol as macro
+
+(extend-type Keyword
+  IAttrValue
+  (-toAttr [this]
+    (name this)))
+
+(deftype Hex [v]
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w "0x" (.toString v 16)))
-  IDOM
-  (-model [this]
-    (str "#" (.toString v 16))))
+  IAttrValue
+  (-toAttr [this]
+    (if this (str "#" (.toString v 16)) "initial")))
 
 (deftype Ratio [n d]
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w n "/" d))
-  IDOM
-  (-model [_]
+  IAttrValue
+  (-toAttr [_]
     (if n (str (* (/ n d) 100) "%") "initial")))
 
-(deftype Pixels [v]
+(deftype Pixels [v] ;; unit, not value
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w v " pixels"))
-  IDOM
-  (-model [_]
+  IAttrValue
+  (-toAttr [_]
     (if v (str v "px") "initial")))
 
-(deftype Evaluation [v]
+(deftype Eval [vs]
+  Object
+  (toString [_]
+    (apply pr-str (conj (mapv str vs) " evaluation")))
+  IPrintWithWriter
+  (-pr-writer [this w _]
+    (write-all w (.toString this)))
+  IAttrValue
+  (-toAttr [_]
+    (let [vstrs (mapv -toAttr vs)]
+      (if vs (str "calc(" (join (str " "(nth vstrs 0) " ") (subvec vstrs 1)) ")") "initial"))))
+
+(deftype Break [v]
   IPrintWithWriter
   (-pr-writer [_ w _]
-    (write-all w v " evaluation"))
-  IDOM
-  (-model [_]
-    (if v (str "calc(" (join (nth v 0) (subvec v 1)) ")") "initial")))
-
-(deftype Breakpoints [v]
-  IPrintWithWriter
-  (-pr-writer [_ w _]
-    (write-all w v " ratio"))
-  IDOM
-  (-model [_]
-    (if v (str v "%") "intiial")))
-
-(extend-type Keyword
-  IDOM
-  (-model [this]
-    (name this)))
-
-; (extend-type Cell
-;   IDOM
-;   (-model [this]
-;     (deref this))) ;; fix
-
-; (extend-type js/Text
-;   IDOM
-;   (-model [this]
-;     this))
+    (write-all w v " breakpoints"))
+  IAttrValue
+  (-toAttr [_]
+    v))
 
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn model [v] (-model v))
+(defn rt [n d]  (Ratio. n d))
+(defn hx [v]    (Hex.   v))
+(defn ev [& vs] (Eval.  vs))
+(defn bk [& vs] (Break. vs))
 
-(defn ratio?       [v]   (instance?  Ratio      v))
-(defn calculation? [v]   (instance?  Evaluation v))
-(defn pixels?      [v]   (instance?  Pixels     v))
-(defn model?       [v]   (satisfies? IDOM       v))
-(defn hex?         [v]   (instance? Hexidecimal v))
+(defn ratio? [v] (instance? Ratio v))
+(defn hex?   [v] (instance? Hex   v))
+(defn eval?  [v] (instance? Eval  v))
+(defn break? [v] (instance? Break v))
 
-(defn hx [v]   (Hexidecimal. v))
-(defn rt [n d] (Ratio. n d))
-(defn px [v]   (Pixels.  v))
-(defn kw [v]   (keyword  v))
+(defn attr? [v] (satisfies? IAttrValue v))
+(defn elem? [v] (satisfies? IElemValue v))
 
-(defn ev [& args] (Evaluation.  args))
-(defn bp [& args] (Breakpoints. args))
+(defn ->attr [v] (-toAttr v))
+(defn ->elem [v] (-toElem v))

@@ -5,7 +5,7 @@
     [hoplon.ui.elems :as e]
     [clojure.string  :refer [split]]
     [javelin.core    :refer [cell]]
-    [hoplon.ui.value :refer [model ev rt px kw hx]])
+    [hoplon.ui.value :refer [rt hx ev bk ->elem]]) ;;todo: factor out ->elem in body
   (:require-macros
     [hoplon.core  :refer [defelem for-tpl]]
     [javelin.core :refer [cell=]]))
@@ -93,6 +93,24 @@
 (defelem image [attrs elems]
   (e/image attrs elems))
 
+(defelem card [{:keys [header media title text actions] :as attrs} elems]
+  (e/elem :w 300 :h 600 :s 2 :sc (hx 0xCCC) :d 3 :db 3 :ds 3 :dc (hx 0xCCC)
+    (dissoc attrs :header :media :title :text :actions)
+    elems))
+
+(defelem card-header [{:keys [icon title subtitle] :as attrs} elems]
+  (e/elem :w (rt 1 1) :h 50 :p 16 :g 16 :s 2 :av :middle (dissoc attrs :icon :title :subtitle)
+    (e/image :w 40 :h 40 :r 40 :url icon)
+    (e/elem :w (ev - (rt 1 1) 56)
+      (e/elem :w (rt 1 1) title)
+      (e/elem :w (rt 1 1) subtitle))))
+
+(defelem card-media [{:keys [url] :as attrs} elems]
+  (e/elem :w (rt 1 1) :h 500
+    (e/image :w 40 :h 40 :r 40 :url url)
+    (dissoc attrs :url)
+    elems))
+
 ;; todo: window rel=noopener
 ;; todo: finish mousechanged
 
@@ -130,7 +148,7 @@
       (for-tpl [s scripts] (h/script :src s)))
     (h/body :h (rt 1 1) :w (rt 1 1) :css/margin 0 :css/font-family "Helvetica Neue, Helvetica, Arial, sans-serif" ;; font-size 100%, neutralize body dflts
       (dissoc attrs :alert :scroll :metadata :title :icon :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged)
-      (map model elems)))) ;; todo: implement body as elem
+      (map ->elem elems)))) ;; todo: implement body as elem
 
 ;;; element components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
