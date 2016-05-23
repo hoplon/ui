@@ -20,6 +20,11 @@
   (-toAttr [this]
     (str this "px")))
 
+(extend-type js/Boolean
+  IAttr
+  (-toAttr [this]
+    (str this)))
+
 (extend-type js/String
   IAttr
   (-toAttr [this]
@@ -62,10 +67,10 @@
 (deftype Eval [vs]
   Object
   (toString [_]
-    (apply pr-str (conj (mapv str vs) " evaluation")))
+    (apply pr-str (conj (mapv str vs))))
   IPrintWithWriter
   (-pr-writer [this w _]
-    (write-all w (.toString this)))
+    (write-all w (.toString this) " evaluation"))
   IAttr
   (-toAttr [_]
     (let [vstrs (mapv -toAttr vs)]
