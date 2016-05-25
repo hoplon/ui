@@ -1,15 +1,14 @@
 (ns hoplon.ui.elems
   (:require
+    [clojure.string :refer [split-lines]]
     [javelin.core    :refer [cell?]]
     [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr]])
   (:require-macros
     [javelin.core    :refer [with-let]]))
 
-(declare elem? ->elem)
-
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn bind-cells [f] ;; todo: optimize this
+(defn bind-cells [f] ;; todo: optimize with loop recur
   (fn [& vs]
     (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc vs i %4))) v))
           watch (fn [i v] (if (vector? v) (map-indexed watch v) (watch i v)))]
@@ -45,13 +44,23 @@
 
 (extend-type js/Number
   IElem
-  (-toElem [this] ;; todo: construct elem with texnode at center
+  (-toElem [this]
     (.createTextNode js/document (str this))))
+
+(extend-type PersistentVector
+  IElem
+  (-toElem [this]
+    (with-let [frag (.createDocumentFragment js/document)]
+      (doseq [node this]
+        (.appendChild frag (-toElem node))))))
 
 (extend-type js/String
   IElem
-  (-toElem [this] ;; todo: construct elem with textnode at center
-    (.createTextNode js/document this)))
+  (-toElem [this]
+    (with-let [frag (.createDocumentFragment js/document)]
+      (doseq [line (split-lines this)]
+        (.appendChild frag (.createTextNode js/document line))
+        (.appendChild frag (.createElement  js/document "br"))))))
 
 (deftype Elem [root]
   IBox
@@ -75,11 +84,11 @@
         (or (and (= i l) (persistent! ret))
             (recur (inc i) (conj! ret (.item x i)))))))
   (-append [this new-elem]
-    (.appendChild  (-in this) (->elem new-elem)))
+    (.appendChild  (-in this) (-toElem new-elem)))
   (-insert [this old-elem new-elem]
-    (.insertBefore (-in this) (->elem old-elem) (->elem new-elem)))
+    (.insertBefore (-in this) (-toElem old-elem) (-toElem new-elem)))
   (-remove [this old-elem]
-    (.removeChild  (-in this) (->elem old-elem))))
+    (.removeChild  (-in this) (-toElem old-elem))))
 
 (defn nest [tags]
   "construct a linked list of dom elements from a vector of html tags"
@@ -97,12 +106,12 @@
     (set! (-> b mid* .-style .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
     (set! (-> b mid* .-style .-position)      "relative")     ;; support an absolutely positioned svg skin in the background
     (set! (-> b mid* .-style .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
-    (set! (-> b in*  .-style .-cursor)        "inherit")      ;; inherit mouse cursor, set in middleware?
     (set! (-> b in*  .-style .-display)       "block")        ;; prevent white space from creeping in around inline elements
     (set! (-> b in*  .-style .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
-    (set! (-> b in*  .-style .-height)        "inherit")))    ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
+    (set! (-> b in*  .-style .-height)        "inherit")    ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
+    (set! (-> b in*  .-style .-cursor)        "inherit")))      ;; inherit mouse cursor, set in middleware?
 
-(defn sync [elem elems]
+(defn sync! [elem elems]  ;; take | drop
   (let [new  (remove nil? (flatten elems))
         new? (set new)]
     (loop [[x & xs] new
@@ -122,7 +131,8 @@
   (let [elem (elem-from tags)]
     (fn [_ elems]
       (with-let [e (Elem. (.cloneNode elem true))]
-        ((bind-cells sync) e elems)))))
+        #_((bind-cells sync!) e elems)
+         (-append e elems)))))
 
 #_(defn elem? [v] (satisfies? IElem v))
 (defn elem? [v] (instance? Elem v)) ;; todo depend on interface instead, require strings, numbers to be Elems

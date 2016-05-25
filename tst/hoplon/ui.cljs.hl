@@ -1,4 +1,4 @@
-(page "index.html"
+(page "test.html"
   (:refer-clojure :exclude
     [test])
   (:refer-hoplon :exclude [rt])
@@ -218,9 +218,9 @@
       (box :h 40 "g")
       (box :h 20 "h")
       (box :h 40 "i")
-      (box :h 40 "j"))
-    (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
-      (cell (box "a"))))
+      (box :h 40 "j")))
+    ; (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
+    ;   (cell (box "a"))))
 
   (suite :title "layouts"
 
@@ -237,9 +237,9 @@
       ;; solution: apply lengths to middle, but percentages to outer
       (u/elem :g 50
         (box "a"))))
-  (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
-    (u/elem
-      (box :w (cell 80) "a")))
+  ; (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
+  ;   (u/elem
+  ;     (box :w (cell 80) "a")))
   (suite :title "controls"
       (u/button :w 300 :h 150 "Click Me")
       (u/button :w 150 :h 75 :fc :white "Click Me")

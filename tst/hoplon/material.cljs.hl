@@ -1,0 +1,33 @@
+(page "index.html"
+  (:refer-clojure :exclude
+    [test])
+  (:refer-hoplon :exclude [rt])
+  (:require
+    [hoplon.ui :as u]
+    [hoplon.ui.attrs :refer [rt hx ev bk]]))
+
+;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def sm 736)
+(def lg 1069)
+
+(def g 10)
+
+(def sc (hx 0xCCC))
+
+;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(u/window
+  :title    "Hoplon UI"
+  :route    [["tests"] {:foo "bar" :baz "barf"}]
+  (u/elem :w (rt 1 1) :h 800 :c :blue :ah :center :av :middle
+    (u/button :r 5 :s 2 :sc :white :fc :white "Hoplon UI")
+    #_(u/image :h 50 :url "hoplon-logo.png"))
+  (u/elem :w (rt 1 1) :p g :g g :sc sc
+    (u/card
+      (u/card-header
+        :icon      "http://lorempixel.com/100/100/nature/"
+        :title     "Card Header Title"
+        :subtitle  "Card Header Subtitle")
+      (u/card-media
+        :photo "http://lorempixel.com/600/337/nature/"))))

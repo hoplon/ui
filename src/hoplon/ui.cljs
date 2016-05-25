@@ -3,7 +3,7 @@
   (:require
     [hoplon.core :as h]
     [clojure.string        :refer [split]]
-    [hoplon.ui.attrs       :refer [rt hx ev bk]]
+    [hoplon.ui.attrs       :refer [c rt hx ev bk]]
     [hoplon.ui.elems       :refer [mkelem ->elem]]
     [hoplon.ui.middlewares :refer [parse-args handle-exception align shadow round stroke pad size overflow font color destyle skin space img]])
   (:require-macros
@@ -85,6 +85,9 @@
 (def f 21)
 (def p 18)
 
+(def card-title-font    15)
+(def card-subtitle-font 14)
+
 (def sc 0xCCC)
 
 (def bgcolor :grey)
@@ -99,21 +102,21 @@
   (image* attrs elems))
 
 (defelem card [{:keys [header media title text actions] :as attrs} elems]
-  (elem :w 300 :h 600 :s 2 :sc (hx 0xCCC) :d 3 :db 3 :ds 3 :dc (hx 0xCCC)
+  (elem :w 300 :h 600 :r 2 :d 1 :db 6 :ds 0 :dc (c 0 0 0 0.117647) ;0px 1px 6px, 0px 1px 4px
     (dissoc attrs :header :media :title :text :actions)
     elems))
 
 (defelem card-header [{:keys [icon title subtitle] :as attrs} elems]
-  (elem :w (rt 1 1) :h 50 :p 16 :g 16 :s 2 :av :middle (dissoc attrs :icon :title :subtitle)
-    (image :w 40 :h 40 :r 40 :url icon)
+  (elem :w (rt 1 1) :h 50 :p 16 :g 16 :av :middle (dissoc attrs :icon :title :subtitle)
+    (image :w 40 :h 40 :r 40 :v :hidden :url icon)
     (elem :w (ev - (rt 1 1) 56)
-      (elem :w (rt 1 1) title)
-      (elem :w (rt 1 1) subtitle))))
+      (elem :w (rt 1 1) :f card-title-font    :fc (c 0 0 0 0.870588)    title)
+      (elem :w (rt 1 1) :f card-subtitle-font :fc (c 0 0 0 0.541176) subtitle))))
 
-(defelem card-media [{:keys [url] :as attrs} elems]
+(defelem card-media [{:keys [photo] :as attrs} elems]
   (elem :w (rt 1 1) :h 500
-    (image :w 40 :h 40 :r 40 :url url)
-    (dissoc attrs :url)
+    (image :w (rt 1 1) :url photo)
+    (dissoc attrs :photo)
     elems))
 
 ;; todo: window rel=noopener

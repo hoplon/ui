@@ -1,6 +1,6 @@
 (ns hoplon.ui.attrs
   (:require
-    [clojure.string :refer [join]]))
+    [clojure.string :refer [blank? join]]))
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -28,7 +28,7 @@
 (extend-type js/String
   IAttr
   (-toAttr [this]
-    this)) ;;todo: consider impact of blank? "initial"
+    (if-not (blank? this) this "initial")))
 
 (extend-type function
   IAttr
@@ -39,6 +39,17 @@
   IAttr
   (-toAttr [this]
     (name this)))
+
+(deftype Color [r g b a]
+  Object
+  (toString [_]
+    (str "rgba(" r ", " g ", " b ", " a ")"))
+  IPrintWithWriter
+  (-pr-writer [this w _]
+    (write-all w "#<Color: " (.toString this) ">"))
+  IAttr
+  (-toAttr [this]
+    (.toString this)))
 
 (deftype Hex [v]
   IPrintWithWriter
@@ -86,11 +97,13 @@
 
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn rt [n d]  (Ratio. n d))
-(defn hx [v]    (Hex.   v))
-(defn ev [& vs] (Eval.  vs))
-(defn bk [& vs] (Break. vs))
+(defn c  [r g b a] (Color. r g b a))
+(defn rt [n d]     (Ratio. n d))
+(defn hx [v]       (Hex.   v))
+(defn ev [& vs]    (Eval.  vs))
+(defn bk [& vs]    (Break. vs))
 
+(defn color? [v] (instance? Color v))
 (defn ratio? [v] (instance? Ratio v))
 (defn hex?   [v] (instance? Hex   v))
 (defn eval?  [v] (instance? Eval  v))

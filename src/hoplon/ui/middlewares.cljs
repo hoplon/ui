@@ -2,7 +2,7 @@
   (:require
     [clojure.string  :refer [join]]
     [javelin.core    :refer [cell?]]
-    [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr attr?]] ;;todo: user attr? in validations?
+    [hoplon.ui.attrs :as a :refer [c rt hx ev bk ratio? hex? eval? break? ->attr attr?]] ;;todo: user attr? in validations?
     [hoplon.ui.elems :refer [out mid in bind-cells ->elem elem?]])
   (:require-macros
     [hoplon.ui.middlewares :refer [bind-in!]]
@@ -112,6 +112,7 @@
 
 (defn color? [v]
   (cond (keyword? v) (in? v colors globals)
+        (a/color?   v) v
         (hex?     v) v
         (nil?     v) :initial
         :else        false))
@@ -209,7 +210,7 @@
 (def syntheses?   (validate-cells synthesis?))
 (def weights?     (validate-cells weight?))
 
-;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn align [ctor]
   "set the text-align and vertical-align attributes on the elem and proxy the
@@ -241,7 +242,8 @@
   (fn [{:keys [v vh vv] :as attrs} elems]
     {:pre [(overflows? v vh vv)]}
     (with-let [e (ctor (dissoc attrs :v :vh :vv) elems)]
-      (bind-in! e [in .-style .-overflow] (or vh v) (or vv v)))))
+      (bind-in! e [mid .-style .-overflowX] (or vh v))
+      (bind-in! e [mid .-style .-overflowY] (or vv v)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -347,6 +349,8 @@
       (bind-in! e [in .-style .-borderStyle]     :none)
       (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
 
+;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn handle-exception [ctor]
   "handle errors by highlighting the corresponding component"
   (fn [attrs elems]
@@ -381,16 +385,20 @@
   (fn [& args]
      (apply ctor (#'hoplon.core/parse-args args))))
 
-; (defn attrs? [attrs]
-;   (doseq [[k v] attrs]
-;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
-;   true)
-;
-; (defn elems? [attrs]
-;   (doseq [[k v] elems]
-;     ()
-;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element.")
-;     true))
+(defn window [ctor]
+  "build up the window component."
+  (fn [attrs elems]
+    (with-let [e (ctor attrs elems)]
+      (let [skin (.createElementNS js/document "http://www.w3.org/2000/svg" "svg")] ;; if skin then hide mid styles
+        (set! (.. skin -style -position) "absolute")
+        (set! (.. skin -style -top)      "0")
+        (set! (.. skin -style -left)     "0")
+        (set! (.. skin -style -width)    "100%")
+        (set! (.. skin -style -height)   "100%")
+        (set! (.. skin -style -zIndex)   "-1")
+        (set! (.. skin -innerHTML)       "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
+        (.appendChild (mid e) skin)))))
+
 
 ;; todo:
 ;; margin
@@ -403,3 +411,13 @@
 ;; user-select, selectable
 ;; :toggle as as mid-attr
 ;; update, previously implemented on do multimethod, to form middleware
+; (defn attrs? [attrs]))
+;   (doseq [[k v] attrs]
+;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
+;   true)
+;
+; (defn elems? [attrs]
+;   (doseq [[k v] elems]
+;     ()
+;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element.")
+;     true))
