@@ -19,7 +19,7 @@
 
 (u/window
   :title    "Hoplon UI"
-  :route    [["tests"] {:foo "bar" :baz "barf"}]
+  :route    [["overview"]]
   (u/elem :w (rt 1 1) :h 800 :c :blue :ah :center :av :middle
     (u/button :r 5 :s 2 :sc :white :fc :white "Hoplon UI")
     #_(u/image :h 50 :url "hoplon-logo.png"))
