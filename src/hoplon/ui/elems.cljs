@@ -1,22 +1,18 @@
 (ns hoplon.ui.elems
   (:require
-    [clojure.string :refer [split-lines]]
-    [javelin.core    :refer [cell?]]
-    [hoplon.ui.attrs :refer [rt hx ev bk ratio? hex? eval? break? ->attr]])
+    [clojure.string :refer [split-lines trim]]
+    [hoplon.core    :refer [html body br]])
   (:require-macros
-    [javelin.core    :refer [with-let]]))
+    [javelin.core   :refer [cell= with-let]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn bind-cells [f] ;; todo: optimize with loop recur
-  (fn [& vs]
-    (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc vs i %4))) v))
-          watch (fn [i v] (if (vector? v) (map-indexed watch v) (watch i v)))]
-      (apply f (map-indexed watch vs)))))
-
-(defn out* [e] e)
-(defn mid* [e] (-> e .-firstChild))
-(defn in*  [e] (-> e .-firstChild .-firstChild))
+(defn split-nodes [text]
+  (let [br  #(.createElement  js/document "br")
+        txt #(.createTextNode js/document %)]
+    (->> (split-lines text)
+         (interpose br)
+         (map #(if (fn? %) (%) (txt (trim %)))))))
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,117 +22,95 @@
   (-in  [e]))
 
 (defprotocol IElem
-  "Serialize to DOM Element"
-  (-toElem [e]))
-
-(defprotocol IParent
-  (-elems  [e])
-  (-append [e new-elem])
-  (-insert [e old-elem new-elem])
-  (-remove [e old-elem]))
+  (-dom-element [e]))
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extend-type nil
   IElem
-  (-toElem [this]
-    nil))
+  (-dom-element [this]
+    this))
 
-(extend-type js/Number
+(extend-type number
   IElem
-  (-toElem [this]
-    (.createTextNode js/document (str this))))
+  (-dom-element [this]
+    this))
 
-(extend-type PersistentVector
+(extend-type string
   IElem
-  (-toElem [this]
+  (-dom-element [this]
     (with-let [frag (.createDocumentFragment js/document)]
-      (doseq [node this]
-        (.appendChild frag (-toElem node))))))
+      (doseq [line (split-nodes this)]
+        (.appendChild frag line)))))
 
-(extend-type js/String
+(extend-type javelin.core/Cell
   IElem
-  (-toElem [this]
-    (with-let [frag (.createDocumentFragment js/document)]
-      (doseq [line (split-lines this)]
-        (.appendChild frag (.createTextNode js/document line))
-        (.appendChild frag (.createElement  js/document "br"))))))
+  (-dom-element [this]
+    (cell= (-dom-element this))))
 
-(deftype Elem [root]
-  IBox
-  (-out [_]
-    (out* root))
-  (-mid [_]
-    (mid* root))
-  (-in  [_]
-    (in* root))
+(deftype Elem [o m i]
   IPrintWithWriter
   (-pr-writer [this w _]
-    (write-all w "#<Elem: " (.-tagName (-out this)) " " (.-tagName (-mid this)) " "(.-tagName (-in this)) ">"))
+    (write-all w "#<Elem: " (.-tagName o) " " (.-tagName m) " " (.-tagName i) ">"))
+  IBox
+  (-out [_] o)
+  (-mid [_] m)
+  (-in  [_] i)
   IElem
-  (-toElem [_]
-    root)
-  IParent
-  (-elems [this]
-    (let [x (.-childNodes (-in this))
-          l (.-length x)]
-      (loop [i 0 ret (transient [])]
-        (or (and (= i l) (persistent! ret))
-            (recur (inc i) (conj! ret (.item x i)))))))
-  (-append [this new-elem]
-    (.appendChild  (-in this) (-toElem new-elem)))
-  (-insert [this old-elem new-elem]
-    (.insertBefore (-in this) (-toElem old-elem) (-toElem new-elem)))
-  (-remove [this old-elem]
-    (.removeChild  (-in this) (-toElem old-elem))))
+  (-dom-element [e] o)
+  hoplon.core/IHoplonParent
+  (-append-child! [_ new-elem]
+    (hoplon.core/append-child! i new-elem))
+  (-insert-before! [_ new-elem old-elem]
+    (hoplon.core/insert-before! i new-elem old-elem))
+  (-remove-child! [_ old-elem]
+    (hoplon.core/remove-child! i old-elem)))
 
-(defn nest [tags]
-  "construct a linked list of dom elements from a vector of html tags"
-  (with-let [e (.createElement js/document (nth tags 0))]
+(defn- box-tree [tags]
+  "construct a linked list of dom elements from a vector of tags and ctors"
+  (with-let [e (let [t (nth tags 0)] (if (fn? t) (t) (.createElement js/document t)))]
     (when-let [tags (not-empty (subvec tags 1))]
-      (.appendChild e (nest tags)))))
+      (.appendChild e (box-tree tags)))))
 
-(defn elem-from [tags]
-  (with-let [b (nest tags)]
-    (set! (-> b out* .-style .-boxSizing)     "border-box")   ;; include border and padding in dimensions to prevent visual errors from shifting layout
-    (set! (-> b out* .-style .-display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
-    (set! (-> b out* .-style .-verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
-    (set! (-> b out* .-style .-textAlign)     "initial")      ;; prevent inheritance of alignment from parent
-    (set! (-> b mid* .-style .-boxSizing)     "border-box")   ;; include border and padding in dimensions
-    (set! (-> b mid* .-style .-display)       "table-cell")   ;; cells in tables enable sane vertical alignment
-    (set! (-> b mid* .-style .-position)      "relative")     ;; support an absolutely positioned svg skin in the background
-    (set! (-> b mid* .-style .-height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div
-    (set! (-> b in*  .-style .-display)       "block")        ;; prevent white space from creeping in around inline elements
-    (set! (-> b in*  .-style .-position)      "relative")     ;; make positioned children adjust relative to container plus padding
-    (set! (-> b in*  .-style .-height)        "inherit")    ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
-    (set! (-> b in*  .-style .-cursor)        "inherit")))      ;; inherit mouse cursor, set in middleware?
+(defn- doc-path [box-tree]
+  (let [o box-tree
+        m (.-lastChild  o)
+        i (.-firstChild m)]
+    (list o m i)))
 
-(defn sync! [elem elems]  ;; take | drop
-  (let [new  (remove nil? (flatten elems))
-        new? (set new)]
-    (loop [[x & xs] new
-           [k & ks :as elems] (-elems elem)]
-      (when (or x k)
-        (recur xs
-          (cond (= x k) ks
-                (not k) (with-let [ks ks]
-                          (-append elem x))
-                (not x) (with-let [ks ks]
-                          (when-not (new? k)
-                            (-remove elem k)))
-                :else   (with-let [_ elems]
-                          (-insert elem x k))))))))
+(defn- box-path [box-tree]
+  (if-let [e (.-lastChild box-tree)]
+    (conj (box-path e) box-tree)
+    (list box-tree)))
 
-(defn mkelem [& tags]
-  (let [elem (elem-from tags)]
-    (fn [_ elems]
-      (with-let [e (Elem. (.cloneNode elem true))]
-        #_((bind-cells sync!) e elems)
-         (-append e elems)))))
+(defn box-model [box-tree]
+  (with-let [[o m i] box-tree]
+    (set! (.. o -style -boxSizing)     "border-box")   ;; include border and padding in dimensions, necessary to prevent gutter/margin attributes from breaking pct widths
+    (set! (.. o -style -display)       "inline-table") ;; layout ltr ttb when width not 100% to support responsive design
+    (set! (.. o -style -verticalAlign) "top")          ;; inline-block/table elems must be explititly told to align themselves to the top
+    (set! (.. o -style -textAlign)     "initial")      ;; prevent inheritance of alignment from parent
+    (set! (.. m -style -boxSizing)     "border-box")   ;; include border and padding in dimensions
+    (set! (.. m -style -display)       "table-cell")   ;; cells in tables enable sane vertical alignment
+    (set! (.. m -style -position)      "relative")     ;; support an absolutely positioned elements in the background such as svgs or image elements
+    (set! (.. m -style -height)        "inherit")      ;; assume the height of the parent and proxy it to the inner div, :todo :min, max h?
+    (set! (.. i -style -display)       "block")        ;; prevent white space from creeping in around inline elements
+    (set! (.. i -style -position)      "relative")     ;; make positioned children adjust relative to container plus padding
+    (set! (.. i -style -height)        "100%")         ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
+    (set! (.. i -style -cursor)        "inherit")))    ;; inherit mouse cursor, set in middleware?
 
-#_(defn elem? [v] (satisfies? IElem v))
-(defn elem? [v] (instance? Elem v)) ;; todo depend on interface instead, require strings, numbers to be Elems
-(defn ->elem [v] (-toElem v))
+(defn elem? [v] (instance? Elem v))
+
+(defn ->element [v] (-dom-element v))
+
+(defn box-with [path-fn & tags]
+  "create an Elem by wrapping the model outside of the element constructor"
+  (fn [_ elems]
+    (let [[o m i] (-> tags box-tree path-fn box-model)]
+      (with-let [e (Elem. o m i)]
+        (hoplon.core/add-children! e (mapv -dom-element elems))))))
+
+(def  doc        (box-with doc-path html body "div"))
+(defn box [ctor] (box-with box-path "div" "div" ctor))
 
 (defn out [e] (-out e))
 (defn mid [e] (-mid e))

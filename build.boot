@@ -22,7 +22,7 @@
   '[adzerk.bootlaces         :refer :all]
   '[adzerk.boot-cljs         :refer [cljs]]
   '[adzerk.boot-cljs-repl    :refer [cljs-repl start-repl]]
-  '[adzerk.boot-reload       :refer [reload]]
+  #_'[adzerk.boot-reload       :refer [reload]]
   '[hoplon.boot-hoplon       :refer [hoplon]]
   '[tailrecursion.boot-jetty :refer [serve]])
 
@@ -40,7 +40,7 @@
   (as-> (get-env) $
         (clojure.set/union (:source-paths $) (:test-paths $))
         (set-env! :source-paths $))
-  (comp (watch) (speak) (hoplon) (cljs-repl) (reload) (cljs :optimizations :none) (serve)))
+  (comp (watch) (speak) (hoplon) (cljs-repl) #_(reload) (cljs :optimizations :none) (serve))) ;; advanced :compiler-options {:elide-asserts true}
 
 (task-options!
   pom    {:project     'hoplon/ui

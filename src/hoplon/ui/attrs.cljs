@@ -1,44 +1,61 @@
 (ns hoplon.ui.attrs
+  (:refer-clojure :exclude [+ - * /])
   (:require
-    [clojure.string :refer [blank? join]]))
+    [clojure.string :refer [blank? join]]
+    [javelin.core   :refer [cell]])
+  (:require-macros
+    [javelin.core   :refer [cell= with-let]]))
+
+(declare + - * /)
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol IAttr
   "Serialize to DOM Attr"
-  (-toAttr [_]))
+  (-dom-attribute [_]))
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extend-type nil
   IAttr
-  (-toAttr [this]
-    "initial"))
+  (-dom-attribute [this]
+    this))
 
-(extend-type js/Number
+(extend-type number
   IAttr
-  (-toAttr [this]
+  (-dom-attribute [this]
     (str this "px")))
 
-(extend-type js/Boolean
+(extend-type boolean
   IAttr
-  (-toAttr [this]
+  (-dom-attribute [this]
     (str this)))
 
-(extend-type js/String
+(extend-type string
   IAttr
-  (-toAttr [this]
-    (if-not (blank? this) this "initial")))
+  (-dom-attribute [this]
+    (when-not (blank? this) this)))
 
-(extend-type function
+(extend-type PersistentVector
   IAttr
-  (-toAttr [this]
-    "-")) ;;todo: capture symbol via macro
+  (-dom-attribute [this]
+    (apply str (interpose ", " (map -dom-attribute this)))))
 
 (extend-type Keyword
   IAttr
-  (-toAttr [this]
+  (-dom-attribute [this]
     (name this)))
+
+(deftype Calc [f fname vs]
+  Object
+  (toString [_]
+    (str "calc(" (join (str " " fname " ") (mapv -dom-attribute vs)) ")"))
+  IPrintWithWriter
+  (-pr-writer [this w _]
+    (write-all w "#<Calc: " (.toString this) ">"))
+  IAttr
+  (-dom-attribute [this]
+    (.toString this)))
 
 (deftype Color [r g b a]
   Object
@@ -48,67 +65,96 @@
   (-pr-writer [this w _]
     (write-all w "#<Color: " (.toString this) ">"))
   IAttr
-  (-toAttr [this]
+  (-dom-attribute [this]
     (.toString this)))
+
+(deftype Ems [v]
+  IPrintWithWriter
+  (-pr-writer [_ w _]
+    (write-all w v " em"))
+  IAttr
+  (-dom-attribute [this]
+    (str v  "em")))
 
 (deftype Hex [v]
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w "0x" (.toString v 16)))
   IAttr
-  (-toAttr [this]
-    (if this (str "#" (.toString v 16)) "initial")))
+  (-dom-attribute [this]
+    (let [c (.toString v 16)]
+      (str "#" (apply str (repeat (- 6 (count c)) "0")) c))))
+
+(deftype Pixels [v]
+  IPrintWithWriter
+  (-pr-writer [_ w _]
+    (write-all w v " pixels"))
+  IAttr
+  (-dom-attribute [_]
+    (if v (str v "px") "initial")))
+
+(deftype Points [v]
+  IPrintWithWriter
+  (-pr-writer [_ w _]
+    (write-all w v " pt"))
+  IAttr
+  (-dom-attribute [this]
+    (str v  "pt")))
 
 (deftype Ratio [n d]
   IPrintWithWriter
   (-pr-writer [_ w _]
     (write-all w n "/" d))
   IAttr
-  (-toAttr [_]
+  (-dom-attribute [_]
     (if n (str (* (/ n d) 100) "%") "initial")))
 
-(deftype Pixels [v] ;; unit, not value
-  IPrintWithWriter
-  (-pr-writer [_ w _]
-    (write-all w v " pixels"))
-  IAttr
-  (-toAttr [_]
-    (if v (str v "px") "initial")))
-
-(deftype Eval [vs]
+(deftype Shadow [x y color blur spread inset]
   Object
   (toString [_]
-    (apply pr-str (conj (mapv str vs))))
+    (apply str (interpose " " (map -dom-attribute [x y blur spread color]))))
   IPrintWithWriter
   (-pr-writer [this w _]
-    (write-all w (.toString this) " evaluation"))
+    (write-all w "#<Shadow: " (.toString this) ">"))
   IAttr
-  (-toAttr [_]
-    (let [vstrs (mapv -toAttr vs)]
-      (if vs (str "calc(" (join (str " "(nth vstrs 0) " ") (subvec vstrs 1)) ")") "initial"))))
-
-(deftype Break [v]
-  IPrintWithWriter
-  (-pr-writer [_ w _]
-    (write-all w v " breakpoints"))
-  IAttr
-  (-toAttr [_]
-    v))
+  (-dom-attribute [this]
+    (.toString this)))
 
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn c  [r g b a] (Color. r g b a))
 (defn rt [n d]     (Ratio. n d))
-(defn hx [v]       (Hex.   v))
-(defn ev [& vs]    (Eval.  vs))
-(defn bk [& vs]    (Break. vs))
+(defn hx [v]       (Hex.         v))
+(defn em [v]       (Ems.         v))
+(defn pt [v]       (Points.      v))
+(defn px [v]       (Pixels.      v))
+(defn sh [x y color & [blur spread inset]] (Shadow. x y color blur spread inset))
 
-(defn color? [v] (instance? Color v))
-(defn ratio? [v] (instance? Ratio v))
-(defn hex?   [v] (instance? Hex   v))
-(defn eval?  [v] (instance? Eval  v))
-(defn break? [v] (instance? Break v))
+(defn color?     [v] (instance? Color  v))
+(defn ratio?     [v] (instance? Ratio  v))
+(defn ems?       [v] (instance? Ems    v))
+(defn hex?       [v] (instance? Hex    v))
+(defn points?    [v] (instance? Points v))
+(defn calc?      [v] (instance? Calc  v))
+(defn shadow?    [v] (instance? Shadow v))
 
 (defn attr? [v] (satisfies? IAttr v))
+(defn ->attr [v] (-dom-attribute v))
 
-(defn ->attr [v] (-toAttr v))
+(defn mkcalc [f fname]
+  (fn [& vs]
+    (if (every? number? vs) (apply f vs) (Calc. f fname vs))))
+
+(def - (mkcalc clojure.core/- "-"))
+(def + (mkcalc clojure.core/+ "+"))
+(def * (mkcalc clojure.core/* "*"))
+(def / (mkcalc clojure.core// "/"))
+
+(defn bk [orientation & vs]
+  (with-let [v (cell nil)]
+    (let [o (case orientation :w "width" :h "height")]
+      (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
+        (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
+              value! #(when (.-matches %) (reset! v val))]
+          (value! query)
+          (.addListener query #(value! %)))))))
