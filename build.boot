@@ -31,7 +31,7 @@
 (bootlaces! +version+)
 
 (deftask build []
-  (comp (speak) (hoplon :manifest true) (build-jar)))
+  (comp (speak) (build-jar)))
 
 (deftask develop []
   (comp (watch) (speak) (hoplon :manifest true) (pom) (jar) (install)))

@@ -3,7 +3,7 @@
     [hoplon.core :as h]
     [clojure.string  :refer [join split]]
     [javelin.core    :refer [cell cell?]]
-    [hoplon.ui.attrs :as a :refer [c rt ratio? hex? calc? points? ems? ->attr]]
+    [hoplon.ui.attrs :as a :refer [c r ratio? calc? points? ems? ->attr]]
     [hoplon.ui.elems :refer [box doc out mid in elem?]])
   (:require-macros
     [hoplon.ui    :refer [bind-in!]]
@@ -117,6 +117,7 @@
         (elem?   e) (apply f e vs)
         (string? e) identity
         (nil?    e) identity
+        (fn?     e) identity
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn in? [v & kwvecs]  (some #{v} (apply conj kwvecs)))
@@ -157,8 +158,7 @@
 
 (defn color? [v]
   (cond (keyword? v) (in? v colors globals)
-        (a/color?   v) v
-        (hex?     v) v
+        (a/color? v) v
         (nil?     v) :initial
         :else        false))
 
@@ -300,7 +300,7 @@
     {:pre [(alignhs? ah) (alignvs? av)]}
     (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) av)
     (with-let [e (ctor (dissoc attrs :ah :av) elems)]
-      (bind-in! e [in  .-style .-height]        (cell= (if av :auto (rt 1 1)))) ;; initial instead? <--wrong!
+      (bind-in! e [in  .-style .-height]        (cell= (if av :auto (r 1 1)))) ;; initial instead? <--wrong!
       (bind-in! e [mid .-style .-textAlign]     ah)
       (bind-in! e [mid .-style .-verticalAlign] av))))
 
@@ -394,20 +394,20 @@
     {:pre [(lengths? w w- w+ h h- h+)]}
     (with-let [e (ctor (dissoc attrs :w :w- :w+ :h :h- :h+) elems)]
       (let [rel? #(or (ratio? %) (calc? %))
-            rel   #(cell= (if (rel? %) % :initial))
-            fix   #(cell= (if (rel? %) :initial %))]
-        (bind-in! e [out  .-style .-width]    (rel w))
-        (bind-in! e [out .-style .-minWidth]  (rel w-))
-        (bind-in! e [out .-style .-maxWidth]  (rel w+))
-        (bind-in! e [out  .-style .-height]   (rel h))
-        (bind-in! e [out .-style .-minHeight] (rel h-))
-        (bind-in! e [out .-style .-maxHeight] (rel h+))
-        (bind-in! e [mid  .-style .-width]    (fix  w))
-        (bind-in! e [mid .-style .-minWidth]  (fix w-))
-        (bind-in! e [mid .-style .-maxWidth]  (fix w+))
-        (bind-in! e [mid  .-style .-height]   (fix h)) ;; default is inherit
-        (bind-in! e [mid .-style .-minHeight] (fix h-))
-        (bind-in! e [mid .-style .-maxHeight] (fix h+))))))
+            rel   #(cell= (if (rel? %) % %2))
+            fix   #(cell= (if (rel? %) %2 %))]
+        (bind-in! e [out  .-style .-width]    (rel w  nil))
+        (bind-in! e [out .-style .-minWidth]  (rel w- nil))
+        (bind-in! e [out .-style .-maxWidth]  (rel w+ nil))
+        (bind-in! e [out  .-style .-height]   (rel h  nil))
+        (bind-in! e [out .-style .-minHeight] (rel h- nil))
+        (bind-in! e [out .-style .-maxHeight] (rel h+ nil))
+        (bind-in! e [mid  .-style .-width]    (fix  w nil))
+        (bind-in! e [mid .-style .-minWidth]  (fix w- nil))
+        (bind-in! e [mid .-style .-maxWidth]  (fix w+ nil))
+        (bind-in! e [mid  .-style .-height]   (fix h  "inherit"))
+        (bind-in! e [mid .-style .-minHeight] (fix h- nil))
+        (bind-in! e [mid .-style .-maxHeight] (fix h+ nil))))))
 
 (defn space [ctor]
   "set the padding on the outer element of each child and a negative margin on
@@ -480,8 +480,8 @@
   the middle element."
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (bind-in! e [in .-style .-width]           (rt 1 1)) ;; display block should force to 100%
-      (bind-in! e [in .-style .-height]          (rt 1 1))
+      (bind-in! e [in .-style .-width]           (r 1 1)) ;; display block should force to 100%
+      (bind-in! e [in .-style .-height]          (r 1 1))
       (bind-in! e [in .-style .-outline]         :none)
       (bind-in! e [in .-style .-backgroundColor] :transparent)
       (bind-in! e [in .-style .-borderStyle]     :none)
@@ -572,10 +572,10 @@
     (let [state (cell :up)]
       (binding [*state* state]
         (with-let [e (ctor attrs elems)]
-            (.addEventListener (mid e) "mouseover"  #(reset! state :over))
-            (.addEventListener (mid e) "mouseout"   #(reset! state :up))
-            (.addEventListener (mid e) "mousedown"  #(reset! state :down))
-            (.addEventListener (mid e) "mouseup"    #(reset! state :up)))))))
+          (.addEventListener (mid e) "mouseover" #(reset! state :over))
+          (.addEventListener (mid e) "mouseout"  #(reset! state :up))
+          (.addEventListener (mid e) "mousedown" #(reset! state :down))
+          (.addEventListener (mid e) "mouseup"   #(reset! state :up)))))))
 
 (defn window** [ctor]
   ;; todo: window rel=noopener
@@ -586,11 +586,11 @@
           get-route  #(-> js/window .-location .-hash hash->route)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
         (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
-          (bind-in! e [out .-lang]   (or language "en"))
-          (bind-in! e [out .-style .-width]    (rt 1 1))
-          (bind-in! e [out .-style .-height]   (rt 1 1))
-          (bind-in! e [mid .-style .-width]    (rt 1 1))
-          (bind-in! e [mid .-style .-height]   (rt 1 1))
+          (bind-in! e [out .-lang] (or language "en"))
+          (bind-in! e [out .-style .-width]    "100%")
+          (bind-in! e [out .-style .-height]   "100%")
+          (bind-in! e [mid .-style .-width]    "100%")
+          #_(bind-in! e [mid .-style .-height]   "100%")
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
           (when initiated
@@ -622,15 +622,15 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def common (comp parse-args handle-exception button* align shadow round stroke pad nudge size overflow dock font color click))
-(def img    (comp parse-args handle-exception align shadow round stroke image* pad nudge size overflow font color click))
+(def common (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click))
+(def img    (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def window* (-> doc window** space common))
-(def elem    (-> h/div box space common))
-(def button  (-> h/button box destyle common))
-(def image   (-> h/div box img))
+(def window* (-> doc common space window** parse-args))
+(def elem    (-> h/div box common space parse-args))
+(def button  (-> h/button box destyle common parse-args))
+(def image   (-> h/div box img parse-args))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

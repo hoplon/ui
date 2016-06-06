@@ -19,7 +19,7 @@
 (extend-type nil
   IAttr
   (-dom-attribute [this]
-    this))
+    ""))
 
 (extend-type number
   IAttr
@@ -76,15 +76,6 @@
   (-dom-attribute [this]
     (str v  "em")))
 
-(deftype Hex [v]
-  IPrintWithWriter
-  (-pr-writer [_ w _]
-    (write-all w "0x" (.toString v 16)))
-  IAttr
-  (-dom-attribute [this]
-    (let [c (.toString v 16)]
-      (str "#" (apply str (repeat (- 6 (count c)) "0")) c))))
-
 (deftype Pixels [v]
   IPrintWithWriter
   (-pr-writer [_ w _]
@@ -122,9 +113,6 @@
 
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn c  [r g b a] (Color. r g b a))
-(defn rt [n d]     (Ratio. n d))
-(defn hx [v]       (Hex.         v))
 (defn em [v]       (Ems.         v))
 (defn pt [v]       (Points.      v))
 (defn px [v]       (Pixels.      v))
@@ -133,7 +121,6 @@
 (defn color?     [v] (instance? Color  v))
 (defn ratio?     [v] (instance? Ratio  v))
 (defn ems?       [v] (instance? Ems    v))
-(defn hex?       [v] (instance? Hex    v))
 (defn points?    [v] (instance? Points v))
 (defn calc?      [v] (instance? Calc  v))
 (defn shadow?    [v] (instance? Shadow v))
@@ -149,6 +136,21 @@
 (def + (mkcalc clojure.core/+ "+"))
 (def * (mkcalc clojure.core/* "*"))
 (def / (mkcalc clojure.core// "/"))
+
+(defn c
+  ([hex]
+   (c hex 1))
+  ([hex a]
+   (let [r (bit-and (bit-shift-right hex 16) 255)
+         g (bit-and (bit-shift-right hex 8)  255)
+         b (bit-and hex 255)]
+     (c r g b a)))
+  ([r g b]
+   (c r g b 1))
+  ([r g b a]
+   (Color. r g b a)))
+
+(defn r [n d] (Ratio. n d))
 
 (defn bk [orientation & vs]
   (with-let [v (cell nil)]
