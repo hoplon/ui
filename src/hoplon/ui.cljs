@@ -423,7 +423,7 @@
           mv (cell= (/ (or gv g) 2))
           ph (cell= (- mh))
           pv (cell= (- mv))]
-      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2) mv mh mv mh)
+      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2 %3 %4 %5) mv mh mv mh)
       (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
         (bind-in! e [in .-style .-margin] pv ph)))))
 
