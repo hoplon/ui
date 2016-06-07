@@ -298,7 +298,7 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [ah av] :as attrs} elems]
     {:pre [(alignhs? ah) (alignvs? av)]}
-    (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) av)
+    (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
     (with-let [e (ctor (dissoc attrs :ah :av) elems)]
       (bind-in! e [in  .-style .-height]        (cell= (if av :auto (r 1 1)))) ;; initial instead? <--wrong!
       (bind-in! e [mid .-style .-textAlign]     ah)
