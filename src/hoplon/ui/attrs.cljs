@@ -4,7 +4,7 @@
     [clojure.string :refer [blank? join]]
     [javelin.core   :refer [cell]])
   (:require-macros
-    [javelin.core   :refer [cell= with-let]]))
+    [javelin.core   :refer [cell= with-let set-cell!=]]))
 
 (declare + - * /)
 
@@ -157,6 +157,6 @@
     (let [o (case orientation :w "width" :h "height")]
       (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
         (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
-              value! #(when (.-matches %) (reset! v val))]
+              value! #(when (.-matches %) (set-cell!= v val))]
           (value! query)
           (.addListener query #(value! %)))))))

@@ -41,7 +41,7 @@
                   :mediumblue :mediumorchid :mediumpurple :mediumseagreen
                   :mediumslateblue :mediumspringgreen :mediumturquoise
                   :mediumvioletred :midnightblue :mintcream :mistyrose :moccasin
-                  :navajowhite :navy :oldlace :olive :olivedrab :orangered
+                  :navajowhite :navy :oldlace :olive :olivedrab :orange :orangered
                   :orchid :palegoldenrod :palegreen :paleturquoise
                   :palevioletred :papayawhip :peachpuff :peru :pink :plum
                   :powderblue :purple :rebeccapurple :red :rosybrown :royalblue
@@ -156,6 +156,11 @@
         (nil?     v) :initial
         :else        false))
 
+(defn callback? [v]
+  (cond (fn? v)   v
+        (nil?     v) true
+        :else        false))
+
 (defn color? [v]
   (cond (keyword? v) (in? v colors globals)
         (a/color? v) v
@@ -167,16 +172,23 @@
         (nil?     v) :inital
         :else        false))
 
+(defn dock? [v]
+  (cond (keyword? v) (in? v lengths globals)
+        (calc?    v) v
+        (ratio?   v) v
+        (ems?     v) v
+        (points?  v) v
+        (number?  v) v
+        (true?    v) v
+        (false?   v) true
+        (nil?     v) :initial
+        :else        false))
+
 (defn family? [v]
   (cond (vector?  v) (every? identity v)
         (keyword? v) (in? v families globals)
         (string?  v) v
         (nil?     v) :initial
-        :else        false))
-
-(defn callback? [v]
-  (cond (fn? v)   v
-        (nil?     v) true
         :else        false))
 
 (defn kerning? [v]
@@ -284,7 +296,8 @@
 (def syntheses?   (validate-cells synthesis?))
 (def weights?     (validate-cells weight?))
 
-(def callbacks?   (validate callback?))
+(def callbacks?   (validate-cells callback?))
+(def docks?       (validate-cells dock?))
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -306,12 +319,13 @@
 
 (defn color [ctor]
   "set the background color an the inner element."
-  (fn [{:keys [c o m] :as attrs} elems]
+  (fn [{:keys [c o m v] :as attrs} elems]
     {:pre [(colors? c) (opacities? o) (cursors? m)]}
-    (with-let [e (ctor (dissoc attrs :c :o :m) elems)]
+    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
-      (bind-in! e [mid .-style .-cursor]          m))))
+      (bind-in! e [mid .-style .-cursor]          m)
+      (bind-in! e [out .-style .-display]        (cell= (if (and (contains? attrs :v) (not v)) :none :inline-table))))))
 
 (defn nudge [ctor]
   "bump the position of an elem relative to its normal position in the layout.
@@ -337,22 +351,22 @@
 (defn dock [ctor]
   "fix the element to the window."
   (fn [{:keys [xl xr xt xb] :as attrs} elems]
-    {:pre [(lengths? xl xr xt xb)]} ;; todo: warn about pct w, pct h
+    {:pre [(docks? xl xr xt xb)]} ;; todo: warn about pct w, pct h
     (with-let [e (ctor (dissoc attrs :xl :xr :xt :xb) elems)]
       (bind-in! e [out .-style .-position] (cell= (if (or xl xr xt xb) :fixed :initial)))
       (bind-in! e [out .-style .-zIndex]   (cell= (if (or xl xr xt xb) "9999" :initial)))
-      (bind-in! e [out .-style .-left]     xl)
-      (bind-in! e [out .-style .-right]    xr)
-      (bind-in! e [out .-style .-top]      xt)
-      (bind-in! e [out .-style .-bottom]   xb))))
+      (bind-in! e [out .-style .-left]     (cell= (or xl nil)))
+      (bind-in! e [out .-style .-right]    (cell= (or xr nil)))
+      (bind-in! e [out .-style .-top]      (cell= (or xt nil)))
+      (bind-in! e [out .-style .-bottom]   (cell= (or xb nil))))))
 
 (defn overflow [ctor]
   "set the overflow style on the elem's middle element."
-  (fn [{:keys [v vh vv] :as attrs} elems]
-    {:pre [(overflows? v vh vv)]}
-    (with-let [e (ctor (dissoc attrs :v :vh :vv) elems)]
-      (bind-in! e [mid .-style .-overflowX] (or vh v))
-      (bind-in! e [mid .-style .-overflowY] (or vv v)))))
+  (fn [{:keys [o oh ov] :as attrs} elems]
+    {:pre [(overflows? o oh ov)]}
+    (with-let [e (ctor (dissoc attrs :o :oh :ov) elems)]
+      (bind-in! e [mid .-style .-overflowX] (or oh o))
+      (bind-in! e [mid .-style .-overflowY] (or ov o)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
