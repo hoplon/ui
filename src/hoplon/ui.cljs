@@ -501,6 +501,37 @@
       (bind-in! e [in .-style .-borderStyle]     :none)
       (bind-in! e [in .-style .-textAlign]       :inherit)))) ;; cursor: pointer, :width: 100%
 
+;;; form middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(def ^:dynamic *data*   nil)
+(def ^:dynamic *error*  nil)
+(def ^:dynamic *submit* nil)
+
+(defn form** [ctor]
+  "set up a form context"
+  (fn [{:keys [submit] :as attrs} elems]
+    (reset! *submit* submit)
+    (let [data *data*]
+      (with-let [e (ctor (dissoc attrs :submit) elems)]
+        (.addEventListener (in e) "keypress" #(when (= (.-which %) 14) (submit @data)))))))
+
+(defn field [ctor]
+  "set up a form context"
+  (fn [{:keys [autocorrect autocapitalize label key type value] :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (let [data *data*]
+      (with-let [e (ctor (dissoc attrs :autocorrect :autocapitalize :label :key :type :value) elems)]
+        (.addEventListener (in e) "change" #(prn :data (when data @data) (keyword (.-name e)) (.-data e)))
+        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name e)) (.-data e))))
+        (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name e)) (.-data e))))
+        (bind-in! e [in .-name]           (name key))
+        (bind-in! e [in .-type]           type)
+        (bind-in! e [in .-value]          value)
+        (bind-in! e [in .-placeholder]    label)
+        (bind-in! e [in .-autocorrect]    autocorrect)
+        (bind-in! e [in .-autocapitalize] autocapitalize)))))
+
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn handle-exception [ctor]
@@ -571,11 +602,6 @@
                "unicode-range" range}]
     (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
 
-;
-; (def ^:dynamic *data*   nil)
-; (def ^:dynamic *error*  nil)
-; (def ^:dynamic *submit* nil)
-
 (def ^:dynamic *state* nil)
 
 (defn st [& kvs]
@@ -642,9 +668,11 @@
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def window* (-> doc common space window** parse-args))
-(def elem    (-> h/div box common space parse-args))
+(def elem    (-> h/div    box common space parse-args))
 (def button  (-> h/button box destyle common parse-args))
-(def image   (-> h/div box img parse-args))
+(def image   (-> h/div    box img parse-args))
+(def form*   (-> h/form   box common space form** parse-args))
+(def input   (-> h/input  box destyle common field parse-args))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
