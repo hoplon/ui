@@ -1,5 +1,5 @@
 # UI
-Experiment to create a cohesive and responsive user interface component library for the browser that uses hoplon primitives to abstract away css and html.
+a *cohesive* layer of *composable* abstractions over the dom.
 
 [](dependency)
 ```clojure
@@ -7,44 +7,58 @@ Experiment to create a cohesive and responsive user interface component library 
 ```
 [](/dependency)
 
-## Usage
-### Disclaimer
-This is an experimental, early stage work in progress. Bugs lurk everywhere. The api will change constantly. Use at your own peril.
+## overview
+the goal of ui is to provide a more powerful api for user interface development that is based on functions instead of css and html. it furnishes a small library of visually agnostic components intended for stylization within an application or consumption by a thematic ui toolkit.  it encourages the use of composition and abstraction over cut-and-paste, and favors the use or variable bindings to string-based selector queries.
 
-### Installation
-`ui` currently requires the `responsive-layout-attributes` branch of hoplon to be installed in order to function correctly.
+## disclaimer
+THIS IS AN EXPERIMENTAL WORK IN PROGRESS. the api is evolving constantly as use cases accrue and the search for better abstractions to support them continues.  while the overall approach has proven effective and durable enough for some limited production use, it is not advisable to employ this library for anything other than experimentation until the interface is formally defined and the api hardened to support it.
 
-### Functional Tests
-Execute `boot test` then navigate to `localhost:5000` in a browser to view functional tests. Resize the browser window to test responsive layout features.
+## benefits
+* cohesive functions provide an alternative to hypertext markup and cascading styles to facilitate meaningful complexity management.
+* breakpoint functions and ratio attributes enable responsive layouts that are more manageable and versatile traditional grid systems and media queries.
+* the box model implementation facilitates a more intuitive and predictable positioning scheme.
+* use of symbolic bindings instead of string-based selector queries produces useful errors, increases performance, and eliminates unintended results.
+* input validation and visual error rendering eliminates silent failures while making debugging easier.
+* nonreliance on external stylesheets eliminates challenges associated with rendering, performance, and loading (such as flashes of unstyled content).
 
-### Development
-Continuously rebuild and reinstall the jar as changes are made.
+## drawbacks
+* memory consumption is higher in the dom due to the way the ui's box model is implemented.
+* initial render time is greater because the browser has to parse more javascript.
+
+## api
+
+
+
+## hacking
+
+continuously rebuild and reinstall the jar as changes are made.
 ```bash
 boot develop
 ```
 
-Build the library for distribution.
+build and install the library
 ```bash
-boot build
+boot build-jar
 ```
 
-Functionally test the library.
+functionally test the library.
 ```bash
-boot run
+boot test
 ```
 
-## Help
+input validation and visual error rendering should be turned off for production builds by adding
+```
+ `:compiler-options {:elide-asserts true}`
+ ```
+ to the clojurescript compiler.
 
-### FAQ
-You can find frequently asked questions here : https://github.com/hoplon/ui/wiki/FAQ
+## support
+ask questions in the [hoplon slack channel](https://clojurians.slack.com/messages/hoplon/)
 
-### Support
-The best way to get support is to ask questions in the [hoplon slack channel](https://clojurians.slack.com/messages/hoplon/)
+## faq
+a frequently asked questions wiki has been started here: https://github.com/hoplon/ui/wiki/FAQ
 
-## Credits
-Makes use of the [glyhpicon halflings](http://glyphicons.com/) font distributed with bootstrap.
-
-## License
+## license
 
 ```
 copyright (c) jumblerg & contributors. all rights reserved.

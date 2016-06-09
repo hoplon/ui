@@ -503,7 +503,6 @@
 
 ;;; form middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 (def ^:dynamic *data*   nil)
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
