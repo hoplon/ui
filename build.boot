@@ -3,12 +3,12 @@
   :source-paths #{"src"}
   :test-paths   #{"tst"}
   :target-path  "tgt"
-  :dependencies '[[org.clojure/clojure       "1.7.0"     :scope "provided"]
-                  [org.clojure/clojurescript "1.8.51"    :scope "provided"]
+  :dependencies '[[org.clojure/clojure       "1.8.0"     :scope "provided"]
+                  [org.clojure/clojurescript "1.9.36"    :scope "provided"]
                   [org.clojure/tools.nrepl   "0.2.12"    :scope "test"]
                   [adzerk/boot-cljs          "1.7.228-1" :scope "test"]
                   [adzerk/boot-cljs-repl     "0.3.0"     :scope "test"]
-                  [adzerk/boot-reload        "0.4.7"     :scope "test"]
+                  [adzerk/boot-reload        "0.4.8"     :scope "test"]
                   [adzerk/bootlaces          "0.1.13"    :scope "test"]
                   [com.cemerick/piggieback   "0.2.1"     :scope "test"]
                   [hoplon/boot-hoplon        "0.1.13"    :scope "test"]
@@ -30,11 +30,8 @@
 
 (bootlaces! +version+)
 
-(deftask build []
-  (comp (speak) (build-jar)))
-
 (deftask develop []
-  (comp (watch) (speak) (hoplon :manifest true) (pom) (jar) (install)))
+  (comp (watch) (speak) (build-jar)))
 
 (deftask test []
   (as-> (get-env) $
