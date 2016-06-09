@@ -629,9 +629,9 @@
           (bind-in! e [out .-style .-width]    "100%")
           (bind-in! e [out .-style .-height]   "100%")
           (bind-in! e [mid .-style .-width]    "100%")
-          #_(bind-in! e [mid .-style .-height]   "100%")
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
+          (bind-in! e [in  .-style .-position] "absolute")
           (when initiated
             (initiated (get-route) (get-status) (get-agent)))
           (when routechanged
@@ -661,17 +661,17 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def common (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click))
+(def component (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click))
 (def img    (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def window* (-> doc common space window** parse-args))
-(def elem    (-> h/div    box common space parse-args))
-(def button  (-> h/button box destyle common parse-args))
+(def window* (-> doc component space window** parse-args))
+(def elem    (-> h/div    box component space parse-args))
+(def button  (-> h/button box destyle component parse-args))
 (def image   (-> h/div    box img parse-args))
-(def form*   (-> h/form   box common space form** parse-args))
-(def input   (-> h/input  box destyle common field parse-args))
+(def form*   (-> h/form   box component space form** parse-args))
+(def input   (-> h/input  box destyle component field parse-args))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
