@@ -96,7 +96,9 @@
    "unloaded"  :terminated})
 
 (defn throw-ui-exception [& msg]
-  (swap! *exceptions* conj {:msg (apply str msg)}))
+  (when *exceptions*
+    (swap! *exceptions* conj {:msg (apply str msg)})
+    (throw (js/Error (apply str msg)))))
 
 (defn vstr [vs]
   (join " " (map ->attr vs)))
@@ -129,11 +131,11 @@
         (throw-ui-exception "Error validating attribute value " v ".")))
     true))
 
-(defn validate-cells [validator]
+(defn validate-cells [validator message] ;; todo: refactor to include attribute key
   (fn [& vs]
     (doseq [v vs :let [valid? (bind-cells validator)]]
       (when-not (valid? v) ;
-        (throw-ui-exception "Error validating attribute value " v ".")))
+        (throw-ui-exception message " " v ".")))
     true))
 
 ;;; validation fns ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -275,29 +277,30 @@
         (nil?     v) :initial
         :else        false))
 
-(def adjusts?     (validate-cells adjust?))
-(def alignhs?     (validate-cells alignh?))
-(def alignvs?     (validate-cells alignv?))
-(def colors?      (validate-cells color?))
-(def cursors?     (validate-cells cursor?))
-(def decorations? (validate-cells decoration?))
-(def families?    (validate-cells family?))
-(def kernings?    (validate-cells kerning?))
-(def lengths?     (validate-cells length?))
-(def opacities?   (validate-cells opacity?))
-(def overflows?   (validate-cells overflow?))
-(def renderings?  (validate-cells rendering?))
-(def shadows?     (validate-cells shadow?))
-(def sizes?       (validate-cells size?))
-(def smoothings?  (validate-cells smoothing?))
-(def spacings?    (validate-cells spacing?))
-(def stretches?   (validate-cells stretch?))
-(def styles?      (validate-cells style?))
-(def syntheses?   (validate-cells synthesis?))
-(def weights?     (validate-cells weight?))
+(def adjusts?     (validate-cells adjust?     "Error validating attribute of type adjust with value"))
+(def alignhs?     (validate-cells alignh?     "Error validating attribute of type alingh with value"))
+(def alignvs?     (validate-cells alignv?     "Error validating attribute of type alignv with value"))
+(def colors?      (validate-cells color?      "Error validating attribute of type color with value"))
+(def cursors?     (validate-cells cursor?     "Error validating attribute of type cursor with value"))
+(def decorations? (validate-cells decoration? "Error validating attribute of type decoration with value"))
+(def families?    (validate-cells family?     "Error validating attribute of type family with value"))
+(def kernings?    (validate-cells kerning?    "Error validating attribute of type kerning with value"))
+(def lengths?     (validate-cells length?     "Error validating attribute of type length with value"))
+(def opacities?   (validate-cells opacity?    "Error validating attribute of type opacity with value"))
+(def overflows?   (validate-cells overflow?   "Error validating attribute of type overflow with value"))
+(def renderings?  (validate-cells rendering?  "Error validating attribute of type rendering with value"))
+(def shadows?     (validate-cells shadow?     "Error validating attribute of type shadow with value"))
+(def sizes?       (validate-cells size?       "Error validating attribute of type size with value"))
+(def smoothings?  (validate-cells smoothing?  "Error validating attribute of type smoothing with value"))
+(def spacings?    (validate-cells spacing?    "Error validating attribute of type spacing with value"))
+(def stretches?   (validate-cells stretch?    "Error validating attribute of type stetch with value"))
+(def styles?      (validate-cells style?      "Error validating attribute of type style with value"))
+(def syntheses?   (validate-cells synthesis?  "Error validating attribute of type sythesis with value"))
+(def weights?     (validate-cells weight?     "Error validating attribute of type weight with value"))
 
-(def callbacks?   (validate-cells callback?))
-(def docks?       (validate-cells dock?))
+(def callbacks?   (validate-cells callback?   "Error validating attribute of type callback with value"))
+(def docks?       (validate-cells dock?       "Error validating attribute of type dock with value"))
+(def attrs?       (validate-cells empty?      "Unhandled attribute with value"))
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -544,6 +547,11 @@
           (bind-in! e [out .-title] (join "\n" (mapv :msg @*exceptions*)))
           (bind-in! e [out .-style .-border] 3 :solid :red))))))
 
+(defn assert-noattrs [ctor]
+  (fn [attrs elems]
+    {:pre [(attrs? attrs)]}
+    (ctor attrs elems)))
+
 (defn skin [ctor]
   "add an svg skin to the component."
   (fn [attrs elems]
@@ -624,7 +632,7 @@
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
+        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]    "100%")
           (bind-in! e [out .-style .-height]   "100%")
@@ -632,6 +640,10 @@
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
           (bind-in! e [in  .-style .-position] "absolute")
+          (bind-in! e [in  .-style  .-left]    "0")
+          (bind-in! e [in  .-style  .-right]   "0")
+          (bind-in! e [in  .-style  .-top]     "0")
+          (bind-in! e [in  .-style  .-bottom]  "0")
           (when initiated
             (initiated (get-route) (get-status) (get-agent)))
           (when routechanged
@@ -661,7 +673,7 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click))
+(def component (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click assert-noattrs))
 (def img    (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -685,14 +697,4 @@
 ;; user-select, selectable
 ;; :toggle as as mid-attr
 ;; update, previously implemented on do multimethod, to form middleware
-
-; (defn attrs? [attrs]))
-;   (doseq [[k v] attrs]
-;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element."))
-;   true)
-;
-; (defn elems? [attrs]
-;   (doseq [[k v] elems]
-;     ()
-;     (throw-ui-exception "Attribute " k " with value " v " cannot be applied to element.")
-;     true))
+;; throw proper ui exceptions with stack traces and attribute kv information

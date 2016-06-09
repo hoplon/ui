@@ -43,6 +43,13 @@
       (doseq [line (split-nodes this)]
         (.appendChild frag line)))))
 
+(extend-type PersistentVector
+  IElem
+  (-dom-element [this]
+    (with-let [frag (.createDocumentFragment js/document)]
+      (doseq [elem this]
+        (.appendChild frag (-dom-element elem))))))
+
 (extend-type javelin.core/Cell
   IElem
   (-dom-element [this]
@@ -58,7 +65,7 @@
   (-in  [_] i)
   IElem
   (-dom-element [e] o)
-  hoplon.core/IHoplonParent
+  hoplon.core/ICustomElement
   (-append-child! [_ new-elem]
     (hoplon.core/append-child! i new-elem))
   (-insert-before! [_ new-elem old-elem]

@@ -1,10 +1,11 @@
-(page "test.html"
+(page "index.html"
   (:refer-clojure :exclude
-    [test])
-  (:refer-hoplon :exclude [rt])
+    [- test])
+  (:refer-hoplon :exclude
+    [rt])
   (:require
     [hoplon.ui :as u]
-    [hoplon.ui.attrs :refer [rt hx ev bk]]))
+    [hoplon.ui.attrs :refer [- r c bk]]))
 
 (defc things ["a" "b" "c"])
 
@@ -26,35 +27,35 @@
 
 (def gutter 6)
 
-(def stroke-grey (hx 0xCCC))
-(def fill-grey   (hx 0xEEE))
-(def font-grey   (hx 0x888))
+(def stroke-grey (c 0xCCCCCC))
+(def fill-grey   (c 0xEEEEEE))
+(def font-grey   (c 0x888888))
 
-(def fail-color  (hx 0xd43f3a))
-(def pass-color  (hx 0x4cae4c))
+(def fail-color  (c 0xd43f3a))
+(def pass-color  (c 0x4cae4c))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem suite [{:keys [title pass code] :as attrs} elems]
-  (u/elem :w (rt 1 1) :h (rt 1 1) :p gutter :g gutter
-    (u/elem :w (rt 1 1) :ph gutter
+  (u/elem :w (r 1 1) :h (r 1 1) :p gutter :g gutter
+    (u/elem :w (r 1 1) :ph gutter
       (u/elem :f 21 :fc font-grey
         title)
       (when code
-        (u/elem :cr 0 :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
+        (u/elem :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
           code)))
     (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]
-  (u/elem :w 40 :h 40 :ah :center :av :middle :c (hx 0xFFF) :s 2 :sc stroke-grey
+  (u/elem :w 40 :h 40 :ah :center :av :middle :c (c 0xFFFFFF) :s 2 :sc stroke-grey
     attrs elems))
 
 (defelem test [{:keys [title pass] :as attrs} elems]
   (u/elem :w 200
     (u/elem :h 26 :ph gutter :gh gutter :av :middle
       (u/elem :h 6 :w 6 :r 6 :c (cell= (if pass pass-color fail-color)))
-      (u/elem :w 170 :f 10 :fc font-grey :vh :hidden title))
-    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey :d 3 :dc (hx 0xAAA)
+      (u/elem :w 170 :f 10 :fc font-grey :v :hidden title))
+    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey ;:d 3 :dc (c 0xAAAAAA)
       (dissoc attrs :pass :title)
       elems)))
 
@@ -62,7 +63,7 @@
   :title    "Hoplon UI"
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
-  (u/elem :w (rt 1 1) :p 6 :av :middle :sb 2 :sc stroke-grey
+  (u/elem :w (r 1 1) :p 6 :av :middle :sb 2 :sc stroke-grey
     (u/image :h 50 :url "hoplon-logo.png")
     (u/elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
@@ -222,11 +223,12 @@
   (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
     (cell (box "a")))
   (test :ah :center  :av :middle :title "boxes in formula cell align horizontal center & vertical center" :pass false
-    (cell= (map #(box %) things)))
+    (for-tpl [thing things]
+      (box thing)))
   (suite :title "layouts"
     (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
       (u/elem
-        (box :w (rt 1 1) "a")
+        (box :w (r 1 1) "a")
         (box "b")))
     (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
         ;; caused by
@@ -236,13 +238,13 @@
     (test :ah :center :av :middle :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
         ;; solution: apply lengths to middle, but percentages to outer
       (u/elem :g 50
-        (box "a"))))
+        (box "a")))))
   ; (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
   ;   (u/elem
   ;     (box :w (cell 80) "a")))
-  (suite :title "controls"
-    (u/button :w 300 :h 150 "Click Me" :click #(swap! things conj "d"))
-    (u/button :w 150 :h 75 :fc :white "Click Me")
-    (u/button :w 300 :h 200 "Click Me")
-    (u/button :w 300 :h 200 "Click Me")
-    #_(u/elem :h 25 :w [(rt 1 1) sm (ev - (rt 1 1) 220)] :ah :right :g 6)))
+  ; (suite :title "controls"
+  ;   (u/button :w 300 :h 150 "Click Me" :click #(swap! things conj "d"))
+  ;   (u/button :w 150 :h 75 :fc :white "Click Me")
+  ;   (u/button :w 300 :h 200 "Click Me")
+  ;   (u/button :w 300 :h 200 "Click Me")
+  ;   #_(u/elem :h 25 :w [(r 1 1) sm (- (r 1 1) 220)] :ah :right :g 6)))

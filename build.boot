@@ -1,5 +1,4 @@
 (set-env!
-  :asset-paths  #{"rsc"}
   :source-paths #{"src"}
   :test-paths   #{"tst"}
   :target-path  "tgt"
@@ -14,7 +13,7 @@
                   [hoplon/boot-hoplon        "0.1.13"    :scope "test"]
                   [tailrecursion/boot-jetty  "0.1.3"     :scope "test"]
                   [weasel                    "0.7.0"     :scope "test"]
-                  [hoplon                    "6.0.0-alpha15"]]
+                  [hoplon/hoplon             "6.0.0-alpha15"]]
   :repositories  [["clojars"       "https://clojars.org/repo/"]
                   ["maven-central" "https://repo1.maven.org/maven2/"]])
 
@@ -22,7 +21,7 @@
   '[adzerk.bootlaces         :refer :all]
   '[adzerk.boot-cljs         :refer [cljs]]
   '[adzerk.boot-cljs-repl    :refer [cljs-repl start-repl]]
-  #_'[adzerk.boot-reload       :refer [reload]]
+  '[adzerk.boot-reload       :refer [reload]]
   '[hoplon.boot-hoplon       :refer [hoplon]]
   '[tailrecursion.boot-jetty :refer [serve]])
 
@@ -33,17 +32,20 @@
 (deftask develop []
   (comp (watch) (speak) (build-jar)))
 
+(deftask deploy []
+  (comp (speak) (build-jar) (push-snapshot)))
+
 (deftask test []
   (as-> (get-env) $
         (clojure.set/union (:source-paths $) (:test-paths $))
         (set-env! :source-paths $))
-  (comp (watch) (speak) (hoplon) (cljs-repl) #_(reload) (cljs :optimizations :none) (serve))) ;; advanced :compiler-options {:elide-asserts true}
+  (comp (watch) (speak) (hoplon) (cljs-repl) (reload) (cljs :optimizations :none) (serve)))
 
 (task-options!
   pom    {:project     'hoplon/ui
           :version     +version+
-          :description "a high level interface to hoplon."
+          :description "a cohesive layer of composable abstractions over the dom."
           :url         "https://github.com/hoplon/ui"
           :scm         {:url "https://github.com/hoplon/ui"}
           :license     {"EPL" "http://www.eclipse.org/legal/epl-v10.html"}}
-  serve {:port        5000})
+  serve  {:port        5000})

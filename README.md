@@ -27,13 +27,14 @@ THIS IS AN EXPERIMENTAL WORK IN PROGRESS. the api is evolving constantly as use 
 
 ## api
 
-
+TODO
 
 ## hacking
 
 continuously rebuild and reinstall the jar as changes are made.
 ```bash
 boot develop
+boot -c develop
 ```
 
 build and install the library
@@ -46,11 +47,10 @@ functionally test the library.
 boot test
 ```
 
-input validation and visual error rendering should be turned off for production builds by adding
+input validation and visual error rendering should be turned off for production builds by adding the following to the cljs task.
 ```
- `:compiler-options {:elide-asserts true}`
+:compiler-options {:elide-asserts true}
  ```
- to the clojurescript compiler.
 
 ## support
 ask questions in the [hoplon slack channel](https://clojurians.slack.com/messages/hoplon/)
