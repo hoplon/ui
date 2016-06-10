@@ -1,4 +1,4 @@
-# UI
+  # UI
 a *cohesive* layer of *composable* abstractions over the dom.
 
 [](dependency)
@@ -8,33 +8,31 @@ a *cohesive* layer of *composable* abstractions over the dom.
 [](/dependency)
 
 ## overview
-the goal of ui is to provide a more powerful api for user interface development that is based on functions instead of css and html. it furnishes a small library of visually agnostic components intended for stylization within an application or consumption by a thematic ui toolkit.  it encourages the use of composition and abstraction over cut-and-paste, and favors the use or variable bindings to string-based selector queries.
+ui provides an api for user interface development based on functions instead of css and html. these functions return naked components intended for stylization within an application or thematic ui toolkit.  it encourages the use of composition and abstraction over cut-and-paste, and favors the use or variable bindings to string-based selector queries.
 
 ## disclaimer
-THIS IS AN EXPERIMENTAL WORK IN PROGRESS. the api is evolving constantly as use cases accrue and the search for better abstractions to support them continues.  while the overall approach has proven effective and durable enough for some limited production use, it is not advisable to employ this library for anything other than experimentation until the interface is formally defined and the api hardened to support it.
+THIS IS AN EXPERIMENTAL WORK IN PROGRESS. the api is evolving constantly as use cases accrue and the search for better abstractions to support them continues.  while the overall approach has proven effective and durable enough for some limited production use, it is not advisable to employ this library for anything other than experimentation until the interface is formally defined and the api hardened to support it.  no systematic cross-browser testing has been performed.
 
 ## benefits
-* cohesive functions provide an alternative to hypertext markup and cascading styles to facilitate meaningful complexity management.
-* breakpoint functions and ratio attributes enable responsive layouts that are more manageable and versatile traditional grid systems and media queries.
-* the box model implementation facilitates a more intuitive and predictable positioning scheme.
+* cohesive functions provide an alternative to hypertext markup and cascading styles to facilitate meaningful complexity management through composition and abstraction.
+* breakpoint functions and ratio attributes enable responsive layouts that are more versatile than media than grid systems using media queries.
+* positioning of elems, as opposed to lower-level divs, is simpler and more intuitive due to the box model implementation.
 * use of symbolic bindings instead of string-based selector queries produces useful errors, increases performance, and eliminates unintended results.
-* input validation and visual error rendering eliminates silent failures while making debugging easier.
 * nonreliance on external stylesheets eliminates challenges associated with rendering, performance, and loading (such as flashes of unstyled content).
+* input validation and visual error rendering eliminates silent failures while making debugging easier.
 
 ## drawbacks
-* memory consumption is higher in the dom due to the way the ui's box model is implemented.
+* memory consumption is higher due to the way ui's box model is currently implemented.
 * initial render time is greater because the browser has to parse more javascript.
 
 ## api
-
-TODO
+under continuous development
 
 ## hacking
 
 continuously rebuild and reinstall the jar as changes are made.
 ```bash
 boot develop
-boot -c develop
 ```
 
 build and install the library

@@ -513,10 +513,9 @@
 (defn form** [ctor]
   "set up a form context"
   (fn [{:keys [submit] :as attrs} elems]
-    (reset! *submit* submit)
     (let [data *data*]
       (with-let [e (ctor (dissoc attrs :submit) elems)]
-        (.addEventListener (in e) "keypress" #(when (= (.-which %) 14) (submit @data)))))))
+        (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit @data)))))))
 
 (defn field [ctor]
   "set up a form context"
@@ -524,9 +523,8 @@
     {:pre []} ;; todo: validate
     (let [data *data*]
       (with-let [e (ctor (dissoc attrs :autocorrect :autocapitalize :label :key :type :value) elems)]
-        (.addEventListener (in e) "change" #(prn :data (when data @data) (keyword (.-name e)) (.-data e)))
-        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name e)) (.-data e))))
-        (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name e)) (.-data e))))
+        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
+        (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
         (bind-in! e [in .-name]           (name key))
         (bind-in! e [in .-type]           type)
         (bind-in! e [in .-value]          value)
