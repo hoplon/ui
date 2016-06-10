@@ -338,7 +338,7 @@
    implemented by setting the margins on the elem's outer element."
   (fn [{:keys [nh nv] :as attrs} elems]
     {:pre [(lengths? nh nv)]}
-    (with-let [e (ctor (dissoc attrs :oh :ov) elems)]
+    (with-let [e (ctor (dissoc attrs :nh :nv) elems)]
       (bind-in! e [out .-style .-margin] (or nv 0) (or (cell= (- nh)) 0) (or (cell= (- nv)) 0) (or nh 0)))))
 
 ; (defn margin [ctor]
@@ -368,8 +368,8 @@
   (fn [{:keys [o oh ov] :as attrs} elems]
     {:pre [(overflows? o oh ov)]}
     (with-let [e (ctor (dissoc attrs :o :oh :ov) elems)]
-      (bind-in! e [mid .-style .-overflowX] (or oh o))
-      (bind-in! e [mid .-style .-overflowY] (or ov o)))))
+      (bind-in! e [in .-style .-overflowX] (or oh o))
+      (bind-in! e [in .-style .-overflowY] (or ov o)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -625,12 +625,12 @@
           (.addEventListener (mid e) "mouseup"   #(reset! state :up)))))))
 
 (defn window** [ctor]
-  ;; todo: window rel=noopener
   ;; todo: finish mousechanged
   (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
+          get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
         (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
           (bind-in! e [out .-lang] (or language "en"))
@@ -639,13 +639,9 @@
           (bind-in! e [mid .-style .-width]    "100%")
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
-          (bind-in! e [in  .-style .-position] "absolute")
-          (bind-in! e [in  .-style  .-left]    "0")
-          (bind-in! e [in  .-style  .-right]   "0")
-          (bind-in! e [in  .-style  .-top]     "0")
-          (bind-in! e [in  .-style  .-bottom]  "0")
+          (bind-in! e [out .-style .-overflow] "hidden")
           (when initiated
-            (initiated (get-route) (get-status) (get-agent)))
+            (initiated (get-route) (get-status) (get-agent) (get-refer)))
           (when routechanged
             (.addEventListener js/window "hashchange"
               #(when-not (= (route->hash @route) (get-hash)) (routechanged (get-route)))))

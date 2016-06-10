@@ -103,7 +103,7 @@
     (set! (.. i -style -display)       "block")        ;; prevent white space from creeping in around inline elements
     (set! (.. i -style -position)      "relative")     ;; make positioned children adjust relative to container plus padding
     (set! (.. i -style -height)        "100%")         ;; display block fills the width, but needs to be told to fill the height (unless vertical alignment is set)
-    (set! (.. i -style -cursor)        "inherit")))    ;; inherit mouse cursor, set in middleware?
+    (set! (.. i -style -cursor)        "inherit")))    ;; apply the mouse cursor set on the middle div to the inner div as well
 
 (defn elem? [v] (instance? Elem v))
 
