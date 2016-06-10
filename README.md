@@ -1,4 +1,4 @@
-  # UI
+# UI
 a *cohesive* layer of *composable* abstractions over the dom.
 
 [](dependency)
