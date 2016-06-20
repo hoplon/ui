@@ -63,6 +63,7 @@
   :title    "Hoplon UI"
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
+  :o :scroll
   (u/elem :w (r 1 1) :p 6 :av :middle :sb 2 :sc stroke-grey
     (u/image :h 50 :url "hoplon-logo.png")
     (u/elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
