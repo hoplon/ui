@@ -8,6 +8,8 @@
 
 (declare + - * /)
 
+(def ^:dynamic *state* nil)
+
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol IAttr
@@ -111,12 +113,23 @@
   (-dom-attribute [this]
     (.toString this)))
 
+; (deftype Transition [v]
+;   Object
+;   (toString [_]
+;     (apply str (interpose " " (map -dom-attribute [x y blur spread color]))))
+;   IPrintWithWriter
+;   (-pr-writer [this w _]
+;     (write-all w "#<Shadow: " (.toString this) ">"))
+;   IAttr
+;   (-dom-attribute [this]
+;     (.toString this)))
+
 ;;; public ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn em [v]       (Ems.         v))
 (defn pt [v]       (Points.      v))
 (defn px [v]       (Pixels.      v))
-(defn sh [x y color & [blur spread inset]] (Shadow. x y color blur spread inset))
+(defn d [x y color & [blur spread inset]] (Shadow. x y color blur spread inset))
 
 (defn color?     [v] (instance? Color  v))
 (defn ratio?     [v] (instance? Ratio  v))
@@ -137,7 +150,19 @@
 (def * (mkcalc clojure.core/* "*"))
 (def / (mkcalc clojure.core// "/"))
 
+(defn b
+  "breakpoints."
+  [orientation & vs]
+  (with-let [v (cell nil)]
+    (let [o (case orientation :w "width" :h "height")]
+      (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
+        (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
+              value! #(when (.-matches %) (set-cell!= v val))]
+          (value! query)
+          (.addListener query #(value! %)))))))
+
 (defn c
+  "color"
   ([hex]
    (c hex 1))
   ([hex a]
@@ -150,13 +175,13 @@
   ([r g b a]
    (Color. r g b a)))
 
-(defn r [n d] (Ratio. n d))
+(defn r
+  "ratio"
+  [n d]
+  (Ratio. n d))
 
-(defn bk [orientation & vs]
-  (with-let [v (cell nil)]
-    (let [o (case orientation :w "width" :h "height")]
-      (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
-        (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
-              value! #(when (.-matches %) (set-cell!= v val))]
-          (value! query)
-          (.addListener query #(value! %)))))))
+(defn s
+  "states"
+  ;; todo: transition between states
+  [& kvs]
+  (cell :red #_((apply hash-map kvs) *state*)))

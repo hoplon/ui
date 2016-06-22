@@ -134,7 +134,8 @@
 (defn validate-cells [validator message] ;; todo: refactor to include attribute key
   (fn [& vs]
     (doseq [v vs :let [valid? (bind-cells validator)]]
-      (when-not (valid? v) ;
+      (when-not (valid? v)
+        ; (prn :v v :valid? (valid? v) :validator (validator @v))
         (throw-ui-exception message " " v ".")))
     true))
 
@@ -322,12 +323,14 @@
 
 (defn color [ctor]
   "set the background color an the inner element."
-  (fn [{:keys [c o m v] :as attrs} elems]
+  (fn [{:keys [c o m v x] :as attrs} elems]
     {:pre [(colors? c) (opacities? o) (cursors? m)]}
-    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
+    (with-let [e (ctor (dissoc attrs :c :o :m :v :x) elems)]
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
       (bind-in! e [mid .-style .-cursor]          m)
+      (bind-in! e [in .-style .-transform]       x)
+      (bind-in! e [in .-style .-transformOrigin] "top left")
       (bind-in! e [out .-style .-display]        (cell= (if (and (contains? attrs :v) (not v)) :none :inline-table))))))
 
 (defn nudge [ctor]
@@ -513,11 +516,12 @@
 (defn form** [ctor]
   "set up a form context"
   (fn [{:keys [submit] :as attrs} elems]
+    (reset! *submit* submit)
     (let [data *data*]
       (with-let [e (ctor (dissoc attrs :submit) elems)]
         (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit @data)))))))
 
-(defn field [ctor]
+(defn field' [ctor]
   "set up a form context"
   (fn [{:keys [autocorrect autocapitalize label key type value] :as attrs} elems]
     {:pre []} ;; todo: validate
@@ -531,6 +535,17 @@
         (bind-in! e [in .-placeholder]    label)
         (bind-in! e [in .-autocorrect]    autocorrect)
         (bind-in! e [in .-autocapitalize] autocapitalize)))))
+
+(defn submit' [ctor]
+  "set up a form context"
+  (fn [{label :label submit' :submit :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (let [data   *data*
+          submit *submit*]
+      (with-let [e (ctor (dissoc attrs :label :submit) elems)]
+        (.addEventListener (mid e) "click" #((or submit' @submit) @data))
+        (bind-in! e [in .-type]  "submit")
+        (bind-in! e [in .-value] label)))))
 
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -570,11 +585,11 @@
   (fn [{:keys [url p pl pr pt pb ph pv] :as attrs} elems]
     (with-let [e (ctor (dissoc attrs :url) elems)]
       (let [img (.insertBefore (mid e) (.createElement js/document "img") (in e))]
-        (bind-in! img [.-style .-display]  :block)
-        (bind-in! img [.-style .-position] :relative)
-        (bind-in! img [.-style .-width]    "100%")
-        (bind-in! img [.-style .-height]   :initial)
-        (bind-in! img [.-src]              url)
+        (bind-in! img [.-style .-display]   :block)
+        (bind-in! img [.-style .-position]  :relative)
+        (bind-in! img [.-style .-width]     "100%")
+        (bind-in! img [.-style .-height]    :initial)
+        (bind-in! img [.-src]               url)
         (bind-in! e [in .-style .-position] :absolute)
         (bind-in! e [in .-style .-top]      0)
         (bind-in! e [in .-style .-width]    "100%")))))
@@ -588,7 +603,6 @@
     (with-let [e (ctor (dissoc attrs :click) elems)]
       (when click
         (.addEventListener (mid e) "click" click)))))
-
 
 (defn parse-args [ctor]
   (fn [& args]
@@ -607,20 +621,14 @@
                "unicode-range" range}]
     (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
 
-(def ^:dynamic *state* nil)
-
-(defn st [& kvs]
-  (cell= (.log js/console *state*) #_((apply hash-map kvs) *state*)))
-
-(defn button* [ctor]
+(defn button** [ctor]
   (fn [attrs elems]
-    (let [state (cell :up)]
-      (binding [*state* state]
-        (with-let [e (ctor attrs elems)]
-          (.addEventListener (mid e) "mouseover" #(reset! state :over))
-          (.addEventListener (mid e) "mouseout"  #(reset! state :up))
-          (.addEventListener (mid e) "mousedown" #(reset! state :down))
-          (.addEventListener (mid e) "mouseup"   #(reset! state :up)))))))
+    (with-let [e (ctor attrs elems)]
+      (let [state hoplon.ui.attrs/*state*]
+        (.addEventListener (mid e) "mouseover" #(reset! state :over))
+        (.addEventListener (mid e) "mouseout"  #(reset! state :up))
+        (.addEventListener (mid e) "mousedown" #(reset! state :down))
+        (.addEventListener (mid e) "mouseup"   #(reset! state :up))))))
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
@@ -667,17 +675,18 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception button* align shadow round stroke pad nudge size overflow dock font color click assert-noattrs))
-(def img    (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
+(def component (comp handle-exception align shadow round stroke pad nudge size overflow dock font color click assert-noattrs))
+(def img       (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def window* (-> doc component space window** parse-args))
 (def elem    (-> h/div    box component space parse-args))
-(def button  (-> h/button box destyle component parse-args))
+(def button* (-> h/button box destyle component button** parse-args))
 (def image   (-> h/div    box img parse-args))
 (def form*   (-> h/form   box component space form** parse-args))
-(def input   (-> h/input  box destyle component field parse-args))
+(def field   (-> h/input  box destyle component field' parse-args))
+(def submit  (-> h/input  box destyle component submit' parse-args))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
