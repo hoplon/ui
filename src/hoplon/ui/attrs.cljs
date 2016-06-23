@@ -113,6 +113,17 @@
   (-dom-attribute [this]
     (.toString this)))
 
+(deftype Transform [a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 a4 b4 c4 d4]
+  Object
+  (toString [_]
+    (str "matrix3d(" (apply str (interpose ", " [a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 a4 b4 c4 d4])) ")"))
+  IPrintWithWriter
+  (-pr-writer [this w _]
+    (write-all w "#<Transform: " (.toString this) ">"))
+  IAttr
+  (-dom-attribute [this]
+    (.toString this)))
+
 ; (deftype Transition [v]
 ;   Object
 ;   (toString [_]
@@ -131,12 +142,13 @@
 (defn px [v]       (Pixels.      v))
 (defn d [x y color & [blur spread inset]] (Shadow. x y color blur spread inset))
 
-(defn color?     [v] (instance? Color  v))
-(defn ratio?     [v] (instance? Ratio  v))
-(defn ems?       [v] (instance? Ems    v))
-(defn points?    [v] (instance? Points v))
-(defn calc?      [v] (instance? Calc  v))
-(defn shadow?    [v] (instance? Shadow v))
+(defn color?     [v] (instance? Color     v))
+(defn ratio?     [v] (instance? Ratio     v))
+(defn ems?       [v] (instance? Ems       v))
+(defn points?    [v] (instance? Points    v))
+(defn calc?      [v] (instance? Calc      v))
+(defn shadow?    [v] (instance? Shadow    v))
+(defn transform? [v] (instance? Transform v))
 
 (defn attr? [v] (satisfies? IAttr v))
 (defn ->attr [v] (-dom-attribute v))
@@ -185,3 +197,28 @@
   ;; todo: transition between states
   [& kvs]
   (cell :red #_((apply hash-map kvs) *state*)))
+
+(defn t
+  "transformation"
+  ([a b c d tx ty]
+   (t a b 0 0 c d 0 0 0 0 1 0 tx ty 0 1))
+  ([a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 a4 b4 c4 d4]
+   (Transform. a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 a4 b4 c4 d4)))
+
+(defn scale
+  ([x]
+   (scale x x))
+  ([x y]
+   (t x 0 0 y 0 0)))
+
+(defn skew
+  ([x]
+   (skew x x))
+  ([x y]
+   (t 1 x y 1 0 0)))
+
+(defn translate
+  ([x]
+   (translate x x))
+  ([x y]
+   (t 1 0 0 1 x y)))

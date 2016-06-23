@@ -66,6 +66,9 @@
 (def stretches   [:ultra-condensed :extra-condensed :condensed :semi-condensed :normal :semi-expanded :expanded :extra-expanded :ultra-expanded])
 (def styles      [:normal :italic :oblique])
 (def syntheses   [:none :weight :style :weight-style])
+(def boxes       [:border :fill :view])
+(def origins     [:left :right :top :bottom :center])
+(def txstyles    [:preserve-3d :flat])
 (def overflows   [:visible :hidden :scroll :auto])
 (def weights     [:normal :bold :bolder :lighter :100 :200 :300 :400 :500 :600 :700 :800 :900])
 
@@ -268,6 +271,28 @@
         (nil?     v) :initial
         :else        false))
 
+(defn transform? [v]
+  (cond (keyword?     v) (in? v globals)
+        (a/transform? v) v
+        (nil?         v) :initial
+        :else            false))
+
+(defn origin? [v]
+  (cond (keyword?     v) (in? v origins globals)
+        ;(ratio? v)       :initial
+        (nil?         v) :initial
+        :else            false))
+
+(defn box? [v]
+  (cond (keyword? v) (in? v boxes globals)
+        (nil?     v) :initial
+        :else        false))
+
+(defn txstyle? [v]
+  (cond (keyword? v) (in? v txstyles globals)
+        (nil?     v) :initial
+        :else        false))
+
 (defn decoration? [v]
   (cond (keyword? v) (in? v decorations globals)
         (nil?     v) :initial
@@ -297,6 +322,10 @@
 (def stretches?   (validate-cells stretch?    "Error validating attribute of type stetch with value"))
 (def styles?      (validate-cells style?      "Error validating attribute of type style with value"))
 (def syntheses?   (validate-cells synthesis?  "Error validating attribute of type sythesis with value"))
+(def transforms?  (validate-cells transform?  "Error validating attribute of type transformation with value"))
+(def origins?     (validate-cells origin?     "Error validating attribute of type transformation origin with value"))
+(def boxes?       (validate-cells box?        "Error validating attribute of type transformation box with value"))
+(def txstyles?    (validate-cells txstyle?    "Error validating attribute of type transformation style with value"))
 (def weights?     (validate-cells weight?     "Error validating attribute of type weight with value"))
 
 (def callbacks?   (validate-cells callback?   "Error validating attribute of type callback with value"))
@@ -317,21 +346,29 @@
     {:pre [(alignhs? ah) (alignvs? av)]}
     (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
     (with-let [e (ctor (dissoc attrs :ah :av) elems)]
-      (bind-in! e [in  .-style .-height]        (cell= (if av :auto (r 1 1)))) ;; initial instead? <--wrong!
+      (bind-in! e [in  .-style .-height]     (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
       (bind-in! e [mid .-style .-textAlign]     ah)
       (bind-in! e [mid .-style .-verticalAlign] av))))
 
 (defn color [ctor]
   "set the background color an the inner element."
-  (fn [{:keys [c o m v x] :as attrs} elems]
+  (fn [{:keys [c o m v] :as attrs} elems]
     {:pre [(colors? c) (opacities? o) (cursors? m)]}
-    (with-let [e (ctor (dissoc attrs :c :o :m :v :x) elems)]
+    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
       (bind-in! e [mid .-style .-cursor]          m)
-      (bind-in! e [in .-style .-transform]       x)
-      (bind-in! e [in .-style .-transformOrigin] "top left")
       (bind-in! e [out .-style .-display]        (cell= (if (and (contains? attrs :v) (not v)) :none :inline-table))))))
+
+(defn transform [ctor]
+  "set the background color an the inner element."
+  (fn [{:keys [x xx xy xz xb xs] :as attrs} elems]
+    {:pre [(transforms? x) (origins? xx xy xz) (boxes? xb) (txstyles? xs)]}
+    (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
+      (bind-in! e [out .-style .-transform]       x)
+      (bind-in! e [out .-style .-transformOrigin] xx xy xz)
+      (bind-in! e [out .-style .-transformBox]    xb)
+      (bind-in! e [out .-style .-transformStyle]  xs))))
 
 (defn nudge [ctor]
   "bump the position of an elem relative to its normal position in the layout.
@@ -343,16 +380,6 @@
     {:pre [(lengths? nh nv)]}
     (with-let [e (ctor (dissoc attrs :nh :nv) elems)]
       (bind-in! e [out .-style .-margin] (or nv 0) (or (cell= (- nh)) 0) (or (cell= (- nv)) 0) (or nh 0)))))
-
-; (defn margin [ctor]
-;   "set the margin on the elem's outer element.
-;
-;    offset is used to tweak the position of an elem relative to its normal
-;    position in the layout."
-;   (fn [{:keys [o ol or ot ob oh ov] :as attrs} elems]
-;     {:pre [(lengths? o ol or ot ob oh ov)]}
-;     (with-let [e (ctor (dissoc attrs :o :ol :or :ot :ob :oh :ov) elems)]
-;       (bind-in! e [out .-style .-margin] (clojure.core/or ot ov o 0) (clojure.core/or or oh o 0) (clojure.core/or ob ov o 0) (clojure.core/or ol oh o 0)))))
 
 (defn dock [ctor]
   "fix the element to the window."
@@ -410,24 +437,17 @@
    elements are bound separately to accomodate cells that might return ratios,
    evals, and fixed sizes at different times, such as the cell returned by the
    breakpoints function."
-  (fn [{:keys [w w- w+ h h- h+] :as attrs} elems]
-    {:pre [(lengths? w w- w+ h h- h+)]}
-    (with-let [e (ctor (dissoc attrs :w :w- :w+ :h :h- :h+) elems)]
+  (fn [{:keys [w h] :as attrs} elems]
+    {:pre [(lengths? w h)]}
+    (with-let [e (ctor (dissoc attrs :w :h) elems)]
       (let [rel? #(or (ratio? %) (calc? %))
             rel   #(cell= (if (rel? %) % %2))
             fix   #(cell= (if (rel? %) %2 %))]
-        (bind-in! e [out  .-style .-width]    (rel w  nil))
-        (bind-in! e [out .-style .-minWidth]  (rel w- nil))
-        (bind-in! e [out .-style .-maxWidth]  (rel w+ nil))
-        (bind-in! e [out  .-style .-height]   (rel h  nil))
-        (bind-in! e [out .-style .-minHeight] (rel h- nil))
-        (bind-in! e [out .-style .-maxHeight] (rel h+ nil))
-        (bind-in! e [mid  .-style .-width]    (fix  w nil))
-        (bind-in! e [mid .-style .-minWidth]  (fix w- nil))
-        (bind-in! e [mid .-style .-maxWidth]  (fix w+ nil))
-        (bind-in! e [mid  .-style .-height]   (fix h  "inherit"))
-        (bind-in! e [mid .-style .-minHeight] (fix h- nil))
-        (bind-in! e [mid .-style .-maxHeight] (fix h+ nil))))))
+        (bind-in! e [out .-style .-width]     (rel w nil))
+        (bind-in! e [out .-style .-height]    (rel h nil))
+        (bind-in! e [mid .-style .-width]     (fix w nil))
+        (bind-in! e [mid .-style .-height]    (fix h nil))
+        (bind-in! e [mid .-style .-maxHeight] (fix h nil))))))
 
 (defn space [ctor]
   "set the padding on the outer element of each child and a negative margin on
@@ -632,7 +652,7 @@
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged] :as attrs} elems]
+  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged o oh ov] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
@@ -645,7 +665,10 @@
           (bind-in! e [mid .-style .-width]    "100%")
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
-          (bind-in! e [out .-style .-overflow] "hidden")
+          (bind-in! e [mid .-style .-overflowX] (or oh o))
+          (bind-in! e [mid .-style .-overflowY] (or ov o))
+          (bind-in! e [in .-style .-overflowX] "")
+          (bind-in! e [in .-style .-overflowY] "")
           (when initiated
             (initiated (get-route) (get-status) (get-agent) (get-refer)))
           (when routechanged
@@ -675,7 +698,7 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception align shadow round stroke pad nudge size overflow dock font color click assert-noattrs))
+(def component (comp handle-exception align shadow round stroke pad nudge size overflow dock font color transform click assert-noattrs))
 (def img       (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
