@@ -358,7 +358,7 @@
       (bind-in! e [mid .-style .-backgroundColor] c)
       (bind-in! e [mid .-style .-opacity]         o)
       (bind-in! e [mid .-style .-cursor]          m)
-      (bind-in! e [out .-style .-display]        (cell= (if (and (contains? attrs :v) (not v)) :none :inline-table))))))
+      (bind-in! e [out .-style .-visibility]     (cell= (when (and (contains? attrs :v) (not v)) :hidden))))))
 
 (defn transform [ctor]
   "set the background color an the inner element."
@@ -549,7 +549,7 @@
       (with-let [e (ctor (dissoc attrs :autocorrect :autocapitalize :label :key :type :value) elems)]
         (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
         (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
-        (bind-in! e [in .-name]           (name key))
+        (bind-in! e [in .-name]           (cell= (when key (name key))))
         (bind-in! e [in .-type]           type)
         (bind-in! e [in .-value]          value)
         (bind-in! e [in .-placeholder]    label)
@@ -709,6 +709,7 @@
 (def image   (-> h/div    box img parse-args))
 (def form*   (-> h/form   box component space form** parse-args))
 (def field   (-> h/input  box destyle component field' parse-args))
+(def check   (-> h/input  box destyle component field' parse-args))
 (def submit  (-> h/input  box destyle component submit' parse-args))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
