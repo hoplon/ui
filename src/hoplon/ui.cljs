@@ -395,11 +395,11 @@
 
 (defn overflow [ctor]
   "set the overflow style on the elem's middle element."
-  (fn [{:keys [o oh ov] :as attrs} elems]
-    {:pre [(overflows? o oh ov)]}
-    (with-let [e (ctor (dissoc attrs :o :oh :ov) elems)]
-      (bind-in! e [in .-style .-overflowX] (or oh o))
-      (bind-in! e [in .-style .-overflowY] (or ov o)))))
+  (fn [{:keys [s sh sv] :as attrs} elems]
+    {:pre [(overflows? s sh sv)]}
+    (with-let [e (ctor (dissoc attrs :s :sh :sv) elems)]
+      (bind-in! e [in .-style .-overflowX] (or sh s))
+      (bind-in! e [in .-style .-overflowY] (or sv s)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -467,15 +467,15 @@
       (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
         (bind-in! e [in .-style .-margin] pv ph)))))
 
-(defn stroke [ctor]
+(defn border [ctor]
   "set the border on the elem's middle element.
 
    this adds space between the edges of the container and its children."
-  (fn [{:keys [s sl sr st sb sh sv sc scl scr sct scb sch scv] :as attrs} elems]
-    {:pre [(lengths? s sl sr st sb sh sv) (colors? sc scl scr sct scb sch scv)]}
-    (with-let [e (ctor (dissoc attrs :s :sl :sr :st :sb :sh :sv :sw :sc :scl :scr :sct :scb :sch :scv) elems)]
-      (bind-in! e [mid .-style .-borderWidth] (or st sv s 0)  (or sr sh s 0)  (or sb sv s 0)  (or sl sh s 0))
-      (bind-in! e [mid .-style .-borderColor] (or sct scv sc) (or scr sch sc) (or scb scv sc) (or scl sch sc))
+  (fn [{:keys [b bl br bt bb bh bv bc bcl bcr bct bcb bch bcv] :as attrs} elems]
+    {:pre [(lengths? b bl br bt bb bh bv) (colors? bc bcl bcr bct bcb bch bcv)]}
+    (with-let [e (ctor (dissoc attrs :b :bl :br :bt :bb :bh :bv :bw :bc :bcl :bcr :bct :bcb :bch :bcv) elems)]
+      (bind-in! e [mid .-style .-borderWidth] (or bt bv b 0)  (or br bh b 0)  (or bb bv b 0)  (or bl bh b 0))
+      (bind-in! e [mid .-style .-borderColor] (or bct bcv bc) (or bcr bch bc) (or bcb bcv bc) (or bcl bch bc))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
 
 (defn font [ctor]
@@ -698,8 +698,8 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception align shadow round stroke pad nudge size overflow dock font color transform click assert-noattrs))
-(def img       (comp handle-exception align shadow round stroke image* pad nudge size overflow font color click))
+(def component (comp handle-exception align shadow round border pad nudge size overflow dock font color transform click assert-noattrs))
+(def img       (comp handle-exception align shadow round border image* pad nudge size overflow font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
