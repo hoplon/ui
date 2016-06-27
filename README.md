@@ -15,7 +15,7 @@ THIS IS AN EXPERIMENTAL WORK IN PROGRESS. the api is evolving constantly as use 
 
 ## benefits
 * cohesive functions provide an alternative to hypertext markup and cascading styles to facilitate meaningful complexity management through composition and abstraction.
-* breakpoint functions and ratio attributes enable responsive layouts that are more versatile than media than grid systems using media queries.
+* breakpoint functions and ratio attributes enable responsive layouts that are more versatile than grid systems using media queries.
 * positioning of elems, as opposed to lower-level divs, is simpler and more intuitive due to the box model implementation.
 * use of symbolic bindings instead of string-based selector queries produces useful errors, increases performance, and eliminates unintended results.
 * nonreliance on external stylesheets eliminates challenges associated with rendering, performance, and loading (such as flashes of unstyled content).
