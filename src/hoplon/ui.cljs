@@ -652,7 +652,7 @@
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged o oh ov] :as attrs} elems]
+  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged s sh sv] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
@@ -665,8 +665,8 @@
           (bind-in! e [mid .-style .-width]    "100%")
           (bind-in! e [mid .-style .-margin]   "0")
           (bind-in! e [mid .-style .-fontSize] "100%")
-          (bind-in! e [mid .-style .-overflowX] (or oh o))
-          (bind-in! e [mid .-style .-overflowY] (or ov o))
+          (bind-in! e [mid .-style .-overflowX] (or sh s))
+          (bind-in! e [mid .-style .-overflowY] (or sv s))
           (bind-in! e [in .-style .-overflowX] "")
           (bind-in! e [in .-style .-overflowY] "")
           (when initiated
