@@ -444,17 +444,21 @@
    elements are bound separately to accomodate cells that might return ratios,
    evals, and fixed sizes at different times, such as the cell returned by the
    breakpoints function."
-  (fn [{:keys [w h] :as attrs} elems]
-    {:pre [(lengths? w h)]}
+  (fn [{:keys [w w- w+ h] :as attrs} elems]
+    {:pre [(lengths? w w- w+ h)]}
     (with-let [e (ctor (dissoc attrs :w :h) elems)]
       (let [rel? #(or (ratio? %) (calc? %))
-            rel   #(cell= (if (rel? %) % %2))
-            fix   #(cell= (if (rel? %) %2 %))]
-        (bind-in! e [out .-style .-width]     (rel w nil))
-        (bind-in! e [out .-style .-height]    (rel h nil))
-        (bind-in! e [mid .-style .-width]     (fix w nil))
-        (bind-in! e [mid .-style .-height]    (fix h nil))
-        (bind-in! e [mid .-style .-maxHeight] (fix h nil))))))
+            rel  #(cell= (if (rel? %) % %2))
+            fix  #(cell= (if (rel? %) %2 %))]
+        (bind-in! e [out .-style .-width]     (rel w  nil))
+        (bind-in! e [out .-style .-minWidth]  (rel w- nil))
+        (bind-in! e [out .-style .-maxWidth]  (rel w+ nil))
+        (bind-in! e [out .-style .-height]    (rel h  nil))
+        (bind-in! e [mid .-style .-width]     (fix w  nil))
+        (bind-in! e [mid .-style .-minWidth]  (fix w- nil))
+        (bind-in! e [mid .-style .-maxWidth]  (fix w+ nil))
+        (bind-in! e [mid .-style .-height]    (fix h  nil))
+        (bind-in! e [mid .-style .-maxHeight] (fix h  nil))))))
 
 (defn space [ctor]
   "set the padding on the outer element of each child and a negative margin on
@@ -482,7 +486,7 @@
     {:pre [(lengths? b bl br bt bb bh bv) (colors? bc bcl bcr bct bcb bch bcv)]}
     (with-let [e (ctor (dissoc attrs :b :bl :br :bt :bb :bh :bv :bw :bc :bcl :bcr :bct :bcb :bch :bcv) elems)]
       (bind-in! e [mid .-style .-borderWidth] (or bt bv b 0)  (or br bh b 0)  (or bb bv b 0)  (or bl bh b 0))
-      (bind-in! e [mid .-style .-borderColor] (or bct bcv bc) (or bcr bch bc) (or bcb bcv bc) (or bcl bch bc))
+      (bind-in! e [mid .-style .-borderColor] (or bct bcv bc "transparent") (or bcr bch bc "transparent") (or bcb bcv bc "transparent") (or bcl bch bc "transparent"))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
 
 (defn font [ctor]
@@ -720,6 +724,7 @@
 (def field   (-> h/input  box destyle component field' parse-args))
 (def check   (-> h/input  box destyle component field' parse-args))
 (def submit  (-> h/input  box destyle component submit' parse-args))
+
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
