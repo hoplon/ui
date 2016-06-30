@@ -56,6 +56,7 @@
                   :row-resize :s-resize :se-resize :sw-resize :text
                   :vertical-text :w-resize :wait :zoom-in :zoom-out])
 (def decorations [:none :underline :overline :line-through])
+(def capitalizes [:none :uppercase :lowercase :capitalize])
 (def families    [:serif :sans-serif :monospace :cursive :fantasy])
 (def kernings    [:auto :normal :none])
 (def lengths     [:auto])
@@ -293,6 +294,11 @@
         (nil?     v) :initial
         :else        false))
 
+(defn capitalize? [v]
+  (cond (keyword? v) (in? v capitalizes globals)
+        (nil?     v) :initial
+        :else        false))
+
 (defn decoration? [v]
   (cond (keyword? v) (in? v decorations globals)
         (nil?     v) :initial
@@ -323,6 +329,7 @@
 (def styles?      (validate-cells style?      "Error validating attribute of type style with value"))
 (def syntheses?   (validate-cells synthesis?  "Error validating attribute of type sythesis with value"))
 (def transforms?  (validate-cells transform?  "Error validating attribute of type transformation with value"))
+(def capitalizes? (validate-cells capitalize? "Error validating attribute of type capitalize with value"))
 (def origins?     (validate-cells origin?     "Error validating attribute of type transformation origin with value"))
 (def boxes?       (validate-cells box?        "Error validating attribute of type transformation box with value"))
 (def txstyles?    (validate-cells txstyle?    "Error validating attribute of type transformation style with value"))
@@ -491,11 +498,12 @@
      - fr text rendering
      - fa font size adjust
      - fm font smoothing
+     - fx font transform
      - fz font stretch
      - fy font synthesis"
-  (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fy fr fm bh] :as attrs} elems]
-    {:pre [(sizes? f bh) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy) (renderings? fr) (smoothings? fm)]}
-    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fy :fr :fm bh) elems)]
+  (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fx fy fr fm] :as attrs} elems]
+    {:pre [(sizes? f) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy) (renderings? fr) (smoothings? fm) (capitalizes? fx)]}
+    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fx :fy :fr :fm) elems)]
       (bind-in! e [in .-style .-fontSize]               f)
       (bind-in! e [in .-style .-letterSpacing]          fw)
       (bind-in! e [in .-style .-lineHeight]             fh)
@@ -511,6 +519,7 @@
       (bind-in! e [in .-style .-moz-osx-font-smoothing] (case fm :antialiased :greyscale :none :unset :initial))
       (bind-in! e [in .-style .-fontSmooth]             (case fm :antialiased :always    :none :never :initial))
       (bind-in! e [in .-style .-fontStretch]            fs)
+      (bind-in! e [in .-style .-textTransform]          fx)
       (bind-in! e [in .-style .-fontSynthesis]          fy))))
 
 (defn destyle [ctor]
