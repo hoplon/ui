@@ -164,9 +164,9 @@
 
 (defn b
   "breakpoints."
-  [orientation & vs]
+  [x & xs]
   (with-let [v (cell nil)]
-    (let [o (case orientation :w "width" :h "height")]
+    (let [[o vs] (case x :h ["width" xs] :v ["height" xs] ["width" (cons x xs)])]
       (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
         (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
               value! #(when (.-matches %) (set-cell!= v val))]
@@ -196,7 +196,7 @@
   "states"
   ;; todo: transition between states
   [& kvs]
-  (cell :red #_((apply hash-map kvs) *state*)))
+  (cell= ((apply hash-map kvs) *state*)))
 
 (defn t
   "transformation"
