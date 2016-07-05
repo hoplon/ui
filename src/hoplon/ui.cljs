@@ -1,7 +1,7 @@
 (ns hoplon.ui
   (:require
     [hoplon.core :as h]
-    [clojure.string  :refer [join split]]
+    [clojure.string  :refer [join split ends-with?]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :as a :refer [c r ratio? calc? points? ems? ->attr]]
     [hoplon.ui.elems :refer [box doc out mid in elem?]])
@@ -341,6 +341,41 @@
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn size [ctor]
+  "set the size on the outer element when it is expressed as a ratio, and on the
+   inner element when it is a length.
+
+   since ratios are expressed in terms of the parent, they include the margin
+   (implemented as the padding between the inner and outer elements). fixed
+   lengths are set on the middle, however, to exclude the margin so that it will
+   push out against the parent container instead of being subtracted from the
+   size of the elem.  both the inner and middle elements are bound separately to
+   accomodate cells that might return ratios, evals, and fixed sizes at
+   different times, such as the cell returned by the breakpoints function.
+
+   when the collective size of the elem's children is greater than an explicitly
+   set size in the vertical orientation, a scrollbar will automatically appear.
+   horizontal scrolling is disallowed due to the fact that the browser does not
+   permit them to be set to auto and visible independently; setting oveflowX to
+   auto in the horizontal will set it to auto in the vertical as well, even if
+   it is explictly set to visible."
+  (fn [{:keys [s sh sv sh- sh+] :as attrs} elems]
+    {:pre [(lengths? s sh sv sh- sh+)]}
+    (with-let [e (ctor (dissoc attrs :s :sh :sv :sh- :sh+) elems)]
+      (let [rel? #(or (ratio? %) (calc? %))
+            rel  #(cell= (if (rel? %) % %2))
+            fix  #(cell= (if (rel? %) %2 %))]
+        (bind-in! e [out .-style .-width]     (rel (or sh s) nil))
+        (bind-in! e [out .-style .-minWidth]  (rel sh- nil))
+        (bind-in! e [out .-style .-maxWidth]  (rel sh+ nil))
+        (bind-in! e [out .-style .-height]    (rel (or sv s) nil))
+        (bind-in! e [mid .-style .-width]     (fix (or sh s) nil))
+        (bind-in! e [mid .-style .-minWidth]  (fix sh- nil))
+        (bind-in! e [mid .-style .-maxWidth]  (fix sh+ nil))
+        (bind-in! e [mid .-style .-height]    (fix (or sv s) nil))
+        (bind-in! e [mid .-style .-maxHeight] (fix (or sv s) nil))
+        (bind-in! e [in  .-style .-overflowY] (cell= (when (or sv s) :auto)))))))
+
 (defn align [ctor]
   "set the text-align and vertical-align attributes on the elem and proxy the
    vertical-align attribute to the outer element of each child.  set vertical
@@ -357,25 +392,33 @@
       (bind-in! e [mid .-style .-textAlign]     ah)
       (bind-in! e [mid .-style .-verticalAlign] av))))
 
-(defn color [ctor]
-  "set the background color an the inner element."
-  (fn [{:keys [c o m v] :as attrs} elems]
-    {:pre [(colors? c) (opacities? o) (cursors? m)]}
-    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
-      (bind-in! e [mid .-style .-backgroundColor] c)
-      (bind-in! e [mid .-style .-opacity]         o)
-      (bind-in! e [mid .-style .-cursor]          m)
-      (bind-in! e [out .-style .-visibility]     (cell= (when (and (contains? attrs :v) (not v)) :hidden))))))
+(defn pad [ctor]
+  "set the padding on the elem's inner element.
 
-(defn transform [ctor]
-  "set the background color an the inner element."
-  (fn [{:keys [x xx xy xz xb xs] :as attrs} elems]
-    {:pre [(transforms? x) (origins? xx xy xz) (boxes? xb) (txstyles? xs)]}
-    (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
-      (bind-in! e [out .-style .-transform]       x)
-      (bind-in! e [out .-style .-transformOrigin] xx xy xz)
-      (bind-in! e [out .-style .-transformBox]    xb)
-      (bind-in! e [out .-style .-transformStyle]  xs))))
+   this adds space between the edges of the container and its children."
+  (fn [{:keys [p ph pv pl pr pt pb] :as attrs} elems]
+    {:pre [(lengths? p ph pv pl pr pt pb)]}
+    ;; todo: dissallow pct based paddings since tied to opposite dimension
+    (with-let [e (ctor (dissoc attrs :p :ph :pv :pl :pr :pt :pb) elems)]
+      (bind-in! e [mid .-style .-padding] (or pt pv p 0) (or pr ph p 0) (or pb pv p 0) (or pl ph p 0)))))
+
+(defn space [ctor]
+  "set the padding on the outer element of each child and a negative margin on
+   the inner element of the elem itself equal to the padding.
+
+   outer padding on the children creates an even gutter between them, while the
+   negative inner margin on the elem itself offsets this padding to fencepost
+   the children flush with the edges of the container."
+  (fn [{:keys [g gh gv] :as attrs} elems]
+    {:pre [(lengths? g gh gv)]}
+    (let [mh (cell= (/ (or gh g) 2))
+          mv (cell= (/ (or gv g) 2))
+          ph (cell= (- mh))
+          pv (cell= (- mv))]
+        ;; todo: gutter between text nodes
+      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2 %3 %4 %5) mv mh mv mh)
+      (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
+        (bind-in! e [in .-style .-margin] pv ph)))))
 
 (defn nudge [ctor]
   "bump the position of an elem relative to its normal position in the layout.
@@ -400,23 +443,25 @@
       (bind-in! e [out .-style .-top]      (cell= (or xt nil)))
       (bind-in! e [out .-style .-bottom]   (cell= (or xb nil))))))
 
-(defn overflow [ctor]
-  "set the overflow style on the elem's middle element."
-  (fn [{:keys [s sh sv] :as attrs} elems]
-    {:pre [(overflows? s sh sv)]}
-    (with-let [e (ctor (dissoc attrs :s :sh :sv) elems)]
-      (bind-in! e [in .-style .-overflowX] (or sh s))
-      (bind-in! e [in .-style .-overflowY] (or sv s)))))
+(defn color [ctor]
+  "set the background color an the inner element."
+  (fn [{:keys [c o m v] :as attrs} elems]
+    {:pre [(colors? c) (opacities? o) (cursors? m)]}
+    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
+      (bind-in! e [mid .-style .-backgroundColor] c)
+      (bind-in! e [mid .-style .-opacity]         o)
+      (bind-in! e [mid .-style .-cursor]          m)
+      (bind-in! e [out .-style .-visibility]     (cell= (when (and (contains? attrs :v) (not v)) :hidden))))))
 
-(defn pad [ctor]
-  "set the padding on the elem's inner element.
-
-   this adds space between the edges of the container and its children."
-  (fn [{:keys [p pl pr pt pb ph pv] :as attrs} elems]
-    {:pre [(lengths? p pl pr pt pb ph pv)]}
-    ;; todo: dissallow pct based paddings since tied to opposite dimension
-    (with-let [e (ctor (dissoc attrs :p :pl :pr :pt :pb :ph :pv) elems)]
-      (bind-in! e [mid .-style .-padding] (or pt pv p 0) (or pr ph p 0) (or pb pv p 0) (or pl ph p 0)))))
+(defn transform [ctor]
+  "apply a taransformation on the outer element."
+  (fn [{:keys [x xx xy xz xb xs] :as attrs} elems]
+    {:pre [(transforms? x) (origins? xx xy xz) (boxes? xb) (txstyles? xs)]}
+    (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
+      (bind-in! e [out .-style .-transform]       x)
+      (bind-in! e [out .-style .-transformOrigin] xx xy xz)
+      (bind-in! e [out .-style .-transformBox]    xb)
+      (bind-in! e [out .-style .-transformStyle]  xs))))
 
 (defn round [ctor]
   "set the radius on the middle element."
@@ -432,59 +477,13 @@
     (with-let [e (ctor (dissoc attrs :d) elems)]
       (bind-in! e [mid .-style .-boxShadow] d))))
 
-(defn size [ctor]
-  "set the size on the outer element when it is expressed as a ratio, and on the
-   inner element when it is a length.
-
-   since ratios are expressed in terms of the parent, they include the margin
-   (implemented as the padding between the inner and outer elements). fixed
-   lengths are set on the middle, however, to exclude the margin so that when a
-   margin is added, it will push out against the parent container instead of
-   being subtracted from the size of the elem.  both the inner and middle
-   elements are bound separately to accomodate cells that might return ratios,
-   evals, and fixed sizes at different times, such as the cell returned by the
-   breakpoints function."
-  (fn [{:keys [w w- w+ h] :as attrs} elems]
-    {:pre [(lengths? w w- w+ h)]}
-    (with-let [e (ctor (dissoc attrs :w :h) elems)]
-      (let [rel? #(or (ratio? %) (calc? %))
-            rel  #(cell= (if (rel? %) % %2))
-            fix  #(cell= (if (rel? %) %2 %))]
-        (bind-in! e [out .-style .-width]     (rel w  nil))
-        (bind-in! e [out .-style .-minWidth]  (rel w- nil))
-        (bind-in! e [out .-style .-maxWidth]  (rel w+ nil))
-        (bind-in! e [out .-style .-height]    (rel h  nil))
-        (bind-in! e [mid .-style .-width]     (fix w  nil))
-        (bind-in! e [mid .-style .-minWidth]  (fix w- nil))
-        (bind-in! e [mid .-style .-maxWidth]  (fix w+ nil))
-        (bind-in! e [mid .-style .-height]    (fix h  nil))
-        (bind-in! e [mid .-style .-maxHeight] (fix h  nil))))))
-
-(defn space [ctor]
-  "set the padding on the outer element of each child and a negative margin on
-   the inner element of the elem itself equal to the padding.
-
-   outer padding on the children creates an even gutter between them, while the
-   negative inner margin on the elem itself offsets this padding to fencepost
-   the children flush with the edges of the container."
-  ;; todo: gutter between text nodes
-  (fn [{:keys [g gh gv] :as attrs} elems]
-    {:pre [(lengths? g gh gv)]}
-    (let [mh (cell= (/ (or gh g) 2))
-          mv (cell= (/ (or gv g) 2))
-          ph (cell= (- mh))
-          pv (cell= (- mv))]
-      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2 %3 %4 %5) mv mh mv mh)
-      (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
-        (bind-in! e [in .-style .-margin] pv ph)))))
-
 (defn border [ctor]
   "set the border on the elem's middle element.
 
    this adds space between the edges of the container and its children."
-  (fn [{:keys [b bl br bt bb bh bv bc bcl bcr bct bcb bch bcv] :as attrs} elems]
-    {:pre [(lengths? b bl br bt bb bh bv) (colors? bc bcl bcr bct bcb bch bcv)]}
-    (with-let [e (ctor (dissoc attrs :b :bl :br :bt :bb :bh :bv :bw :bc :bcl :bcr :bct :bcb :bch :bcv) elems)]
+  (fn [{:keys [b bh bv bl br bt bb bc bch bcv bcl bcr bct bcb] :as attrs} elems]
+    {:pre [(lengths? b bh bv bl br bt bb) (colors? bc bch bcv bcl bcr bct bcb)]}
+    (with-let [e (ctor (dissoc attrs :b :bh :bv :bl :br :bt :bb :bw :bc :bch :bcv :bcl :bcr :bct :bcb) elems)]
       (bind-in! e [mid .-style .-borderWidth] (or bt bv b 0)  (or br bh b 0)  (or bb bv b 0)  (or bl bh b 0))
       (bind-in! e [mid .-style .-borderColor] (or bct bcv bc "transparent") (or bcr bch bc "transparent") (or bcb bcv bc "transparent") (or bcl bch bc "transparent"))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
@@ -615,7 +614,7 @@
 (defn image* [ctor]
   ;; todo: vertical alignment of content
   "set the size of the absolutely positioned inner elem to the padding"
-  (fn [{:keys [url p pl pr pt pb ph pv] :as attrs} elems]
+  (fn [{:keys [url p ph pv pl pr pt pb] :as attrs} elems]
     (with-let [e (ctor (dissoc attrs :url) elems)]
       (let [img (.insertBefore (mid e) (.createElement js/document "img") (in e))]
         (bind-in! img [.-style .-display]   :block)
@@ -654,7 +653,7 @@
                "unicode-range" range}]
     (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
 
-(defn button** [ctor]
+(defn interactable [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
       (let [state hoplon.ui.attrs/*state*]
@@ -662,6 +661,16 @@
         (.addEventListener (mid e) "mouseout"  #(reset! state :up))
         (.addEventListener (mid e) "mousedown" #(reset! state :down))
         (.addEventListener (mid e) "mouseup"   #(reset! state :up))))))
+
+(defn selectable [ctor]
+  (fn [attrs elems]
+    (with-let [e (ctor attrs elems)]
+      (let [state     hoplon.ui.attrs/*state*
+            selected? #(ends-with? (name %) "-selected")]
+        (.addEventListener (mid e) "mouseover" #(swap! state (fn [s] (if (selected? s) :over-selected :over))))
+        (.addEventListener (mid e) "mouseout"  #(swap! state (fn [s] (if (selected? s) :up-selected :up))))
+        (.addEventListener (mid e) "mousedown" #(swap! state (fn [s] (if (selected? s) :down :down-selected))))
+        (.addEventListener (mid e) "mouseup"   #(swap! state (fn [s] (if (selected? s) :up-selected :up))))))))
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
@@ -673,15 +682,11 @@
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
         (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
           (bind-in! e [out .-lang] (or language "en"))
-          (bind-in! e [out .-style .-width]    "100%")
-          (bind-in! e [out .-style .-height]   "100%")
-          (bind-in! e [mid .-style .-width]    "100%")
-          (bind-in! e [mid .-style .-margin]   "0")
-          (bind-in! e [mid .-style .-fontSize] "100%")
-          (bind-in! e [mid .-style .-overflowX] (or sh s))
-          (bind-in! e [mid .-style .-overflowY] (or sv s))
-          (bind-in! e [in .-style .-overflowX] "")
-          (bind-in! e [in .-style .-overflowY] "")
+          (bind-in! e [out .-style .-width]     "100%")
+          (bind-in! e [out .-style .-height]    "100%")
+          (bind-in! e [mid .-style .-width]     "100%")
+          (bind-in! e [mid .-style .-margin]    "0")
+          (bind-in! e [mid .-style .-fontSize]  "100%")
           (when initiated
             (initiated (get-route) (get-status) (get-agent) (get-refer)))
           (when routechanged
@@ -711,20 +716,20 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception align shadow round border pad nudge size overflow dock font color transform click assert-noattrs))
-(def img       (comp handle-exception align shadow round border image* pad nudge size overflow font color click))
+(def component (comp handle-exception align shadow round border pad nudge size dock font color transform click assert-noattrs))
+(def img       (comp handle-exception align shadow round border image* pad nudge size font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def window* (-> doc component space window** parse-args))
 (def elem    (-> h/div    box component space parse-args))
-(def button* (-> h/button box destyle component button** parse-args))
+(def button* (-> h/button box destyle component interactable parse-args))
+(def toggle* (-> h/button box destyle component selectable   parse-args))
 (def image   (-> h/div    box img parse-args))
 (def form*   (-> h/form   box component space form** parse-args))
 (def field   (-> h/input  box destyle component field' parse-args))
 (def check   (-> h/input  box destyle component field' parse-args))
 (def submit  (-> h/input  box destyle component submit' parse-args))
-
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

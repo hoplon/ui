@@ -11,13 +11,13 @@
 (defmacro bind-in! [elem path & values]
   `(bind-with (fn [vs#] (set-in* ~elem ~path vs#)) (vector ~@values)))
 
-  ; (defmacro elem [& args]
-  ;   `(binding [*state* (atom nil)]
-  ;     (elem* ~@args)))
-
 (defmacro button [& args]
   `(binding [hoplon.ui.attrs/*state* (javelin.core/cell :up)]
     (button* ~@args)))
+
+(defmacro toggle [& args]
+  `(binding [hoplon.ui.attrs/*state* (javelin.core/cell :up)]
+    (toggle* ~@args)))
 
 (defmacro form [& args]
   `(binding [*data*   (atom nil)
