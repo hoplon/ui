@@ -5,7 +5,7 @@
     [rt])
   (:require
     [hoplon.ui :as u]
-    [hoplon.ui.attrs :refer [- r c b]]))
+    [hoplon.ui.attrs :refer [- r c b d]]))
 
 (defc things ["a" "b" "c"])
 
@@ -55,8 +55,11 @@
     (u/elem :h 26 :ph gutter :gh gutter :av :middle
       (u/elem :h 6 :w 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (u/elem :w 170 :f 10 :fc font-grey :v :hidden title))
-    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :b 2 :bc stroke-grey ;:sh 3 :sc (c 0xAAAAAA)
-      (dissoc attrs :pass :title)
+    (u/elem :w 200 :h 200                                   ; sizing
+            :p gutter :g gutter                             ; spacing
+            :c fill-grey :b 2 :bc stroke-grey               ; coloring
+            :d (d 3 3 (c 0xAAAAAA) 4)                       ; shaDow
+            (dissoc attrs :pass :title)
       elems)))
 
 (u/window
