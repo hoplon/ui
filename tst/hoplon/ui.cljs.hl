@@ -5,7 +5,7 @@
     [rt])
   (:require
     [hoplon.ui :as u]
-    [hoplon.ui.attrs :refer [- r c bk]]))
+    [hoplon.ui.attrs :refer [- r c b]]))
 
 (defc things ["a" "b" "c"])
 
@@ -42,12 +42,12 @@
       (u/elem :f 21 :fc font-grey
         title)
       (when code
-        (u/elem :p gutter :ah :right :c fill-grey :s 1 :sc stroke-grey :r 3
+        (u/elem :p gutter :ah :right :c fill-grey :b 1 :bc stroke-grey :r 3
           code)))
     (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]
-  (u/elem :w 40 :h 40 :ah :center :av :middle :c (c 0xFFFFFF) :s 2 :sc stroke-grey
+  (u/elem :w 40 :h 40 :ah :center :av :middle :c (c 0xFFFFFF) :b 2 :bc stroke-grey
     attrs elems))
 
 (defelem test [{:keys [title pass] :as attrs} elems]
@@ -55,7 +55,7 @@
     (u/elem :h 26 :ph gutter :gh gutter :av :middle
       (u/elem :h 6 :w 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (u/elem :w 170 :f 10 :fc font-grey :v :hidden title))
-    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :s 2 :sc stroke-grey ;:d 3 :dc (c 0xAAAAAA)
+    (u/elem :w 200 :h 200 :p gutter :g gutter :c fill-grey :b 2 :bc stroke-grey ;:sh 3 :sc (c 0xAAAAAA)
       (dissoc attrs :pass :title)
       elems)))
 
@@ -63,9 +63,9 @@
   :title    "Hoplon UI"
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
-  :o :scroll
-  (u/elem :w (r 1 1) :p 6 :av :middle :sb 2 :sc stroke-grey
-    (u/image :h 50 :url "hoplon-logo.png")
+  :s :scroll
+  (u/elem :w (r 1 1) :p 6 :av :middle :b 2 :bc stroke-grey
+    (u/image :h 50 :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png")
     (u/elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
     (test :ah :left   :av :top    :title "box aligns horizontal left & vertical top" :pass true
