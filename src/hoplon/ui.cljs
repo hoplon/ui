@@ -552,7 +552,7 @@
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
 
-(defn form** [ctor]
+(defn wrap-form [ctor]
   "set up a form context"
   (fn [{:keys [submit] :as attrs} elems]
     (reset! *submit* submit)
@@ -560,7 +560,7 @@
       (with-let [e (ctor (dissoc attrs :submit) elems)]
         (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit @data)))))))
 
-(defn field' [ctor]
+(defn wrap-field [ctor]
   "set up a form context"
   (fn [{:keys [autocorrect autocapitalize label key type value] :as attrs} elems]
     {:pre []} ;; todo: validate
@@ -575,14 +575,14 @@
         (bind-in! e [in .-autocorrect]    autocorrect)
         (bind-in! e [in .-autocapitalize] autocapitalize)))))
 
-(defn submit' [ctor]
+(defn wrap-submit [ctor]
   "set up a form context"
-  (fn [{label :label submit' :submit :as attrs} elems]
+  (fn [{label :label submit :submit :as attrs} elems]
     {:pre []} ;; todo: validate
     (let [data   *data*
           submit *submit*]
       (with-let [e (ctor (dissoc attrs :label :submit) elems)]
-        (.addEventListener (mid e) "click" #((or submit' @submit) @data))
+        (.addEventListener (mid e) "click" #((or submit @submit) @data))
         (bind-in! e [in .-type]  "submit")
         (bind-in! e [in .-value] label)))))
 
@@ -637,7 +637,6 @@
       ; (bind-in! e [in .-style .-backgroundRepeat] (when url :no-repeat)))))
 
 (defn wrap-frame [ctor]
-  "Define DOM attributes for HTML object tags"
   (fn [{:keys [type url] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :type :url) elems)]
@@ -647,7 +646,6 @@
       (bind-in! e [in .-src]  url))))
 
 (defn wrap-object [ctor]
-  "Define DOM attributes for HTML object tags"
   (fn [{:keys [type data id xo] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :type :data :id :xo) elems)]
@@ -656,7 +654,6 @@
       (bind-in! e [in .-data]        data))))
 
 (defn wrap-video [ctor]
-  "Define DOM attributes for HTML object tags"
   (fn [{:keys [controls url] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :controls :url) elems)]
@@ -762,10 +759,10 @@
 (def button* (-> h/button box destyle component interactable parse-args))
 (def toggle* (-> h/button box destyle component selectable   parse-args))
 (def image   (-> h/div    box img parse-args))
-(def form*   (-> h/form   box component space form** parse-args))
-(def field   (-> h/input  box destyle component field' parse-args))
-(def check   (-> h/input  box destyle component field' parse-args))
-(def submit  (-> h/input  box destyle component submit' parse-args))
+(def form*   (-> h/form   box component space wrap-form parse-args))
+(def field   (-> h/input  box destyle component wrap-field parse-args))
+(def check   (-> h/input  box destyle component wrap-field parse-args))
+(def submit  (-> h/input  box destyle component wrap-submit parse-args))
 (def object  (-> h/html-object box component wrap-object parse-args))
 (def video   (-> h/video  box component wrap-video parse-args))
 (def frame   (-> h/iframe box component wrap-frame parse-args))
@@ -783,11 +780,6 @@
 (defmethod md! :markdown
   [e elems]
   elems)
-
-(defmethod md! :em
-  [e elems]
-  (elem :fi :italic
-    elems))
 
 (defmethod md! :em
   [e elems]
