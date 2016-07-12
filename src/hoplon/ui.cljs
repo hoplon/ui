@@ -4,7 +4,8 @@
     [clojure.string  :refer [join split ends-with?]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :as a :refer [c r ratio? calc? points? ems? ->attr]]
-    [hoplon.ui.elems :refer [box doc out mid in elem?]])
+    [hoplon.ui.elems :refer [box doc out mid in elem?]]
+    [cljsjs.markdown])
   (:require-macros
     [hoplon.ui    :refer [bind-in!]]
     [javelin.core :refer [cell= with-let]]))
@@ -359,9 +360,9 @@
    permit them to be set to auto and visible independently; setting oveflowX to
    auto in the horizontal will set it to auto in the vertical as well, even if
    it is explictly set to visible."
-  (fn [{:keys [s sh sv sh- sh+] :as attrs} elems]
+  (fn [{:keys [s sh sv sh- sh+ scroll] :as attrs} elems]
     {:pre [(lengths? s sh sv sh- sh+)]}
-    (with-let [e (ctor (dissoc attrs :s :sh :sv :sh- :sh+) elems)]
+    (with-let [e (ctor (dissoc attrs :s :sh :sv :sh- :sh+ :scroll) elems)]
       (let [rel? #(or (ratio? %) (calc? %))
             rel  #(cell= (if (rel? %) % %2))
             fix  #(cell= (if (rel? %) %2 %))]
@@ -374,7 +375,7 @@
         (bind-in! e [mid .-style .-maxWidth]  (fix sh+ nil))
         (bind-in! e [mid .-style .-height]    (fix (or sv s) nil))
         (bind-in! e [mid .-style .-maxHeight] (fix (or sv s) nil))
-        (bind-in! e [in  .-style .-overflowY] (cell= (when (or sv s) :auto)))))))
+        (bind-in! e [in  .-style .-overflowY] (cell= (when (or sv s) (if scroll :auto :hidden))))))))
 
 (defn align [ctor]
   "set the text-align and vertical-align attributes on the elem and proxy the
@@ -445,13 +446,19 @@
 
 (defn color [ctor]
   "set the background color an the inner element."
-  (fn [{:keys [c o m v] :as attrs} elems]
+  (fn [{:keys [c o m v l] :as attrs} elems]
     {:pre [(colors? c) (opacities? o) (cursors? m)]}
-    (with-let [e (ctor (dissoc attrs :c :o :m :v) elems)]
-      (bind-in! e [mid .-style .-backgroundColor] c)
-      (bind-in! e [mid .-style .-opacity]         o)
-      (bind-in! e [mid .-style .-cursor]          m)
-      (bind-in! e [out .-style .-visibility]     (cell= (when (and (contains? attrs :v) (not v)) :hidden))))))
+    ;; todo: linking user select to cursor
+    (with-let [e (ctor (dissoc attrs :c :o :m :v :l) elems)]
+      (let [l (cell= (if l :text :none))]
+        (bind-in! e [mid .-style .-backgroundColor]  c)
+        (bind-in! e [mid .-style .-opacity]          o)
+        (bind-in! e [mid .-style .-cursor]           m)
+        (bind-in! e [out .-style .-visibility]       (cell= (when (and (contains? attrs :v) (not v)) :hidden)))
+        (bind-in! e [in  .-style .-userSelect]       l)
+        (bind-in! e [in  .-style .-mozUserSelect]    l)
+        (bind-in! e [in  .-style .-msUserSelect]     l)
+        (bind-in! e [in  .-style .-webkitUserSelect] l)))))
 
 (defn transform [ctor]
   "apply a taransformation on the outer element."
@@ -629,6 +636,33 @@
       ; (bind-in! e [in .-style .-backgroundSize]   (when url :contain))
       ; (bind-in! e [in .-style .-backgroundRepeat] (when url :no-repeat)))))
 
+(defn wrap-frame [ctor]
+  "Define DOM attributes for HTML object tags"
+  (fn [{:keys [type url] :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (with-let [e (ctor (dissoc attrs :type :url) elems)]
+      (bind-in! e [in .-width]  "100%")
+      (bind-in! e [in .-height] "100%")
+      (bind-in! e [in .-type] type)
+      (bind-in! e [in .-src]  url))))
+
+(defn wrap-object [ctor]
+  "Define DOM attributes for HTML object tags"
+  (fn [{:keys [type data id xo] :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (with-let [e (ctor (dissoc attrs :type :data :id :xo) elems)]
+      (bind-in! e [in .-type]        type)
+      (bind-in! e [in .-crossOrigin] xo)
+      (bind-in! e [in .-data]        data))))
+
+(defn wrap-video [ctor]
+  "Define DOM attributes for HTML object tags"
+  (fn [{:keys [controls url] :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (with-let [e (ctor (dissoc attrs :controls :url) elems)]
+      (bind-in! e [in .-src]      url)
+      (bind-in! e [in .-controls] (when controls "controls")))))
+
 (defn click [ctor] ;; todo: remove listener
   (fn [{:keys [click] :as attrs} elems]
     {:pre [(callbacks? click)]}
@@ -674,19 +708,21 @@
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged s sh sv] :as attrs} elems]
+  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged scroll] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged) elems)]
+        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged :scroll) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
           (bind-in! e [mid .-style .-width]     "100%")
           (bind-in! e [mid .-style .-margin]    "0")
           (bind-in! e [mid .-style .-fontSize]  "100%")
+          (bind-in! e [mid .-style .-overflowY] "hidden" #_(cell= (if scroll nil "hidden")))
+          (bind-in! e [in  .-style .-overflowY] "hidden")
           (when initiated
             (initiated (get-route) (get-status) (get-agent) (get-refer)))
           (when routechanged
@@ -730,6 +766,63 @@
 (def field   (-> h/input  box destyle component field' parse-args))
 (def check   (-> h/input  box destyle component field' parse-args))
 (def submit  (-> h/input  box destyle component submit' parse-args))
+(def object  (-> h/html-object box component wrap-object parse-args))
+(def video   (-> h/video  box component wrap-video parse-args))
+(def frame   (-> h/iframe box component wrap-frame parse-args))
+
+;;; markdown ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmulti md!
+  (fn [e elems] e))
+
+(defmethod md! :default
+  [e elems]
+  (prn "No elem defined for markdown element " (name e) ".")
+  (elem elems))
+
+(defmethod md! :markdown
+  [e elems]
+  elems)
+
+(defmethod md! :em
+  [e elems]
+  (elem :fi :italic
+    elems))
+
+(defmethod md! :em
+  [e elems]
+  (elem :fi :italic
+    elems))
+
+(defmethod md! :strong
+  [e elems]
+  (elem :ft :bold
+    elems))
+
+(defmethod md! :header
+  [e elems]
+  (elem :sh (r 1 1) :f 32
+    elems))
+
+(defmethod md! :bulletlist
+  [e elems]
+  (elem :sh (r 1 1)
+    elems))
+
+(defmethod md! :listitem
+  [e elems]
+  (elem :sh (r 1 1)
+    elems))
+
+(defn parse [mdstr]
+  (js->clj (.parse js/markdown mdstr)))
+
+(defn emit [[el an & nodes] conf]
+  (let [nodes (if (map? an) nodes (cons an nodes))]
+    (md! (keyword el) (mapv #(if (vector? %) (emit %) %) nodes))))
+
+(defn markdown [mdstr & [conf]]
+  (emit (parse mdstr) conf))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

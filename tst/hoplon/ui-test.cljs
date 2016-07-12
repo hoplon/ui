@@ -6,7 +6,7 @@
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [elem image window]]
+    [hoplon.ui       :refer [elem image window markdown]]
     [hoplon.ui.attrs :refer [- c r s b d]]))
 
 (defc things ["a" "b" "c"])
@@ -58,6 +58,18 @@
       (elem :s 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
     (elem :s 200                                          ; sizing
+            :p gutter :g gutter                             ; spacing
+            :c fill-grey :b 2 :bc stroke-grey               ; coloring
+            :d (d 3 3 (c 0xAAAAAA) 4)                       ; shaDow
+            (dissoc attrs :pass :title)
+      elems)))
+
+(defelem text-test [{:keys [title pass] :as attrs} elems]
+  (elem :sh (r 1 2)
+    (elem :sv 26 :ph gutter :gh gutter :av :middle
+      (elem :s 6 :r 6 :c (cell= (if pass pass-color fail-color)))
+      (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
+    (elem :s (r 1 1)                                          ; sizing
             :p gutter :g gutter                             ; spacing
             :c fill-grey :b 2 :bc stroke-grey               ; coloring
             :d (d 3 3 (c 0xAAAAAA) 4)                       ; shaDow
@@ -224,26 +236,30 @@
       (box :sv 40 "g")
       (box :sv 20 "h")
       (box :sv 40 "i")
-      (box :sv 40 "j")))
-  (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
-    (cell (box "a")))
-  (test :ah :center  :av :middle :title "boxes in formula cell align horizontal center & vertical center" :pass false
-    (for-tpl [thing things]
-      (box thing)))
-  (suite :title "layouts"
-    (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
-      (elem
-        (box :sh(r 1 1) "a")
-        (box "b")))
-    (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
-        ;; caused by
-      (elem
-        (elem :f 10 "a")
-        (box "b")))
-    (test :ah :center :av :middle :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
-        ;; solution: apply lengths to middle, but percentages to outer
-      (elem :g 50
-        (box "a")))))
+      (box :sv 40 "j"))
+    (text-test
+      (markdown
+        "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\n*italic text*\n**bold text**\n"))))
+
+  ; (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
+  ;   (cell (box "a")))
+  ; (test :ah :center  :av :middle :title "boxes in formula cell align horizontal center & vertical center" :pass false
+  ;   (for-tpl [thing things]
+  ;     (box thing)))
+  ; (suite :title "layouts"
+  ;   (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
+  ;     (elem
+  ;       (box :sh(r 1 1) "a")
+  ;       (box "b")))
+  ;   (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
+  ;       ;; caused by
+  ;     (elem
+  ;       (elem :f 10 "a")
+  ;       (box "b")))
+  ;   (test :ah :center :av :middle :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
+  ;       ;; solution: apply lengths to middle, but percentages to outer
+  ;     (elem :g 50
+  ;       (box "a")))))
   ; (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
   ;   (elem
   ;     (box :sh(cell 80) "a")))
