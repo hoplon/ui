@@ -1,9 +1,14 @@
 (ns hoplon.ui.elems
   (:require
     [clojure.string :refer [split-lines trim]]
-    [hoplon.core    :refer [html body br]])
+    [hoplon.core    :refer [html body br]]
+    [cljsjs.markdown])
   (:require-macros
     [javelin.core   :refer [cell= with-let]]))
+
+;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *mdfn* nil)
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -12,7 +17,18 @@
         txt #(.createTextNode js/document %)]
     (->> (split-lines text)
          (interpose br)
-         (map #(if (fn? %) (%) (txt (trim %)))))))
+         (mapv #(if (fn? %) (%) (txt %))))))
+
+(defn parse [mdstr]
+  (js->clj (.parse js/markdown mdstr) :keywordize-keys true))
+
+(defn emit [[tag atr & nodes]]
+  (let [[atr nodes] (if (map? atr) [atr nodes] [nil (cons atr nodes)])]
+    #_(prn :mdtag tag :mdats atr :nodes nodes)
+    (*mdfn* (keyword tag) atr (mapv #(if (vector? %) (emit %) %) nodes))))
+
+(defn md->elems [mdstr]
+  (emit (parse mdstr)))
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -39,9 +55,7 @@
 (extend-type string
   IElem
   (-dom-element [this]
-    (with-let [frag (.createDocumentFragment js/document)]
-      (doseq [line (split-nodes this)]
-        (.appendChild frag line)))))
+    (split-nodes this)))
 
 (extend-type PersistentVector
   IElem
@@ -54,6 +68,16 @@
   IElem
   (-dom-element [this]
     (cell= (-dom-element this))))
+
+(deftype Markdown [mdstr]
+  IPrintWithWriter
+  (-pr-writer [_ w _]
+    (write-all w "#<Markdown: " mdstr ">"))
+  IElem
+  (-dom-element [_]
+    (-dom-element (md->elems mdstr))))
+
+(defn markdown [str] (Markdown. str))
 
 (deftype Elem [o m i]
   IPrintWithWriter
@@ -106,7 +130,8 @@
     (set! (.. i -style -maxHeight)     "inherit")      ;; proxy mid max-height to inner div, necessary to prevent inner content from expanding container size when there's overflow
     (set! (.. i -style -cursor)        "inherit")))    ;; apply the mouse cursor set on the middle div to the inner div as well
 
-(defn elem? [v] (instance? Elem v))
+(defn elem?     [v] (instance? Elem     v))
+(defn markdown? [v] (instance? Markdown v))
 
 (defn ->element [v] (-dom-element v))
 

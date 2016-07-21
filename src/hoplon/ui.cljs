@@ -4,8 +4,7 @@
     [clojure.string  :refer [join split ends-with?]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :as a :refer [c r ratio? calc? points? ems? ->attr]]
-    [hoplon.ui.elems :refer [box doc out mid in elem?]]
-    [cljsjs.markdown])
+    [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]])
   (:require-macros
     [hoplon.ui    :refer [bind-in!]]
     [javelin.core :refer [cell= with-let]]))
@@ -119,12 +118,13 @@
     (f (map-indexed watch vs))))
 
 (defn swap-elems! [e f & vs] ;; todo: factor out
-  (cond (cell?   e) (cell= (apply swap-elems! e f vs))
-        (vector? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
-        (elem?   e) (apply f e vs)
-        (string? e) identity
-        (nil?    e) identity
-        (fn?     e) identity
+  (cond (cell?     e) (cell= (apply swap-elems! e f vs))
+        (vector?   e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
+        (elem?     e) (apply f e vs)
+        (markdown? e) identity
+        (string?   e) identity
+        (nil?      e) identity
+        (fn?       e) identity
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn in? [v & kwvecs]  (some #{v} (apply conj kwvecs)))
@@ -748,8 +748,45 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-(def component (comp handle-exception align shadow round border pad nudge size dock font color transform click assert-noattrs))
-(def img       (comp handle-exception align shadow round border image* pad nudge size font color click))
+;;; markdown ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declare elem)
+
+(def f
+ {1 32
+  2 24
+  3 20
+  4 16
+  5 14
+  6 13})
+
+(defmulti  md (fn [tag ats elems] (prn :tag tag :ats ats :elems elems) tag))
+(defmethod md :default    [tag ats elems] (elem elems))
+(defmethod md :markdown   [_ ats elems] elems)
+(defmethod md :header     [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :bulletlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :numberlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :listitem   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :para       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :code_block [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :inlinecode [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :img        [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :linebreak  [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :link       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :link_ref   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :em         [_ {:keys [level]} elems] (elem :fi :italic                 elems))
+(defmethod md :strong     [_ {:keys [level]} elems] (elem :ft :bold                   elems))
+
+(defn wrap-markdown [ctor]
+  (fn [{:keys [mdfn] :as attrs} elems]
+    {:pre []} ;; todo: validate
+    (binding [hoplon.ui.elems/*mdfn* (or mdfn md)]
+      (ctor (dissoc attrs :mdfn) elems))))
+
+;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def component (comp handle-exception wrap-markdown align shadow round border pad nudge size dock font color transform click assert-noattrs))
+(def img       (comp handle-exception wrap-markdown align shadow round border image* pad nudge size font color click))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -765,55 +802,6 @@
 (def object  (-> h/html-object box component wrap-object parse-args))
 (def video   (-> h/video  box component wrap-video parse-args))
 (def frame   (-> h/iframe box component wrap-frame parse-args))
-
-;;; markdown ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmulti md!
-  (fn [e elems] e))
-
-(defmethod md! :default
-  [e elems]
-  (prn "No elem defined for markdown element " (name e) ".")
-  (elem elems))
-
-(defmethod md! :markdown
-  [e elems]
-  elems)
-
-(defmethod md! :em
-  [e elems]
-  (elem :fi :italic
-    elems))
-
-(defmethod md! :strong
-  [e elems]
-  (elem :ft :bold
-    elems))
-
-(defmethod md! :header
-  [e elems]
-  (elem :sh (r 1 1) :f 32
-    elems))
-
-(defmethod md! :bulletlist
-  [e elems]
-  (elem :sh (r 1 1)
-    elems))
-
-(defmethod md! :listitem
-  [e elems]
-  (elem :sh (r 1 1)
-    elems))
-
-(defn parse [mdstr]
-  (js->clj (.parse js/markdown mdstr)))
-
-(defn emit [[el an & nodes] conf]
-  (let [nodes (if (map? an) nodes (cons an nodes))]
-    (md! (keyword el) (mapv #(if (vector? %) (emit %) %) nodes))))
-
-(defn markdown [mdstr & [conf]]
-  (emit (parse mdstr) conf))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

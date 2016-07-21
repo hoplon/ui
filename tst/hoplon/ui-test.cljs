@@ -6,7 +6,8 @@
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [elem image window markdown]]
+    [hoplon.ui       :refer [elem image window]]
+    [hoplon.ui.elems :refer [markdown]]
     [hoplon.ui.attrs :refer [- c r s b d]]))
 
 (defc things ["a" "b" "c"])
@@ -65,7 +66,7 @@
       elems)))
 
 (defelem text-test [{:keys [title pass] :as attrs} elems]
-  (elem :sh (r 1 2)
+  (elem :sh 400
     (elem :sv 26 :ph gutter :gh gutter :av :middle
       (elem :s 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
@@ -80,6 +81,7 @@
   :title    "Hoplon UI"
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
+  :scroll   true
   (elem :sh (r 1 1) :p 6 :av :middle :b 2 :bc stroke-grey
     (image :s 50 :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png")
     (elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
@@ -239,7 +241,7 @@
       (box :sv 40 "j"))
     (text-test
       (markdown
-        "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\n*italic text*\n**bold text**\n"))))
+        "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\nsome *italic text* and **bold text**\n"))))
 
   ; (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
   ;   (cell (box "a")))
