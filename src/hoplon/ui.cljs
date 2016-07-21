@@ -13,7 +13,7 @@
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ^:dynamic *exceptions* nil)
-(def ^:dynamic *scroll*     nil)
+(def ^:dynamic *position*   nil)
 
 (def empty-icon-url  "data:;base64,iVBORw0KGgo=")
 (def empty-image-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")
@@ -375,7 +375,7 @@
         (bind-in! e [mid .-style .-maxWidth]  (fix sh+ nil))
         (bind-in! e [mid .-style .-height]    (fix (or sv s) nil))
         (bind-in! e [mid .-style .-maxHeight] (fix (or sv s) nil))
-        (bind-in! e [in  .-style .-overflowY] (cell= (when (or sv s) (if scroll :auto :hidden))))))))
+        (bind-in! e [in  .-style .-overflowY] (cell= (when (and scroll (or sv s) :auto)))))))) ;; default likely breaks 100% height where a sibling overflows
 
 (defn align [ctor]
   "set the text-align and vertical-align attributes on the elem and proxy the
@@ -705,21 +705,20 @@
 
 (defn window** [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route scroll scripts styles initiated mousechanged scrollchanged statuschanged routechanged scroll] :as attrs} elems]
+  (fn [{:keys [fonts icon language metadata route position scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
           get-hash   #(-> js/window .-location .-hash)
           get-route  #(-> js/window .-location .-hash hash->route)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :scroll :title :route :lang :styles :scripts :initiated :mousechanged :scrollchanged :statuschanged :routechanged :scroll) elems)]
+        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :title :route :lang :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
           (bind-in! e [mid .-style .-width]     "100%")
           (bind-in! e [mid .-style .-margin]    "0")
           (bind-in! e [mid .-style .-fontSize]  "100%")
-          (bind-in! e [mid .-style .-overflowY] "hidden" #_(cell= (if scroll nil "hidden")))
-          (bind-in! e [in  .-style .-overflowY] "hidden")
+          (bind-in! e [out .-style .-overflow] (cell= (when-not scroll "hidden")))
           (when initiated
             (initiated (get-route) (get-status) (get-agent) (get-refer)))
           (when routechanged
@@ -729,15 +728,15 @@
             (.addEventListener js/window "visibilitychange"
               #(statuschanged (get-status))))
           (.addEventListener js/window "scroll"
-            (let [scroll* *scroll*]
-              #(let [[x y :as new-scroll] (vector (.-scrollX js/window) (.-scrollY js/window))]
-                (reset! scroll* new-scroll)
-                (when scrollchanged
-                  (when-not (= new-scroll scroll)
-                    (scrollchanged x y))))))
+            (let [position* *position*]
+              #(let [[x y :as new-position] (vector (.-scrollX js/window) (.-scrollY js/window))]
+                (reset! position* new-position)
+                (when positionchanged
+                  (when-not (= new-position position)
+                    (positionchanged x y))))))
           (cell= (set! js/location.hash (route->hash route)))
           (.addEventListener js/document "DOMContentLoaded"
-            #(cell= (.scroll js/window (first scroll) (second scroll))))
+            #(cell= (.scroll js/window (first position) (second position))))
           (h/head
             (h/html-meta :charset "utf-8")
             (h/html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")

@@ -26,5 +26,5 @@
     (form* ~@args)))
 
 (defmacro window [& args]
-  `(binding [*scroll* (javelin.core/cell nil)]
+  `(binding [*position* (javelin.core/cell nil)]
     (window* ~@args)))
