@@ -577,12 +577,12 @@
 
 (defn wrap-submit [ctor]
   "set up a form context"
-  (fn [{label :label submit :submit :as attrs} elems]
+  (fn [{label :label submit' :submit :as attrs} elems]
     {:pre []} ;; todo: validate
     (let [data   *data*
           submit *submit*]
       (with-let [e (ctor (dissoc attrs :label :submit) elems)]
-        (.addEventListener (mid e) "click" #((or submit @submit) @data))
+        (.addEventListener (mid e) "click" #((or submit' @submit) @data))
         (bind-in! e [in .-type]  "submit")
         (bind-in! e [in .-value] label)))))
 
