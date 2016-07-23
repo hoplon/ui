@@ -3,8 +3,9 @@
     [hoplon.core :as h]
     [clojure.string  :refer [join split ends-with?]]
     [javelin.core    :refer [cell cell?]]
-    [hoplon.ui.attrs :as a :refer [c r ratio? calc? points? ems? ->attr]]
-    [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]])
+    [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
+    [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]]
+    [hoplon.ui.validation :as v])
   (:require-macros
     [hoplon.ui    :refer [bind-in!]]
     [javelin.core :refer [cell= with-let]]))
@@ -16,63 +17,6 @@
 
 (def empty-icon-url  "data:;base64,iVBORw0KGgo=")
 (def empty-image-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")
-
-(def globals     [:initial :inherit])
-(def adjusts     [:none])
-(def aligns      [:beg :mid :end])
-(def haligns     [:justify])
-(def valigns     [:baseline :sub :super :text-top :text-bottom])
-(def colors      [:transparent :antiquewhite :aqua :aquamarine :azure :beige
-                  :bisque :black :blanchedalmond :blue :blueviolet :brown
-                  :burlywood :cadetblue :chartreuse :chocolate :coral
-                  :cornflowerblue :cornsilk :crimson :darkblue :darkcyan
-                  :darkgoldenrod :darkgray :darkgreen :darkgrey :darkkhaki
-                  :darkmagenta :darkolivegreen :darkorange :darkorchid :darkred
-                  :darksalmon :darkseagreen :darkslateblue :darkslategray
-                  :darkslategrey :darkturquoise :darkviolet :deeppink
-                  :deepskyblue :dimgray :dimgrey :dodgerblue :firebrick
-                  :floralwhite :forestgreen :fuchsia :gainsboro :ghostwhite
-                  :gold :goldenrod :gray :green :greenyellow :grey :honeydew
-                  :hotpink :indianred :indigo :ivory :khaki :lavender
-                  :lavenderblush :lawngreen :lemonchiffon :lightblue :lightcoral
-                  :lightcyan :lightgoldenrodyellow :lightgray :lightgreen
-                  :lightgrey :lightpink :lightsalmon :lightseagreen
-                  :lightskyblue :lightslategray :lightslategrey :lightsteelblue
-                  :lightyellow :lime :limegreen :linen :maroon :mediumaquamarine
-                  :mediumblue :mediumorchid :mediumpurple :mediumseagreen
-                  :mediumslateblue :mediumspringgreen :mediumturquoise
-                  :mediumvioletred :midnightblue :mintcream :mistyrose :moccasin
-                  :navajowhite :navy :oldlace :olive :olivedrab :orange :orangered
-                  :orchid :palegoldenrod :palegreen :paleturquoise
-                  :palevioletred :papayawhip :peachpuff :peru :pink :plum
-                  :powderblue :purple :rebeccapurple :red :rosybrown :royalblue
-                  :saddlebrown :salmon :sandybrown :seagreen :seashell :sienna
-                  :silver :skyblue :slateblue :slategray :slategrey :snow
-                  :springgreen :steelblue :tan :teal :thistle :tomato :turquoise
-                  :violet :wheat :white :whitesmoke :yellow :yellowgreen])
-(def cursors     [:alias :all-scroll :auto :cell :context-menu :col-resize :copy
-                  :crosshair :default :e-resize :ew-resize :grab :grabbing :help
-                  :move :n-resize :ne-resize :nesw-resize :ns-resize :nw-resize
-                  :nwse-resize :no-drop :none :not-allowed :pointer :progress
-                  :row-resize :s-resize :se-resize :sw-resize :text
-                  :vertical-text :w-resize :wait :zoom-in :zoom-out])
-(def decorations [:none :underline :overline :line-through])
-(def capitalizes [:none :uppercase :lowercase :capitalize])
-(def families    [:serif :sans-serif :monospace :cursive :fantasy])
-(def kernings    [:auto :normal :none])
-(def lengths     [:auto])
-(def renderings  [:auto :optimizeSpeed :optimizeLegibility :geometricPrecision]) ;; todo: dash instead of camelcase
-(def sizes       [:xx-small :x-small :small :medium :large :x-large :xx-large :larger :smaller])
-(def smoothings  [:none :antialiased :subpixel-antialiased])
-(def spacings    [:normal])
-(def stretches   [:ultra-condensed :extra-condensed :condensed :semi-condensed :normal :semi-expanded :expanded :extra-expanded :ultra-expanded])
-(def styles      [:normal :italic :oblique])
-(def syntheses   [:none :weight :style :weight-style])
-(def boxes       [:border :fill :view])
-(def origins     [:left :right :top :bottom :center])
-(def txstyles    [:preserve-3d :flat])
-(def overflows   [:visible :hidden :scroll :auto])
-(def weights     [:normal :bold :bolder :lighter :100 :200 :300 :400 :500 :600 :700 :800 :900])
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -128,8 +72,6 @@
         (fn?       e) identity
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
-(defn in? [v & kwvecs]  (some #{v} (apply conj kwvecs)))
-
 (defn validate [validator]
   (fn [& vs]
     (doseq [v vs]
@@ -141,212 +83,39 @@
   (fn [& vs]
     (doseq [v vs :let [valid? (bind-cells validator)]]
       (when-not (valid? v)
-        ; (prn :v v :valid? (valid? v) :validator (validator @v))
         (throw-ui-exception message " " v ".")))
     true))
 
-;;; validation fns ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def adjusts?     (validate-cells v/adjust?     "Error validating attribute of type adjust with value"))
+(def aligns?      (validate-cells v/align?      "Error validating attribute of type aling  with value"))
+(def alignhs?     (validate-cells v/alignh?     "Error validating attribute of type alingh with value"))
+(def alignvs?     (validate-cells v/alignv?     "Error validating attribute of type alignv with value"))
+(def colors?      (validate-cells v/color?      "Error validating attribute of type color with value"))
+(def cursors?     (validate-cells v/cursor?     "Error validating attribute of type cursor with value"))
+(def decorations? (validate-cells v/decoration? "Error validating attribute of type decoration with value"))
+(def families?    (validate-cells v/family?     "Error validating attribute of type family with value"))
+(def kernings?    (validate-cells v/kerning?    "Error validating attribute of type kerning with value"))
+(def lengths?     (validate-cells v/length?     "Error validating attribute of type length with value"))
+(def opacities?   (validate-cells v/opacity?    "Error validating attribute of type opacity with value"))
+(def overflows?   (validate-cells v/overflow?   "Error validating attribute of type overflow with value"))
+(def renderings?  (validate-cells v/rendering?  "Error validating attribute of type rendering with value"))
+(def shadows?     (validate-cells v/shadow?     "Error validating attribute of type shadow with value"))
+(def sizes?       (validate-cells v/size?       "Error validating attribute of type size with value"))
+(def smoothings?  (validate-cells v/smoothing?  "Error validating attribute of type smoothing with value"))
+(def spacings?    (validate-cells v/spacing?    "Error validating attribute of type spacing with value"))
+(def stretches?   (validate-cells v/stretch?    "Error validating attribute of type stetch with value"))
+(def styles?      (validate-cells v/style?      "Error validating attribute of type style with value"))
+(def syntheses?   (validate-cells v/synthesis?  "Error validating attribute of type sythesis with value"))
+(def transforms?  (validate-cells v/transform?  "Error validating attribute of type transformation with value"))
+(def capitalizes? (validate-cells v/capitalize? "Error validating attribute of type capitalize with value"))
+(def origins?     (validate-cells v/origin?     "Error validating attribute of type transformation origin with value"))
+(def boxes?       (validate-cells v/box?        "Error validating attribute of type transformation box with value"))
+(def txstyles?    (validate-cells v/txstyle?    "Error validating attribute of type transformation style with value"))
+(def weights?     (validate-cells v/weight?     "Error validating attribute of type weight with value"))
 
-(defn adjust? [v]
-  (cond (keyword? v) (in? v adjusts globals)
-        (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-        (nil?     v) :initial
-        :else        false))
-
-(defn align? [v]
-  (cond (keyword? v) (in? v aligns haligns lengths globals)
-        (number?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn alignh? [v]
-  (cond (keyword? v) (in? v aligns haligns lengths globals)
-        (number?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn alignv? [v]
-  (cond (keyword? v) (in? v aligns valigns lengths globals)
-        (number?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn callback? [v]
-  (cond (fn? v)   v
-        (nil?     v) true
-        :else        false))
-
-(defn color? [v]
-  (cond (keyword? v) (in? v colors globals)
-        (a/color? v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn cursor? [v]
-  (cond (keyword? v) (in? v cursors globals)
-        (nil?     v) :inital
-        :else        false))
-
-(defn dock? [v]
-  (cond (keyword? v) (in? v lengths globals)
-        (calc?    v) v
-        (ratio?   v) v
-        (ems?     v) v
-        (points?  v) v
-        (number?  v) v
-        (true?    v) v
-        (false?   v) true
-        (nil?     v) :initial
-        :else        false))
-
-(defn family? [v]
-  (cond (vector?  v) (every? identity v)
-        (keyword? v) (in? v families globals)
-        (string?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn kerning? [v]
-  (cond (keyword? v) (in? v kernings globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn length? [v]
-  (cond (keyword? v) (in? v lengths globals)
-        (calc?    v) v
-        (ratio?   v) v
-        (ems?     v) v
-        (points?  v) v
-        (number?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn opacity? [v]
-  (cond (keyword? v) (in? v globals)
-        (number?  v) (and (>= v 0) (<= v 1)) ;; todo: make a ratio
-        (nil?     v) :initial
-        :else        false))
-
-(defn overflow? [v]
-  (cond (keyword? v) (in? v overflows globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn rendering? [v]
-  (cond (keyword? v) (in? v renderings globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn size? [v] ;; todo: support other units
-  (cond (keyword? v) (in? v sizes globals)
-        (ratio?   v) v
-        (number?  v) v
-        (ems?     v) v
-        (points?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn shadow? [v]
-  (cond (vector?   v) (every? shadow? v)
-        (keyword?  v) (in? v globals)
-        (a/shadow? v) v
-        (nil?      v) :initial
-        :else         false))
-
-(defn smoothing? [v]
-  (cond (keyword? v) (in? v smoothings globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn spacing? [v]
-  (cond (keyword? v) (in? v spacings globals)
-        (ratio?   v) v
-        (number?  v) v
-        (nil?     v) :initial
-        :else        false))
-
-(defn stretch? [v]
-  (cond (keyword? v) (in? v stretches globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn style? [v]
-  (cond (keyword? v) (in? v styles globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn synthesis? [v]
-  (cond (keyword? v) (in? v syntheses globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn transform? [v]
-  (cond (keyword?     v) (in? v globals)
-        (a/transform? v) v
-        (nil?         v) :initial
-        :else            false))
-
-(defn origin? [v]
-  (cond (keyword?     v) (in? v origins globals)
-        ;(ratio? v)       :initial
-        (nil?         v) :initial
-        :else            false))
-
-(defn box? [v]
-  (cond (keyword? v) (in? v boxes globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn txstyle? [v]
-  (cond (keyword? v) (in? v txstyles globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn capitalize? [v]
-  (cond (keyword? v) (in? v capitalizes globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn decoration? [v]
-  (cond (keyword? v) (in? v decorations globals)
-        (nil?     v) :initial
-        :else        false))
-
-(defn weight? [v]
-  (cond (keyword? v) (in? v weights globals)
-        (nil?     v) :initial
-        :else        false))
-
-(def adjusts?     (validate-cells adjust?     "Error validating attribute of type adjust with value"))
-(def aligns?      (validate-cells align?      "Error validating attribute of type aling  with value"))
-(def alignhs?     (validate-cells alignh?     "Error validating attribute of type alingh with value"))
-(def alignvs?     (validate-cells alignv?     "Error validating attribute of type alignv with value"))
-(def colors?      (validate-cells color?      "Error validating attribute of type color with value"))
-(def cursors?     (validate-cells cursor?     "Error validating attribute of type cursor with value"))
-(def decorations? (validate-cells decoration? "Error validating attribute of type decoration with value"))
-(def families?    (validate-cells family?     "Error validating attribute of type family with value"))
-(def kernings?    (validate-cells kerning?    "Error validating attribute of type kerning with value"))
-(def lengths?     (validate-cells length?     "Error validating attribute of type length with value"))
-(def opacities?   (validate-cells opacity?    "Error validating attribute of type opacity with value"))
-(def overflows?   (validate-cells overflow?   "Error validating attribute of type overflow with value"))
-(def renderings?  (validate-cells rendering?  "Error validating attribute of type rendering with value"))
-(def shadows?     (validate-cells shadow?     "Error validating attribute of type shadow with value"))
-(def sizes?       (validate-cells size?       "Error validating attribute of type size with value"))
-(def smoothings?  (validate-cells smoothing?  "Error validating attribute of type smoothing with value"))
-(def spacings?    (validate-cells spacing?    "Error validating attribute of type spacing with value"))
-(def stretches?   (validate-cells stretch?    "Error validating attribute of type stetch with value"))
-(def styles?      (validate-cells style?      "Error validating attribute of type style with value"))
-(def syntheses?   (validate-cells synthesis?  "Error validating attribute of type sythesis with value"))
-(def transforms?  (validate-cells transform?  "Error validating attribute of type transformation with value"))
-(def capitalizes? (validate-cells capitalize? "Error validating attribute of type capitalize with value"))
-(def origins?     (validate-cells origin?     "Error validating attribute of type transformation origin with value"))
-(def boxes?       (validate-cells box?        "Error validating attribute of type transformation box with value"))
-(def txstyles?    (validate-cells txstyle?    "Error validating attribute of type transformation style with value"))
-(def weights?     (validate-cells weight?     "Error validating attribute of type weight with value"))
-
-(def callbacks?   (validate-cells callback?   "Error validating attribute of type callback with value"))
-(def docks?       (validate-cells dock?       "Error validating attribute of type dock with value"))
-(def attrs?       (validate-cells empty?      "Unhandled attribute with value"))
+(def callbacks?   (validate-cells v/callback?   "Error validating attribute of type callback with value"))
+(def docks?       (validate-cells v/dock?       "Error validating attribute of type dock with value"))
+(def attrs?       (validate-cells empty?        "Unhandled attribute with value"))
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -395,10 +164,8 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
     {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
-    (prn :a1 a :ah1 ah :av1 av)
     (let [ah (cell= ({:beg :left :mid :center :end :right}  (or ah a) (or ah a)))
           av (cell= ({:beg :top  :mid :middle :end :bottom} (or av a) (or av a)))]
-      (prn :ah2 ah :av2 av)
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
       (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
         (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
@@ -684,7 +451,7 @@
      (apply ctor (#'hoplon.core/parse-args args))))
 
 (defn font-face [family style weight names urls ranges]
-  {:pre [(family? family) (style? style) (weight? weight)]}
+  {:pre [(v/family? family) (v/style? style) (v/weight? weight)]}
   (let [name  #(str "local('" % "')")
         url   #(str "url('" % "') format('" (re-find #".+\.([^?]+)(\?|$)" %) "')")
         src   (apply str (interpose "," (concat (map name names) (map url urls))))
@@ -772,7 +539,7 @@
   5 14
   6 13})
 
-(defmulti  md (fn [tag ats elems] (prn :tag tag :ats ats :elems elems) tag))
+(defmulti  md (fn [tag ats elems] tag))
 (defmethod md :default    [tag ats elems] (elem elems))
 (defmethod md :markdown   [_ ats elems] elems)
 (defmethod md :header     [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))

@@ -63,7 +63,7 @@ the layout attributes specify how an `elem` should align and space its children 
 
 **gutters**: `:g :gh :gv`. the gutter, gutter horizontal, and gutter vertical values determine the spacing between the elements themselves.
 
-**aligments**: `:a :ah :av`. specify how children should be aligned when there's a difference between the size of the parent and the sum of the children's sizes in the same orientation.  the alignment values may be one of the following keywords:
+**aligments**: `:a :ah :av`. specify how children should be aligned when there's a difference between the size of the parent and the sum of the children's sizes in the same orientation. when children wrap into multiple lines, both the lines and the children within those lines will be vertically aligned.  the alignment values may be one of the following keywords:
   * `:beg` (default). align children to the left and/or top.
   * `:mid`. align children to the center and/or middle.
   * `:end`. align children to the right and/or bottom.
