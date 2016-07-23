@@ -19,8 +19,9 @@
 
 (def globals     [:initial :inherit])
 (def adjusts     [:none])
-(def haligns     [:left :right :center :justify])
-(def valigns     [:top :middle :bottom :baseline :sub :super :text-top :text-bottom])
+(def aligns      [:beg :mid :end])
+(def haligns     [:justify])
+(def valigns     [:baseline :sub :super :text-top :text-bottom])
 (def colors      [:transparent :antiquewhite :aqua :aquamarine :azure :beige
                   :bisque :black :blanchedalmond :blue :blueviolet :brown
                   :burlywood :cadetblue :chartreuse :chocolate :coral
@@ -152,14 +153,20 @@
         (nil?     v) :initial
         :else        false))
 
+(defn align? [v]
+  (cond (keyword? v) (in? v aligns haligns lengths globals)
+        (number?  v) v
+        (nil?     v) :initial
+        :else        false))
+
 (defn alignh? [v]
-  (cond (keyword? v) (in? v haligns lengths globals)
+  (cond (keyword? v) (in? v aligns haligns lengths globals)
         (number?  v) v
         (nil?     v) :initial
         :else        false))
 
 (defn alignv? [v]
-  (cond (keyword? v) (in? v valigns lengths globals)
+  (cond (keyword? v) (in? v aligns valigns lengths globals)
         (number?  v) v
         (nil?     v) :initial
         :else        false))
@@ -311,6 +318,7 @@
         :else        false))
 
 (def adjusts?     (validate-cells adjust?     "Error validating attribute of type adjust with value"))
+(def aligns?      (validate-cells align?      "Error validating attribute of type aling  with value"))
 (def alignhs?     (validate-cells alignh?     "Error validating attribute of type alingh with value"))
 (def alignvs?     (validate-cells alignv?     "Error validating attribute of type alignv with value"))
 (def colors?      (validate-cells color?      "Error validating attribute of type color with value"))
@@ -385,13 +393,17 @@
   the vertical alignment is proxied to the outer elements of the children so
   that, in addition to aligning the lines of children within the elem, the
   children are also aligned in the same manner within their respective lines."
-  (fn [{:keys [ah av] :as attrs} elems]
-    {:pre [(alignhs? ah) (alignvs? av)]}
-    (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
-    (with-let [e (ctor (dissoc attrs :ah :av) elems)]
-      (bind-in! e [in  .-style .-height]     (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
-      (bind-in! e [mid .-style .-textAlign]     ah)
-      (bind-in! e [mid .-style .-verticalAlign] av))))
+  (fn [{:keys [a ah av] :as attrs} elems]
+    {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
+    (prn :a1 a :ah1 ah :av1 av)
+    (let [ah (cell= ({:beg :left :mid :center :end :right}  (or ah a) (or ah a)))
+          av (cell= ({:beg :top  :mid :middle :end :bottom} (or av a) (or av a)))]
+      (prn :ah2 ah :av2 av)
+      (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
+      (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
+        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
+        (bind-in! e [mid .-style .-textAlign]     ah)
+        (bind-in! e [mid .-style .-verticalAlign] av)))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.

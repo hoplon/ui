@@ -42,20 +42,21 @@
 (defelem suite [{:keys [title pass code] :as attrs} elems]
   (elem :s (r 1 1) :p gutter :g gutter
     (elem :sh (r 1 1) :ph gutter
-      (elem :f 21 :fc font-grey
+      (elem :sh (r 1 2) :f 21 :fc font-grey
         title)
-      (when code
-        (elem :p gutter :ah :right :c fill-grey :b 1 :bc stroke-grey :r 3
-          code)))
+      (elem :sh (r 1 2) :ah :end
+        (when-tpl code
+          (elem :p gutter :c fill-grey :b 1 :bc stroke-grey :r 3
+            code))))
     (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]
-  (elem :s 40 :ah :center :av :middle :c (c 0xFFFFFF) :b 2 :bc stroke-grey
+  (elem :s 40 :a :mid :c (c 0xFFFFFF) :b 2 :bc stroke-grey
     attrs elems))
 
 (defelem test [{:keys [title pass] :as attrs} elems]
   (elem :sh 200
-    (elem :sv 26 :ph gutter :gh gutter :av :middle
+    (elem :sv 26 :ph gutter :gh gutter :av :mid
       (elem :s 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
     (elem :s 200                                          ; sizing
@@ -67,7 +68,7 @@
 
 (defelem text-test [{:keys [title pass] :as attrs} elems]
   (elem :sh 400
-    (elem :sv 26 :ph gutter :gh gutter :av :middle
+    (elem :sv 26 :ph gutter :gh gutter :av :mid
       (elem :s 6 :r 6 :c (cell= (if pass pass-color fail-color)))
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
     (elem :s (r 1 1)                                          ; sizing
@@ -82,65 +83,65 @@
   :route    [["tests"] {:foo "bar" :baz "barf"}]
   :metadata metadata
   :scroll   true
-  (elem :sh (r 1 1) :p 6 :av :middle :b 2 :bc stroke-grey
+  (elem :sh (r 1 1) :p 6 :av :mid :b 2 :bc stroke-grey
     (image :s 50 :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png")
     (elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
-  (suite :title "align horizontal & align vertical" :code ":ah [:left :right :center] :av [:top :middle :bottom]" :pass false
-    (test :ah :left   :av :top    :title "box aligns horizontal left & vertical top" :pass true
+  (suite :title "alignments" :code ":a :av :ah [:beg :bid :end :jst]" :pass false
+    (test :ah :beg :av :beg :title "box aligns horizontal left & vertical top" :pass true
       (box "a"))
-    (test :ah :center :av :top    :title "box aligns horizontal center & vertical top" :pass true
+    (test :ah :mid :av :beg :title "box aligns horizontal center & vertical top" :pass true
       (box "a"))
-    (test :ah :right  :av :top    :title "box aligns horizontal right & vertical top" :pass true
+    (test :ah :end :av :beg :title "box aligns horizontal right & vertical top" :pass true
       (box "a"))
-    (test :ah :left   :av :middle :title "box aligns horizontal left & vertical middle" :pass true
+    (test :ah :beg :av :mid :title "box aligns horizontal left & vertical middle" :pass true
       (box "a"))
-    (test :ah :center :av :middle :title "box aligns horizontal center & vertical middle" :pass true
+    (test :ah :mid :av :mid :title "box aligns horizontal center & vertical middle" :pass true
       (box "a"))
-    (test :ah :right  :av :middle :title "box aligns horizontal right & vertical middle" :pass true
+    (test :ah :end :av :mid :title "box aligns horizontal right & vertical middle" :pass true
       (box "a"))
-    (test :ah :left   :av :bottom :title "box aligns horizontal left & vertical bottom" :pass true
+    (test :ah :beg :av :end :title "box aligns horizontal left & vertical bottom" :pass true
       (box "a"))
-    (test :ah :center :av :bottom :title "box aligns horizontal center & vertical bottom" :pass true
+    (test :ah :mid :av :end :title "box aligns horizontal center & vertical bottom" :pass true
       (box "a"))
-    (test :ah :right  :av :bottom :title "box aligns horizontal right & vertical bottom" :pass true
+    (test :ah :end :av :end :title "box aligns horizontal right & vertical bottom" :pass true
       (box "a"))
-    (test :ah :left   :av :top    :title "boxes align horizontal left & vertical top" :pass true
+    (test :ah :beg :av :beg :title "boxes align horizontal left & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :center :av :top    :title "boxes align horizontal center & vertical top" :pass true
+    (test :ah :mid :av :beg :title "boxes align horizontal center & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :right  :av :top    :title "boxes align horizontal right & vertical top" :pass true
+    (test :ah :end :av :beg :title "boxes align horizontal right & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :left   :av :middle :title "boxes align horizontal left & vertical middle" :pass true
+    (test :ah :beg :av :mid :title "boxes align horizontal left & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :center :av :middle :title "boxes align horizontal center & vertical middle" :pass true
+    (test :ah :mid :av :mid :title "boxes align horizontal center & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :right  :av :middle :title "boxes align horizontal right & vertical middle" :pass true
+    (test :ah :end :av :mid :title "boxes align horizontal right & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :left   :av :bottom :title "boxes align horizontal left & vertical bottom" :pass true
+    (test :ah :beg :av :end :title "boxes align horizontal left & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :center :av :bottom :title "boxes align horizontal center & vertical bottom" :pass true
+    (test :ah :mid :av :end :title "boxes align horizontal center & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :right  :av :bottom :title "boxes align horizontal right & vertical bottom" :pass true
+    (test :ah :end :av :end :title "boxes align horizontal right & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c"))
-    (test :ah :left  :av :top :title "boxes align horizontal left & vertical top" :pass true
+    (test :ah :beg :av :beg :title "boxes align horizontal left & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -151,7 +152,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :center :av :top :title "boxes align horizontal center & vertical top" :pass true
+    (test :ah :mid :av :beg :title "boxes align horizontal center & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -162,7 +163,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :right  :av :top :title "boxes align horizontal right & vertical top" :pass true
+    (test :ah :end :av :beg :title "boxes align horizontal right & vertical top" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -173,7 +174,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :left  :av :middle :title "boxes align horizontal left & vertical middle" :pass true
+    (test :ah :beg :av :mid :title "boxes align horizontal left & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -184,7 +185,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :center :av :middle :title "boxes align horizontal center & vertical middle" :pass true
+    (test :ah :mid :av :mid :title "boxes align horizontal center & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -195,7 +196,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :right  :av :middle :title "boxes align horizontal right & vertical middle" :pass true
+    (test :ah :end :av :mid :title "boxes align horizontal right & vertical middle" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -206,7 +207,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :left  :av :bottom :title "boxes align horizontal left & vertical bottom" :pass true
+    (test :ah :beg :av :end :title "boxes align horizontal left & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -217,7 +218,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :center  :av :bottom :title "boxes align horizontal center & vertical bottom" :pass true
+    (test :ah :mid :av :end :title "boxes align horizontal center & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -228,7 +229,7 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
-    (test :ah :right  :av :bottom :title "boxes align horizontal right & vertical bottom" :pass true
+    (test :ah :end :av :end :title "boxes align horizontal right & vertical bottom" :pass true
       (box :sv 60 "a")
       (box :sv 40 "b")
       (box :sv 20 "c")
@@ -243,26 +244,26 @@
       (markdown
         "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\nsome *italic text* and **bold text**\n"))))
 
-  ; (test :ah :center  :av :middle :title "box in cell aligns horizontal center & vertical center" :pass false
+  ; (test :ah :mid  :av :mid :title "box in cell aligns horizontal center & vertical center" :pass false
   ;   (cell (box "a")))
-  ; (test :ah :center  :av :middle :title "boxes in formula cell align horizontal center & vertical center" :pass false
+  ; (test :ah :mid  :av :mid :title "boxes in formula cell align horizontal center & vertical center" :pass false
   ;   (for-tpl [thing things]
   ;     (box thing)))
   ; (suite :title "layouts"
-  ;   (test :ah :center :av :middle :title "elem % sizes to column width set by sibling" :pass false
+  ;   (test :a :mid :title "elem % sizes to column width set by sibling" :pass false
   ;     (elem
   ;       (box :sh(r 1 1) "a")
   ;       (box "b")))
-  ;   (test :ah :center :av :middle :title "fonts below size 16 adjust vertical position of siblings" :pass false
+  ;   (test :a :mid :title "fonts below size 16 adjust vertical position of siblings" :pass false
   ;       ;; caused by
   ;     (elem
   ;       (elem :f 10 "a")
   ;       (box "b")))
-  ;   (test :ah :center :av :middle :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
+  ;   (test :a :mid :title "elem of fixed width remains constant when gutter is applied to parent." :pass false
   ;       ;; solution: apply lengths to middle, but percentages to outer
   ;     (elem :g 50
   ;       (box "a")))))
-  ; (test :ah :center :av :middle :title "elem sizes to width of attribute in cell" :pass false
+  ; (test :a :mid :title "elem sizes to width of attribute in cell" :pass false
   ;   (elem
   ;     (box :sh(cell 80) "a")))
   ; (suite :title "controls"
@@ -270,4 +271,4 @@
   ;   (button :sh150 :sv 75 :fc :white "Click Me")
   ;   (button :sh300 :sv 200 "Click Me")
   ;   (button :sh300 :sv 200 "Click Me")
-  ;   #_(elem :sv 25 :sh[(r 1 1) sm (- (r 1 1) 220)] :ah :right :g 6)))
+  ;   #_(elem :sv 25 :sh[(r 1 1) sm (- (r 1 1) 220)] :ah :end :g 6)))
