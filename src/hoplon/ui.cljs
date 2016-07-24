@@ -87,7 +87,7 @@
     true))
 
 (def adjusts?     (validate-cells v/adjust?     "Error validating attribute of type adjust with value"))
-(def aligns?      (validate-cells v/align?      "Error validating attribute of type aling  with value"))
+(def aligns?      (validate-cells v/align?      "Error validating attribute of type align with value"))
 (def alignhs?     (validate-cells v/alignh?     "Error validating attribute of type alingh with value"))
 (def alignvs?     (validate-cells v/alignv?     "Error validating attribute of type alignv with value"))
 (def colors?      (validate-cells v/color?      "Error validating attribute of type color with value"))

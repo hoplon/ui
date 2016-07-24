@@ -63,7 +63,7 @@
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn in? [v & kwvecs]  (some #{v} (apply conj kwvecs)))
+(defn in? [v & kwvecs] (some #{v} (apply concat kwvecs)))
 
 ;;; validation fns ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -74,7 +74,7 @@
         :else        false))
 
 (defn align? [v]
-  (cond (keyword? v) (in? v aligns haligns lengths globals)
+  (cond (keyword? v) (in? v aligns lengths globals)
         (number?  v) v
         (nil?     v) :initial
         :else        false))
