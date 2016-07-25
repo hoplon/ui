@@ -1,14 +1,10 @@
 (ns hoplon.ui.attrs
-  (:refer-clojure :exclude [+ - * /])
+  (:refer-clojure
+    :exclude [+ - * /])
   (:require
-    [clojure.string :refer [blank? join]]
-    [javelin.core   :refer [cell]])
-  (:require-macros
-    [javelin.core   :refer [cell= with-let set-cell!=]]))
+    [clojure.string :refer [blank? join]]))
 
 (declare + - * /)
-
-(def ^:dynamic *state* nil)
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -162,17 +158,6 @@
 (def * (mkcalc clojure.core/* "*"))
 (def / (mkcalc clojure.core// "/"))
 
-(defn b
-  "breakpoints."
-  [x & xs]
-  (with-let [v (cell nil)]
-    (let [[o vs] (case x :h ["width" xs] :v ["height" xs] ["width" (cons x xs)])]
-      (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
-        (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
-              value! #(when (.-matches %) (set-cell!= v val))]
-          (value! query)
-          (.addListener query #(value! %)))))))
-
 (defn c
   "color"
   ([hex]
@@ -191,12 +176,6 @@
   "ratio"
   [n d]
   (Ratio. n d))
-
-(defn s
-  "states"
-  ;; todo: transition between states
-  [& kvs]
-  (cell= ((apply hash-map kvs) *state*)))
 
 (defn t
   "transformation"

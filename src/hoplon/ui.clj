@@ -1,4 +1,6 @@
 (ns hoplon.ui
+  (:refer-clojure
+    :exclude [comp])
   (:require
     [javelin.core :refer [cell=]]))
 
@@ -11,13 +13,10 @@
 (defmacro bind-in! [elem path & values]
   `(bind-with (fn [vs#] (set-in* ~elem ~path vs#)) (vector ~@values)))
 
-(defmacro button [& args]
-  `(binding [hoplon.ui.attrs/*state* (javelin.core/cell :up)]
-    (button* ~@args)))
-
-(defmacro toggle [& args]
-  `(binding [hoplon.ui.attrs/*state* (javelin.core/cell :up)]
-    (toggle* ~@args)))
+(defmacro comp [& args]
+  `(binding [hoplon.ui/*pointer* (javelin.core/cell {:over 0 :down 0 :up 0 :out 0})
+             hoplon.ui/*state*   (javelin.core/cell nil)]
+    (comp* ~@args)))
 
 (defmacro form [& args]
   `(binding [*data*   (atom nil)

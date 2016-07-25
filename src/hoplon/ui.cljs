@@ -8,12 +8,15 @@
     [hoplon.ui.validation :as v])
   (:require-macros
     [hoplon.ui    :refer [bind-in!]]
-    [javelin.core :refer [cell= with-let]]))
+    [javelin.core :refer [cell= with-let set-cell!=]]))
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ^:dynamic *exceptions* nil)
 (def ^:dynamic *position*   nil)
+(def ^:dynamic *clicks*     nil)
+(def ^:dynamic *pointer*    nil)
+(def ^:dynamic *state*      nil)
 
 (def empty-icon-url  "data:;base64,iVBORw0KGgo=")
 (def empty-image-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")
@@ -331,7 +334,7 @@
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
 
-(defn wrap-form [ctor]
+(defn formable [ctor]
   "set up a form context"
   (fn [{:keys [submit] :as attrs} elems]
     (reset! *submit* submit)
@@ -339,7 +342,7 @@
       (with-let [e (ctor (dissoc attrs :submit) elems)]
         (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit @data)))))))
 
-(defn wrap-field [ctor]
+(defn fieldable [ctor]
   "set up a form context"
   (fn [{:keys [autocorrect autocapitalize label key type value] :as attrs} elems]
     {:pre []} ;; todo: validate
@@ -354,7 +357,7 @@
         (bind-in! e [in .-autocorrect]    autocorrect)
         (bind-in! e [in .-autocapitalize] autocapitalize)))))
 
-(defn wrap-submit [ctor]
+(defn submitable [ctor]
   "set up a form context"
   (fn [{label :label submit' :submit :as attrs} elems]
     {:pre []} ;; todo: validate
@@ -367,7 +370,7 @@
 
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn handle-exception [ctor]
+(defn exceptional [ctor]
   "handle errors by highlighting the corresponding component"
   (fn [attrs elems]
     (binding [*exceptions* (atom [])]
@@ -397,7 +400,7 @@
         (set! (.. skin -innerHTML)       "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
         (.appendChild (mid e) skin)))))
 
-(defn image* [ctor]
+(defn imageable [ctor]
   ;; todo: vertical alignment of content
   "set the size of the absolutely positioned inner elem to the padding"
   (fn [{:keys [url p ph pv pl pr pt pb] :as attrs} elems]
@@ -415,7 +418,7 @@
       ; (bind-in! e [in .-style .-backgroundSize]   (when url :contain))
       ; (bind-in! e [in .-style .-backgroundRepeat] (when url :no-repeat)))))
 
-(defn wrap-frame [ctor]
+(defn frameable [ctor]
   (fn [{:keys [type url] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :type :url) elems)]
@@ -424,7 +427,7 @@
       (bind-in! e [in .-type] type)
       (bind-in! e [in .-src]  url))))
 
-(defn wrap-object [ctor]
+(defn embedable [ctor]
   (fn [{:keys [type data id xo] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :type :data :id :xo) elems)]
@@ -432,7 +435,7 @@
       (bind-in! e [in .-crossOrigin] xo)
       (bind-in! e [in .-data]        data))))
 
-(defn wrap-video [ctor]
+(defn playable [ctor]
   (fn [{:keys [controls url] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :controls :url) elems)]
@@ -463,26 +466,27 @@
                "unicode-range" range}]
     (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
 
-(defn interactable [ctor]
+(defn interactive [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (let [state hoplon.ui.attrs/*state*]
-        (.addEventListener (mid e) "mouseover" #(reset! state :over))
-        (.addEventListener (mid e) "mouseout"  #(reset! state :up))
-        (.addEventListener (mid e) "mousedown" #(reset! state :down))
-        (.addEventListener (mid e) "mouseup"   #(reset! state :up))))))
+      (let [pointer *pointer*]
+        (.addEventListener (mid e) "mouseover" #(swap! pointer update :over inc))
+        (.addEventListener (mid e) "mousedown" #(swap! pointer update :down inc))
+        (.addEventListener (mid e) "mouseup"   #(swap! pointer update :up   inc))
+        (.addEventListener (mid e) "mouseout"  #(swap! pointer assoc  :out (inc (:out @pointer)) :up (:down @pointer)))))))
 
-(defn selectable [ctor]
+(defn stateful [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (let [state     hoplon.ui.attrs/*state*
-            selected? #(ends-with? (name %) "-selected")]
-        (.addEventListener (mid e) "mouseover" #(swap! state (fn [s] (if (selected? s) :over-selected :over))))
-        (.addEventListener (mid e) "mouseout"  #(swap! state (fn [s] (if (selected? s) :up-selected :up))))
-        (.addEventListener (mid e) "mousedown" #(swap! state (fn [s] (if (selected? s) :down :down-selected))))
-        (.addEventListener (mid e) "mouseup"   #(swap! state (fn [s] (if (selected? s) :up-selected :up))))))))
+      (let [pointer *pointer*
+            state   *state*
+            switch  #(if (odd? (:down %)) "on" "off")
+            mouse   #(cond (not= (:over %) (:out %)) "over"
+                           (not= (:down %) (:up  %)) "down"
+                           :else                     "out")]
+        (set-cell!= state (keyword (str (mouse pointer) "-" (switch pointer))))))))
 
-(defn window** [ctor]
+(defn windowable [ctor]
   ;; todo: finish mousechanged
   (fn [{:keys [fonts icon language metadata route position scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
     (let [get-agent  #(-> js/window .-navigator)
@@ -556,7 +560,7 @@
 (defmethod md :em         [_ {:keys [level]} elems] (elem :fi :italic                 elems))
 (defmethod md :strong     [_ {:keys [level]} elems] (elem :ft :bold                   elems))
 
-(defn wrap-markdown [ctor]
+(defn markdownable [ctor]
   (fn [{:keys [mdfn] :as attrs} elems]
     {:pre []} ;; todo: validate
     (binding [hoplon.ui.elems/*mdfn* (or mdfn md)]
@@ -564,35 +568,47 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def component (comp handle-exception wrap-markdown align shadow round border pad nudge size dock font color transform click assert-noattrs))
-(def img       (comp handle-exception wrap-markdown align shadow round border image* pad nudge size font color click))
+(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform click assert-noattrs))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def window* (-> doc component space window** parse-args))
-(def elem    (-> h/div    box component space parse-args))
-(def button* (-> h/button box destyle component interactable parse-args))
-(def toggle* (-> h/button box destyle component selectable   parse-args))
-(def image   (-> h/div    box img parse-args))
-(def form*   (-> h/form   box component space wrap-form parse-args))
-(def field   (-> h/input  box destyle component wrap-field parse-args))
-(def check   (-> h/input  box destyle component wrap-field parse-args))
-(def submit  (-> h/input  box destyle component wrap-submit parse-args))
-(def object  (-> h/html-object box component wrap-object parse-args))
-(def video   (-> h/video  box component wrap-video parse-args))
-(def frame   (-> h/iframe box component wrap-frame parse-args))
+(def elem    (-> h/div         box         node                       parse-args))
+(def comp*   (-> h/div         box         node interactive stateful  parse-args))
+(def image   (-> h/div         box         node imageable             parse-args))
+(def window* (-> doc                       node windowable            parse-args))
+
+(def form*   (-> h/form        box         node formable              parse-args))
+(def field   (-> h/input       box destyle node interactive fieldable parse-args))
+(def submit  (-> h/input       box destyle node submitable            parse-args))
+
+(def object  (-> h/html-object box         node embedable             parse-args))
+(def video   (-> h/video       box         node playable              parse-args))
+(def frame   (-> h/iframe      box         node frameable             parse-args))
+
+;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn b
+  "breakpoints."
+  [x & xs]
+  (with-let [v (cell nil)]
+    (let [[o vs] (case x :h ["width" xs] :v ["height" xs] ["width" (cons x xs)])]
+      (doseq [[min val max] (partition 3 2 (concat [0] vs [999999]))]
+        (let [query (.matchMedia js/window (str "(min-" o ": " min "px) and (max-" o ": " max "px)"))
+              value! #(when (.-matches %) (set-cell!= v val))]
+          (value! query)
+          (.addListener query #(value! %)))))))
+
+(defn s
+  "states"
+  ;; todo: transition between states
+  [& kvs]
+  (cell= ((apply hash-map kvs) *state*)))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; margin
-;; fixed
-;; constraint (absolute positioning within parent)
-;; offset     (use outer css margin to move out of current position)
-;; todo, once clear cases become apparent
+;; offset (use outer css margin to move out of current position)
 ;; baseline-shift
 ;; background, url (str "url(" v ") no-repeat 50% 50% / cover")
-;; user-select, selectable
-;; :toggle as as mid-attr
 ;; update, previously implemented on do multimethod, to form middleware
 ;; throw proper ui exceptions with stack traces and attribute kv information
 ;; consider utility of introducing rtl positioning
