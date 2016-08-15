@@ -1,12 +1,13 @@
 (ns hoplon.ui
   (:require
     [hoplon.core :as h]
-    [clojure.string  :refer [join split ends-with?]]
+    [clojure.string  :refer [blank? join split ends-with?]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
     [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]]
     [hoplon.ui.validation :as v])
   (:require-macros
+    [hoplon.core  :refer [with-timeout]]
     [hoplon.ui    :refer [bind-in!]]
     [javelin.core :refer [cell= with-let set-cell!=]]))
 
@@ -27,9 +28,9 @@
   "transforms a urlstate of the form [[\"foo\" \"bar\"] {:baz \"barf\"}]
    to hash string in the form \"foo/bar&baz=barf\""
   (let [pair (fn [[k v]] (str (name k) "=" (pr-str v)))
-        pstr (when path (apply str "/" (interpose "/" (map name path))))
-        qstr (when qmap (apply str "?" (interpose "&" (map pair qmap))))]
-    (str "#" pstr qstr)))
+        pstr (when (not-empty path) (apply str "/" (interpose "/" (map name path))))
+        qstr (when (not-empty qmap) (apply str "?" (interpose "&" (map pair qmap))))]
+    (str pstr qstr)))
 
 (defn hash->route [hash]
   "transforms a hash string to a urlstate of the form
@@ -38,7 +39,18 @@
         pair        #(let [[k v] (split % #"=")] [(keyword k) (cljs.reader/read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
-    (vec (remove empty? [path qmap]))))
+    (vec [path qmap])))
+
+(defn clean [map] (into {} (filter second map)))
+
+(defn debounce [ms f]
+  (let [queued? (atom false)]
+    (fn [& args]
+      (when-not @queued?
+        (reset! queued? true)
+        (with-timeout ms
+          (reset! queued? false)
+          (apply f args))))))
 
 (def visibility->status
   "maps the visibility string to a status keyword"
@@ -89,36 +101,41 @@
         (throw-ui-exception message " " v ".")))
     true))
 
-(def adjusts?     (validate-cells v/adjust?     "Error validating attribute of type adjust with value"))
-(def aligns?      (validate-cells v/align?      "Error validating attribute of type align with value"))
-(def alignhs?     (validate-cells v/alignh?     "Error validating attribute of type alingh with value"))
-(def alignvs?     (validate-cells v/alignv?     "Error validating attribute of type alignv with value"))
-(def colors?      (validate-cells v/color?      "Error validating attribute of type color with value"))
-(def cursors?     (validate-cells v/cursor?     "Error validating attribute of type cursor with value"))
-(def decorations? (validate-cells v/decoration? "Error validating attribute of type decoration with value"))
-(def families?    (validate-cells v/family?     "Error validating attribute of type family with value"))
-(def kernings?    (validate-cells v/kerning?    "Error validating attribute of type kerning with value"))
-(def lengths?     (validate-cells v/length?     "Error validating attribute of type length with value"))
-(def opacities?   (validate-cells v/opacity?    "Error validating attribute of type opacity with value"))
-(def overflows?   (validate-cells v/overflow?   "Error validating attribute of type overflow with value"))
-(def renderings?  (validate-cells v/rendering?  "Error validating attribute of type rendering with value"))
-(def shadows?     (validate-cells v/shadow?     "Error validating attribute of type shadow with value"))
-(def sizes?       (validate-cells v/size?       "Error validating attribute of type size with value"))
-(def smoothings?  (validate-cells v/smoothing?  "Error validating attribute of type smoothing with value"))
-(def spacings?    (validate-cells v/spacing?    "Error validating attribute of type spacing with value"))
-(def stretches?   (validate-cells v/stretch?    "Error validating attribute of type stetch with value"))
-(def styles?      (validate-cells v/style?      "Error validating attribute of type style with value"))
-(def syntheses?   (validate-cells v/synthesis?  "Error validating attribute of type sythesis with value"))
-(def transforms?  (validate-cells v/transform?  "Error validating attribute of type transformation with value"))
-(def capitalizes? (validate-cells v/capitalize? "Error validating attribute of type capitalize with value"))
-(def origins?     (validate-cells v/origin?     "Error validating attribute of type transformation origin with value"))
-(def boxes?       (validate-cells v/box?        "Error validating attribute of type transformation box with value"))
-(def txstyles?    (validate-cells v/txstyle?    "Error validating attribute of type transformation style with value"))
-(def weights?     (validate-cells v/weight?     "Error validating attribute of type weight with value"))
+(def adjusts?         (validate-cells v/adjust?         "Error validating attribute of type adjust with value"))
+(def aligns?          (validate-cells v/align?          "Error validating attribute of type align with value"))
+(def alignhs?         (validate-cells v/alignh?         "Error validating attribute of type alingh with value"))
+(def alignvs?         (validate-cells v/alignv?         "Error validating attribute of type alignv with value"))
+(def colors?          (validate-cells v/color?          "Error validating attribute of type color with value"))
+(def cursors?         (validate-cells v/cursor?         "Error validating attribute of type cursor with value"))
+(def decorations?     (validate-cells v/decoration?     "Error validating attribute of type decoration with value"))
+(def families?        (validate-cells v/family?         "Error validating attribute of type family with value"))
+(def kernings?        (validate-cells v/kerning?        "Error validating attribute of type kerning with value"))
+(def lengths?         (validate-cells v/length?         "Error validating attribute of type length with value"))
+(def opacities?       (validate-cells v/opacity?        "Error validating attribute of type opacity with value"))
+(def overflows?       (validate-cells v/overflow?       "Error validating attribute of type overflow with value"))
+(def renderings?      (validate-cells v/rendering?      "Error validating attribute of type rendering with value"))
+(def shadows?         (validate-cells v/shadow?         "Error validating attribute of type shadow with value"))
+(def sizes?           (validate-cells v/size?           "Error validating attribute of type size with value"))
+(def smoothings?      (validate-cells v/smoothing?      "Error validating attribute of type smoothing with value"))
+(def spacings?        (validate-cells v/spacing?        "Error validating attribute of type spacing with value"))
+(def stretches?       (validate-cells v/stretch?        "Error validating attribute of type stetch with value"))
+(def styles?          (validate-cells v/style?          "Error validating attribute of type style with value"))
+(def syntheses?       (validate-cells v/synthesis?      "Error validating attribute of type sythesis with value"))
+(def transforms?      (validate-cells v/transform?      "Error validating attribute of type transformation with value"))
+(def capitalizes?     (validate-cells v/capitalize?     "Error validating attribute of type capitalize with value"))
+(def origins?         (validate-cells v/origin?         "Error validating attribute of type transformation origin with value"))
+(def boxes?           (validate-cells v/box?            "Error validating attribute of type transformation box with value"))
+(def txstyles?        (validate-cells v/txstyle?        "Error validating attribute of type transformation style with value"))
+(def weights?         (validate-cells v/weight?         "Error validating attribute of type weight with value"))
 
-(def callbacks?   (validate-cells v/callback?   "Error validating attribute of type callback with value"))
-(def docks?       (validate-cells v/dock?       "Error validating attribute of type dock with value"))
-(def attrs?       (validate-cells empty?        "Unhandled attribute with value"))
+(def autocompletes?   (validate-cells v/autocomplete?   "Error validating attribute of type autocomplete with value"))
+(def autocapitalizes? (validate-cells v/autocapitalize? "Error validating attribute of type autocapitalize with value"))
+(def integers?        (validate-cells v/integer?        "Error validating attribute of type integer with value"))
+(def contents?        (validate-cells v/content?        "Error validating attribute of type char with value"))
+
+(def callbacks?       (validate-cells v/callback?       "Error validating attribute of type callback with value"))
+(def docks?           (validate-cells v/dock?           "Error validating attribute of type dock with value"))
+(def attrs?           (validate-cells empty?            "Unhandled attribute with value"))
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -167,7 +184,7 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
     {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
-    (let [ah (cell= ({:beg :left :mid :center :end :right}  (or ah a) (or ah a)))
+    (let [ah (cell= ({:beg :left :mid :center :end :right :jst :justify}  (or ah a) (or ah a)))
           av (cell= ({:beg :top  :mid :middle :end :bottom} (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
       (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
@@ -334,31 +351,57 @@
 (def ^:dynamic *error*  nil)
 (def ^:dynamic *submit* nil)
 
-(defn formable [ctor]
+(defn formidable [ctor]
   "set up a form context"
-  (fn [{:keys [submit] :as attrs} elems]
+  (fn [{:keys [change submit] :as attrs} elems]
     (reset! *submit* submit)
     (let [data *data*]
-      (with-let [e (ctor (dissoc attrs :submit) elems)]
-        (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit @data)))))))
+      (when change (cell= (change (clean data))))
+      (with-let [e (ctor (dissoc attrs :change :submit) elems)]
+        (.addEventListener (in e) "keypress" #(when (= (.-which %) 13) (submit (clean @data))))))))
 
 (defn fieldable [ctor]
-  "set up a form context"
-  (fn [{:keys [autocorrect autocapitalize label key type value] :as attrs} elems]
-    {:pre []} ;; todo: validate
+  (fn [{:keys [key val req] :as attrs} elems]
+    ;{:pre []} todo: validate
     (let [data *data*]
-      (with-let [e (ctor (dissoc attrs :autocorrect :autocapitalize :label :key :type :value) elems)]
-        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
-        (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
-        (bind-in! e [in .-name]           (cell= (when key (name key))))
-        (bind-in! e [in .-type]           type)
-        (bind-in! e [in .-value]          value)
-        (bind-in! e [in .-placeholder]    label)
-        (bind-in! e [in .-autocorrect]    autocorrect)
-        (bind-in! e [in .-autocapitalize] autocapitalize)))))
+      (with-let [e (ctor (dissoc attrs :key :val :req) elems)]
+        (.addEventListener (in e) "change" #(when data (prn :changed) (swap! data assoc (keyword (.-name (in e))) (not-empty (.-value (in e))))))
+        (.addEventListener (in e) "keyup"  (debounce 800 #(when data (swap! data assoc (keyword (.-name (in e))) (not-empty (.-value (in e)))))))
+        (bind-in! e [in .-name]     key)
+        (bind-in! e [in .-value]    val)
+        (bind-in! e [in .-required] (cell= (when req :required)))))))
 
-(defn submitable [ctor]
-  "set up a form context"
+(defn toggleable [ctor]
+  (fn [{:keys [key val req] :as attrs} elems]
+    ;{:pre []} todo: validate
+    (let [data *data*]
+      (swap! *data* assoc key (or val false))
+      (with-let [e (ctor (dissoc attrs :key :val :req) elems)]
+        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-checked (in e)))))
+        (bind-in! e [in .-type]     "checkbox")
+        (bind-in! e [in .-name]     key)
+        (bind-in! e [in .-required] req)
+        (bind-in! e [in .-checked]  val)))))
+
+(defn file-field [ctor]
+  (fn [{:keys [accept] :as attrs} elems]
+    ;{:pre []} ;accept [".jpg" ".png" "audio/*" "video/*" "image/*" "application/ogg"]
+    (with-let [e (ctor (dissoc attrs :accept) elems)]
+      (bind-in! e [in .-type] "file"))))
+
+(defn text-field [ctor]
+  (fn [{:keys [autocomplete autocapitalize content prompt charsize charmin charmax] :as attrs} elems]
+    {:pre [(autocompletes? autocomplete) (autocapitalizes? autocapitalize) (contents? content) (integers? charsize charmin charmax)]}
+    (with-let [e (ctor (dissoc attrs :autocomplete :autocapitalize :content :prompt :charsize :charmin :charmax) elems)]
+      (bind-in! e [in .-type]           content)
+      (bind-in! e [in .-placeholder]    prompt)
+      (bind-in! e [in .-autocomplete]   autocomplete)
+      (bind-in! e [in .-autocapitalize] autocapitalize)
+      ;(bind-in! e [in .-size]           charsize)
+      (bind-in! e [in .-minlength]      charmin)
+      (bind-in! e [in .-maxlength]      charmax))))
+
+(defn submittable [ctor]
   (fn [{label :label submit' :submit :as attrs} elems]
     {:pre []} ;; todo: validate
     (let [data   *data*
@@ -427,7 +470,7 @@
       (bind-in! e [in .-type] type)
       (bind-in! e [in .-src]  url))))
 
-(defn embedable [ctor]
+(defn objectable [ctor]
   (fn [{:keys [type data id xo] :as attrs} elems]
     {:pre []} ;; todo: validate
     (with-let [e (ctor (dissoc attrs :type :data :id :xo) elems)]
@@ -442,7 +485,7 @@
       (bind-in! e [in .-src]      url)
       (bind-in! e [in .-controls] (when controls "controls")))))
 
-(defn click [ctor] ;; todo: remove listener
+(defn clickable [ctor] ;; todo: remove listener
   (fn [{:keys [click] :as attrs} elems]
     {:pre [(callbacks? click)]}
     (with-let [e (ctor (dissoc attrs :click) elems)]
@@ -489,9 +532,11 @@
 (defn windowable [ctor]
   ;; todo: finish mousechanged
   (fn [{:keys [fonts icon language metadata route position scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
-    (let [get-agent  #(-> js/window .-navigator)
-          get-hash   #(-> js/window .-location .-hash)
-          get-route  #(-> js/window .-location .-hash hash->route)
+    (let [get-hash   #(-> js/window .-location .-hash)
+          set-hash!  #(if (blank? %) (.replaceState js/history #js{} js/document.title ".") (set! js/location.hash %))
+          get-route  (comp hash->route get-hash)
+          set-route! (comp set-hash! route->hash)
+          get-agent  #(-> js/window .-navigator)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
         (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :title :route :lang :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
@@ -517,7 +562,7 @@
                 (when positionchanged
                   (when-not (= new-position position)
                     (positionchanged x y))))))
-          (cell= (set! js/location.hash (route->hash route)))
+          (cell= (set-route! route))
           (.addEventListener js/document "DOMContentLoaded"
             #(cell= (.scroll js/window (first position) (second position))))
           (h/head
@@ -567,23 +612,26 @@
       (ctor (dissoc attrs :mdfn) elems))))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform click assert-noattrs))
+;
+; (def leaf (comp exceptional              align shadow round border))
+(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable assert-noattrs))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem    (-> h/div         box         node                       parse-args))
-(def comp*   (-> h/div         box         node interactive stateful  parse-args))
-(def image   (-> h/div         box         node imageable             parse-args))
-(def window* (-> doc                       node windowable            parse-args))
+(def elem    (-> h/div         box         node                        parse-args))
+(def comp*   (-> h/div         box         node interactive stateful   parse-args))
+(def image   (-> h/div         box         node imageable              parse-args))
+(def window* (-> doc                       node windowable             parse-args))
 
-(def form*   (-> h/form        box         node formable              parse-args))
-(def field   (-> h/input       box destyle node interactive fieldable parse-args))
-(def submit  (-> h/input       box destyle node submitable            parse-args))
+(def form*   (-> h/form        box         node formidable             parse-args))
+(def toggle  (-> h/input       box destyle node toggleable             parse-args))
+(def file    (-> h/input       box destyle node fieldable   file-field parse-args))
+(def text    (-> h/input       box destyle node fieldable   text-field parse-args))
+(def submit  (-> h/input       box destyle node submittable            parse-args))
 
-(def object  (-> h/html-object box         node embedable             parse-args))
-(def video   (-> h/video       box         node playable              parse-args))
-(def frame   (-> h/iframe      box         node frameable             parse-args))
+(def object  (-> h/html-object box         node objectable             parse-args))
+(def video   (-> h/video       box         node playable               parse-args))
+(def frame   (-> h/iframe      box         node frameable              parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -1,4 +1,6 @@
 (ns hoplon.ui.validation
+  (:refer-clojure
+    :exclude [integer?])
   (:require
     [hoplon.ui.attrs :as a]))
 
@@ -236,3 +238,39 @@
   (cond (keyword? v) (in? v weights globals)
         (nil?     v) :initial
         :else        false))
+
+;;; form attributes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def autocapitalizes [:none :sentences :words :characters])
+(def autocompletes   [:off :on :additional-name :address-line1 :address-line2
+                      :address-line3 :address-level4 :address-level3
+                      :address-level2 :address-level1 :bday :bday-day
+                      :bday-month :bday-year :cc-additional-name :cc-csc :cc-exp
+                      :cc-exp-month :cc-exp-year :cc-family-name :cc-given-name
+                      :cc-name :cc-number :cc-type :country :country-name
+                      :current-password :email :family-name :given-name
+                      :honorific-prefix :honorific-suffix :language :name
+                      :new-password :nickname :organization :organization-title
+                      :photo :postal-code :sex :street-address :tel
+                      :transaction-amount :transaction-currency :username :url])
+(def contents        [:text :search :tel :url :email :password])
+
+(defn autocapitalize? [v]
+  (cond (keyword? v) (in? autocapitalizes)
+        (nil?     v) true
+        :else        false))
+
+(defn autocomplete? [v]
+  (cond (keyword? v) (in? autocompletes)
+        (nil?     v) true
+        :else        false))
+
+(defn content? [v]
+  (cond (keyword? v) (in? contents)
+        (nil?     v) true
+        :else        false))
+
+(defn integer? [v]
+  (cond (clojure.core/integer? v) v
+        (nil?                  v) true
+        :else                     false))

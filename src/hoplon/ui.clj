@@ -19,7 +19,7 @@
     (comp* ~@args)))
 
 (defmacro form [& args]
-  `(binding [*data*   (atom nil)
+  `(binding [*data*   (javelin.core/cell nil)
              *error*  (atom nil)
              *submit* (atom nil)]
     (form* ~@args)))
