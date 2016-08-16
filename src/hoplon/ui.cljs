@@ -350,7 +350,7 @@
       (with-let [e (ctor (dissoc attrs :autocorrect :autocapitalize :label :key :type :value) elems)]
         (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
         (.addEventListener (in e) "keyup"  #(when data (swap! data assoc (keyword (.-name (in e))) (.-value (in e)))))
-        (bind-in! e [in .-name]           (cell= (when key (name key))))
+        (bind-in! e [in .-name]           (cell= (when key (subs (str key) 1))))
         (bind-in! e [in .-type]           type)
         (bind-in! e [in .-value]          value)
         (bind-in! e [in .-placeholder]    label)
