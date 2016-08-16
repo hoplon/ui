@@ -6,9 +6,9 @@
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [elem image window]]
+    [hoplon.ui       :refer [elem image window s b]]
     [hoplon.ui.elems :refer [markdown]]
-    [hoplon.ui.attrs :refer [- c r s b d]]))
+    [hoplon.ui.attrs :refer [- c r d]]))
 
 (defc things ["a" "b" "c"])
 
