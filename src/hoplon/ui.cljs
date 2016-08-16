@@ -612,8 +612,7 @@
       (ctor (dissoc attrs :mdfn) elems))))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;
-; (def leaf (comp exceptional              align shadow round border))
+
 (def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable assert-noattrs))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
