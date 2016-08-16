@@ -173,7 +173,7 @@
         (bind-in! e [mid .-style .-maxWidth]  (fix sh+ nil))
         (bind-in! e [mid .-style .-height]    (fix (or sv s) nil))
         (bind-in! e [mid .-style .-maxHeight] (fix (or sv s) nil))
-        (bind-in! e [in  .-style .-overflowY] (cell= (when (and scroll (or sv s) :auto)))))))) ;; default likely breaks 100% height where a sibling overflows
+        (bind-in! e [in  .-style .-overflowY] (cell= (when (and scroll (or sv s)) :auto))))))) ;; default likely breaks 100% height where a sibling overflows
 
 (defn align [ctor]
   "set the text-align and vertical-align attributes on the elem and proxy the
