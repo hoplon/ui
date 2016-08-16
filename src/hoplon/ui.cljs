@@ -2,6 +2,7 @@
   (:require
     [hoplon.core :as h]
     [clojure.string  :refer [blank? join split ends-with?]]
+    [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
     [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]]
@@ -36,7 +37,7 @@
   "transforms a hash string to a urlstate of the form
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
   (let [[rstr qstr] (split (subs hash 2) #"\?")
-        pair        #(let [[k v] (split % #"=")] [(keyword k) (cljs.reader/read-string v)])
+        pair        #(let [[k v] (split % #"=")] [(keyword k) (read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
     (vec [path qmap])))
@@ -365,9 +366,9 @@
     ;{:pre []} todo: validate
     (let [data *data*]
       (with-let [e (ctor (dissoc attrs :key :val :req) elems)]
-        (.addEventListener (in e) "change" #(when data (prn :changed) (swap! data assoc (keyword (.-name (in e))) (not-empty (.-value (in e))))))
-        (.addEventListener (in e) "keyup"  (debounce 800 #(when data (swap! data assoc (keyword (.-name (in e))) (not-empty (.-value (in e)))))))
-        (bind-in! e [in .-name]     key)
+        (.addEventListener (in e) "change" #(when data (swap! data assoc (read-string (.-name (in e))) (not-empty (.-value (in e))))))
+        (.addEventListener (in e) "keyup"  (debounce 800 #(when data (swap! data assoc (read-string (.-name (in e))) (not-empty (.-value (in e)))))))
+        (bind-in! e [in .-name]     (cell= (pr-str key)))
         (bind-in! e [in .-value]    val)
         (bind-in! e [in .-required] (cell= (when req :required)))))))
 
@@ -377,9 +378,9 @@
     (let [data *data*]
       (swap! *data* assoc key (or val false))
       (with-let [e (ctor (dissoc attrs :key :val :req) elems)]
-        (.addEventListener (in e) "change" #(when data (swap! data assoc (keyword (.-name (in e))) (.-checked (in e)))))
+        (.addEventListener (in e) "change" #(when data (swap! data assoc (read-string (.-name (in e))) (.-checked (in e)))))
         (bind-in! e [in .-type]     "checkbox")
-        (bind-in! e [in .-name]     key)
+        (bind-in! e [in .-name]     (cell= (pr-str key)))
         (bind-in! e [in .-required] req)
         (bind-in! e [in .-checked]  val)))))
 
