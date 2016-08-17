@@ -185,13 +185,17 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
     {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
-    (let [ah (cell= ({:beg :left :mid :center :end :right :jst :justify}  (or ah a) (or ah a)))
-          av (cell= ({:beg :top  :mid :middle :end :bottom} (or av a) (or av a)))]
+    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a)))
+          ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
+          av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
       (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
-        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
+        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%")))
         (bind-in! e [mid .-style .-textAlign]     ah)
-        (bind-in! e [mid .-style .-verticalAlign] av)))))
+        (bind-in! e [mid .-style .-verticalAlign] av)
+        (when (= (-> e in .-style .-position) "absolute")
+          (bind-in! e [in .-style .-top]       pv)
+          (bind-in! e [in .-style .-transform] (cell= (str "translateY(-" pv ")"))))))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -445,7 +449,6 @@
         (.appendChild (mid e) skin)))))
 
 (defn imageable [ctor]
-  ;; todo: vertical alignment of content
   "set the size of the absolutely positioned inner elem to the padding"
   (fn [{:keys [url p ph pv pl pr pt pb] :as attrs} elems]
     (with-let [e (ctor (dissoc attrs :url) elems)]
@@ -458,9 +461,6 @@
         (bind-in! e [in .-style .-position] :absolute)
         (bind-in! e [in .-style .-top]      0)
         (bind-in! e [in .-style .-width]    "100%")))))
-      ; (bind-in! e [in .-style .-backgroundImage]  (when url (cell= (str "url(" url ")"))))
-      ; (bind-in! e [in .-style .-backgroundSize]   (when url :contain))
-      ; (bind-in! e [in .-style .-backgroundRepeat] (when url :no-repeat)))))
 
 (defn frameable [ctor]
   (fn [{:keys [type url] :as attrs} elems]
@@ -614,24 +614,24 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable assert-noattrs))
+(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem    (-> h/div         box         node                        parse-args))
-(def comp*   (-> h/div         box         node interactive stateful   parse-args))
-(def image   (-> h/div         box         node imageable              parse-args))
-(def window* (-> doc                       node windowable             parse-args))
+(def elem    (-> h/div         box assert-noattrs                                node            parse-args))
+(def comp*   (-> h/div         box assert-noattrs         interactive stateful   node            parse-args))
+(def image   (-> h/div         box assert-noattrs         imageable              node            parse-args))
+(def window* (->               doc assert-noattrs                                node windowable parse-args))
 
-(def form*   (-> h/form        box         node formidable             parse-args))
-(def toggle  (-> h/input       box destyle node toggleable             parse-args))
-(def file    (-> h/input       box destyle node fieldable   file-field parse-args))
-(def text    (-> h/input       box destyle node fieldable   text-field parse-args))
-(def submit  (-> h/input       box destyle node submittable            parse-args))
+(def form*   (-> h/form        box assert-noattrs         formidable             node            parse-args))
+(def toggle  (-> h/input       box assert-noattrs destyle toggleable             node            parse-args))
+(def file    (-> h/input       box assert-noattrs destyle fieldable   file-field node            parse-args))
+(def text    (-> h/input       box assert-noattrs destyle fieldable   text-field node            parse-args))
+(def submit  (-> h/input       box assert-noattrs destyle submittable            node            parse-args))
 
-(def object  (-> h/html-object box         node objectable             parse-args))
-(def video   (-> h/video       box         node playable               parse-args))
-(def frame   (-> h/iframe      box         node frameable              parse-args))
+(def object  (-> h/html-object box assert-noattrs         objectable             node            parse-args))
+(def video   (-> h/video       box assert-noattrs         playable               node            parse-args))
+(def frame   (-> h/iframe      box assert-noattrs         frameable              node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

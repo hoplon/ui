@@ -240,6 +240,15 @@
       (box :sv 20 "h")
       (box :sv 40 "i")
       (box :sv 40 "j"))
+    (test :a :mid :title "box aligns horizontal center and vertical top inside image" :pass true
+      (image :s 100 :ah :mid :av :beg :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png"
+        (box :s 40 "a")))
+    (test :a :mid :title "box aligns horizontal center and vertical middle inside image" :pass true
+      (image :s 100 :a :mid :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png"
+        (box :s 40 "a")))
+    (test :a :mid :title "box aligns horizontal center and vertical bottom inside image" :pass true
+      (image :s 100 :ah :mid :av :end :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png"
+        (box :s 40 "a")))
     (text-test
       (markdown
         "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\nsome *italic text* and **bold text**\n"))))
