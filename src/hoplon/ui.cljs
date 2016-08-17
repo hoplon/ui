@@ -185,7 +185,7 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
     {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
-    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a)))
+    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a) "0%"))
           ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
           av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
