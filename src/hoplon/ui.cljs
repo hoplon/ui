@@ -299,7 +299,7 @@
       (bind-in! e [mid .-style .-borderColor] (or bct bcv bc "transparent") (or bcr bch bc "transparent") (or bcb bcv bc "transparent") (or bcl bch bc "transparent"))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
 
-(defn font [ctor]
+(defn fontable [ctor]
     "- f  font size
      - ft font weight
      - fw letter spacing
@@ -497,19 +497,6 @@
   (fn [& args]
      (apply ctor (#'hoplon.core/parse-args args))))
 
-(defn font-face [family style weight names urls ranges]
-  {:pre [(v/family? family) (v/style? style) (v/weight? weight)]}
-  (let [name  #(str "local('" % "')")
-        url   #(str "url('" % "') format('" (re-find #".+\.([^?]+)(\?|$)" %) "')")
-        src   (apply str (interpose "," (concat (map name names) (map url urls))))
-        range (apply str (interpose "," ranges))
-        props {"font-family"   family ;; ->elem
-               "font-style"    style ;; ->elem
-               "font-weight"   weight ;; ->elem
-               "src"           src
-               "unicode-range" range}]
-    (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
-
 (defn interactive [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
@@ -532,7 +519,7 @@
 
 (defn windowable [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route position scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
+  (fn [{:keys [icon language metadata route position fonts scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
     (let [get-hash   #(-> js/window .-location .-hash)
           set-hash!  #(if (blank? %) (.replaceState js/history #js{} js/document.title ".") (set! js/location.hash %))
           get-route  (comp hash->route get-hash)
@@ -540,7 +527,7 @@
           get-agent  #(-> js/window .-navigator)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :title :route :lang :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
+        (with-let [e (ctor (dissoc attrs :icon :language :metadata :position :title :route :lang :fonts :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
@@ -570,10 +557,11 @@
             (h/html-meta :charset "utf-8")
             (h/html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
             (h/html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
-            (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
+            (for [m (if (map? metadata) (mapv (fn [[k v]] {:name k :content v}) metadata) metadata)]
               (h/html-meta (into {} (for [[k v] m] [k (name v)]))))
             (h/title (:title attrs))
             (h/link :rel "icon" :href (or icon empty-icon-url))
+            (h/for-tpl [f fonts]   (h/style f))
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
@@ -614,7 +602,7 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable))
+(def node (comp exceptional markdownable align shadow round border pad space nudge size dock fontable color transform clickable))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -651,6 +639,21 @@
   ;; todo: transition between states
   [& kvs]
   (cell= ((apply hash-map kvs) *state*)))
+
+(defn font
+  "font"
+  [family style weight names urls & [ranges]]
+  {:pre [(v/family? family) (v/style? style) (v/weight? weight)]}
+  (let [name  #(str "local('" % "')")
+        url   #(str "url('" % "') format('" (second (re-find #".+\.([^?]+)(\?|$)" %)) "')")
+        src   (apply str (interpose "," (concat (map name names) (map url urls))))
+        range (when ranges (apply str (interpose "," ranges)))
+        props {"font-family"   family ;; ->elem
+               "font-style"    (when style  (clojure.core/name style))
+               "font-weight"   (when weight (clojure.core/name weight))
+               "src"           src
+               "unicode-range" range}]
+    (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")) (clean props))) "}")))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
