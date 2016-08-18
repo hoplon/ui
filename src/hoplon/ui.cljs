@@ -37,7 +37,7 @@
   "transforms a hash string to a urlstate of the form
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
   (let [[rstr qstr] (split (subs hash 2) #"\?")
-        pair        #(let [[k v] (split % #"=")] [(keyword k) (read-string v)])
+        pair        #(let [[k v] (split % #"=" 2)] [(keyword k) (read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
     (vec [path qmap])))
