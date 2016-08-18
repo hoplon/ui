@@ -369,7 +369,7 @@
         (.addEventListener (in e) "change" #(when data (swap! data assoc (read-string (.-name (in e))) (not-empty (.-value (in e))))))
         (.addEventListener (in e) "keyup"  (debounce 800 #(when data (swap! data assoc (read-string (.-name (in e))) (not-empty (.-value (in e)))))))
         (bind-in! e [in .-name]     (cell= (pr-str key)))
-        (bind-in! e [in .-value]    val)
+        (bind-in! e [in .-value]    (or val (cell= (get data key))))
         (bind-in! e [in .-required] (cell= (when req :required)))
         (bind-in! e [in .-autofocus] autofocus)))))
 
