@@ -314,7 +314,8 @@
      - fm font smoothing
      - fx font transform
      - fz font stretch
-     - fy font synthesis"
+     - fy font synthesis
+     - fx font capitalize"
   (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fx fy fr fm] :as attrs} elems]
     {:pre [(sizes? f) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy) (renderings? fr) (smoothings? fm) (capitalizes? fx)]}
     (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fx :fy :fr :fm) elems)]
@@ -414,7 +415,7 @@
           submit *submit*]
       (with-let [e (ctor (dissoc attrs :label :submit) elems)]
         (.addEventListener (mid e) "click" #((or submit' @submit) @data))
-        (bind-in! e [in .-type]  "submit")
+        (bind-in! e [in .-type]  "button")
         (bind-in! e [in .-value] label)))))
 
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
