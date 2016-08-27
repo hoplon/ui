@@ -36,7 +36,7 @@
 (defn hash->route [hash]
   "transforms a hash string to a urlstate of the form
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
-  (let [[rstr qstr] (split (subs hash 2) #"\?")
+  (let [[rstr qstr] (split (subs hash 1) #"\?")
         pair        #(let [[k v] (split % #"=" 2)] [(keyword k) (read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
@@ -522,7 +522,7 @@
 (defn windowable [ctor]
   ;; todo: finish mousechanged
   (fn [{:keys [icon language metadata route position fonts scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
-    (let [get-hash   #(-> js/window .-location .-hash)
+    (let [get-hash   #(if (= (get js/location.hash 0) "#") (subs js/location.hash 1) js/location.hash)
           set-hash!  #(if (blank? %) (.replaceState js/history #js{} js/document.title ".") (set! js/location.hash %))
           get-route  (comp hash->route get-hash)
           set-route! (comp set-hash! route->hash)
