@@ -1,6 +1,6 @@
 (ns hoplon.ui.elems
   (:require
-    [clojure.string :refer [split-lines trim]]
+    [clojure.string :refer [split-lines]]
     [hoplon.core    :refer [html body br]]
     [cljsjs.markdown])
   (:require-macros

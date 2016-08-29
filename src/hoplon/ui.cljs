@@ -36,7 +36,7 @@
 (defn hash->route [hash]
   "transforms a hash string to a urlstate of the form
    [[\"foo\" \"bar\"] {:baz \"barf\"}]"
-  (let [[rstr qstr] (split (subs hash 2) #"\?")
+  (let [[rstr qstr] (split (subs hash 1) #"\?")
         pair        #(let [[k v] (split % #"=" 2)] [(keyword k) (read-string v)])
         qmap        (->> (split qstr #"&") (map pair) (when (not-empty qstr)) (into {}))
         path        (->> (split rstr #"/") (remove empty?) (mapv keyword))]
@@ -185,13 +185,17 @@
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
     {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
-    (let [ah (cell= ({:beg :left :mid :center :end :right :jst :justify}  (or ah a) (or ah a)))
-          av (cell= ({:beg :top  :mid :middle :end :bottom} (or av a) (or av a)))]
+    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a) "0%"))
+          ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
+          av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
       (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
-        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; initial instead? <--wrong!
+        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%")))
         (bind-in! e [mid .-style .-textAlign]     ah)
-        (bind-in! e [mid .-style .-verticalAlign] av)))))
+        (bind-in! e [mid .-style .-verticalAlign] av)
+        (when (= (-> e in .-style .-position) "absolute")
+          (bind-in! e [in .-style .-top]       pv)
+          (bind-in! e [in .-style .-transform] (cell= (str "translateY(-" pv ")"))))))))
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -295,7 +299,7 @@
       (bind-in! e [mid .-style .-borderColor] (or bct bcv bc "transparent") (or bcr bch bc "transparent") (or bcb bcv bc "transparent") (or bcl bch bc "transparent"))
       (bind-in! e [mid .-style .-borderStyle] :solid))))
 
-(defn font [ctor]
+(defn fontable [ctor]
     "- f  font size
      - ft font weight
      - fw letter spacing
@@ -310,7 +314,8 @@
      - fm font smoothing
      - fx font transform
      - fz font stretch
-     - fy font synthesis"
+     - fy font synthesis
+     - fx font capitalize"
   (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fx fy fr fm] :as attrs} elems]
     {:pre [(sizes? f) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy) (renderings? fr) (smoothings? fm) (capitalizes? fx)]}
     (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fx :fy :fr :fm) elems)]
@@ -410,7 +415,7 @@
           submit *submit*]
       (with-let [e (ctor (dissoc attrs :label :submit) elems)]
         (.addEventListener (mid e) "click" #((or submit' @submit) @data))
-        (bind-in! e [in .-type]  "submit")
+        (bind-in! e [in .-type]  "button")
         (bind-in! e [in .-value] label)))))
 
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -446,7 +451,6 @@
         (.appendChild (mid e) skin)))))
 
 (defn imageable [ctor]
-  ;; todo: vertical alignment of content
   "set the size of the absolutely positioned inner elem to the padding"
   (fn [{:keys [url p ph pv pl pr pt pb] :as attrs} elems]
     (with-let [e (ctor (dissoc attrs :url) elems)]
@@ -459,9 +463,6 @@
         (bind-in! e [in .-style .-position] :absolute)
         (bind-in! e [in .-style .-top]      0)
         (bind-in! e [in .-style .-width]    "100%")))))
-      ; (bind-in! e [in .-style .-backgroundImage]  (when url (cell= (str "url(" url ")"))))
-      ; (bind-in! e [in .-style .-backgroundSize]   (when url :contain))
-      ; (bind-in! e [in .-style .-backgroundRepeat] (when url :no-repeat)))))
 
 (defn frameable [ctor]
   (fn [{:keys [type url] :as attrs} elems]
@@ -498,19 +499,6 @@
   (fn [& args]
      (apply ctor (#'hoplon.core/parse-args args))))
 
-(defn font-face [family style weight names urls ranges]
-  {:pre [(v/family? family) (v/style? style) (v/weight? weight)]}
-  (let [name  #(str "local('" % "')")
-        url   #(str "url('" % "') format('" (re-find #".+\.([^?]+)(\?|$)" %) "')")
-        src   (apply str (interpose "," (concat (map name names) (map url urls))))
-        range (apply str (interpose "," ranges))
-        props {"font-family"   family ;; ->elem
-               "font-style"    style ;; ->elem
-               "font-weight"   weight ;; ->elem
-               "src"           src
-               "unicode-range" range}]
-    (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")  props))) "}")))
-
 (defn interactive [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
@@ -533,15 +521,15 @@
 
 (defn windowable [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [fonts icon language metadata route position scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
-    (let [get-hash   #(-> js/window .-location .-hash)
+  (fn [{:keys [icon language metadata route position fonts scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
+    (let [get-hash   #(if (= (get js/location.hash 0) "#") (subs js/location.hash 1) js/location.hash)
           set-hash!  #(if (blank? %) (.replaceState js/history #js{} js/document.title ".") (set! js/location.hash %))
           get-route  (comp hash->route get-hash)
           set-route! (comp set-hash! route->hash)
           get-agent  #(-> js/window .-navigator)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :title :route :lang :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
+        (with-let [e (ctor (dissoc attrs :icon :language :metadata :position :title :route :lang :fonts :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
@@ -571,10 +559,11 @@
             (h/html-meta :charset "utf-8")
             (h/html-meta :http-equiv "X-UA-Compatible" :content "IE=edge")
             (h/html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
-            (for [m (if (map? metadata) (map (fn [[k v]] {:name k :content v}) metadata) metadata)]
+            (for [m (if (map? metadata) (mapv (fn [[k v]] {:name k :content v}) metadata) metadata)]
               (h/html-meta (into {} (for [[k v] m] [k (name v)]))))
             (h/title (:title attrs))
             (h/link :rel "icon" :href (or icon empty-icon-url))
+            (h/for-tpl [f fonts]   (h/style f))
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
@@ -615,24 +604,24 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional markdownable align shadow round border pad space nudge size dock font color transform clickable assert-noattrs))
+(def node (comp exceptional markdownable align shadow round border pad space nudge size dock fontable color transform clickable))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem    (-> h/div         box         node                        parse-args))
-(def comp*   (-> h/div         box         node interactive stateful   parse-args))
-(def image   (-> h/div         box         node imageable              parse-args))
-(def window* (-> doc                       node windowable             parse-args))
+(def elem    (-> h/div         box assert-noattrs                                node            parse-args))
+(def comp*   (-> h/div         box assert-noattrs         interactive stateful   node            parse-args))
+(def image   (-> h/div         box assert-noattrs         imageable              node            parse-args))
+(def window* (->               doc assert-noattrs                                node windowable parse-args))
 
-(def form*   (-> h/form        box         node formidable             parse-args))
-(def toggle  (-> h/input       box destyle node toggleable             parse-args))
-(def file    (-> h/input       box destyle node fieldable   file-field parse-args))
-(def text    (-> h/input       box destyle node fieldable   text-field parse-args))
-(def submit  (-> h/input       box destyle node submittable            parse-args))
+(def form*   (-> h/form        box assert-noattrs         formidable             node            parse-args))
+(def toggle  (-> h/input       box assert-noattrs destyle toggleable             node            parse-args))
+(def file    (-> h/input       box assert-noattrs destyle fieldable   file-field node            parse-args))
+(def text    (-> h/input       box assert-noattrs destyle fieldable   text-field node            parse-args))
+(def submit  (-> h/input       box assert-noattrs destyle submittable            node            parse-args))
 
-(def object  (-> h/html-object box         node objectable             parse-args))
-(def video   (-> h/video       box         node playable               parse-args))
-(def frame   (-> h/iframe      box         node frameable              parse-args))
+(def object  (-> h/html-object box assert-noattrs         objectable             node            parse-args))
+(def video   (-> h/video       box assert-noattrs         playable               node            parse-args))
+(def frame   (-> h/iframe      box assert-noattrs         frameable              node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -652,6 +641,21 @@
   ;; todo: transition between states
   [& kvs]
   (cell= ((apply hash-map kvs) *state*)))
+
+(defn font
+  "font"
+  [family style weight names urls & [ranges]]
+  {:pre [(v/family? family) (v/style? style) (v/weight? weight)]}
+  (let [name  #(str "local('" % "')")
+        url   #(str "url('" % "') format('" (second (re-find #".+\.([^?]+)(\?|$)" %)) "')")
+        src   (apply str (interpose "," (concat (map name names) (map url urls))))
+        range (when ranges (apply str (interpose "," ranges)))
+        props {"font-family"   family ;; ->elem
+               "font-style"    (when style  (clojure.core/name style))
+               "font-weight"   (when weight (clojure.core/name weight))
+               "src"           src
+               "unicode-range" range}]
+    (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")) (clean props))) "}")))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
