@@ -256,17 +256,17 @@
 (def contents        [:text :search :tel :url :email :password])
 
 (defn autocapitalize? [v]
-  (cond (keyword? v) (in? autocapitalizes)
+  (cond (keyword? v) (in? v autocapitalizes)
         (nil?     v) true
         :else        false))
 
 (defn autocomplete? [v]
-  (cond (keyword? v) (in? autocompletes)
+  (cond (keyword? v) (in? v autocompletes)
         (nil?     v) true
         :else        false))
 
 (defn content? [v]
-  (cond (keyword? v) (in? contents)
+  (cond (keyword? v) (in? v contents)
         (nil?     v) true
         :else        false))
 
