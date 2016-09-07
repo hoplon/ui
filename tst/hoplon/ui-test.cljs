@@ -6,7 +6,7 @@
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [elem image window s b]]
+    [hoplon.ui       :refer [window elem image form line lines pick picks file files item send s b]]
     [hoplon.ui.elems :refer [markdown]]
     [hoplon.ui.attrs :refer [- c r d]]))
 
@@ -14,7 +14,7 @@
 
 (def metadata
   [{:property "og:url"                   :content "http://www.mysite.com/"}
-   {:name    "image_src"                 :content "http://www.mysite.com/images/logo-fb.png"}
+   {:name     "image_src"                :content "http://www.mysite.com/images/logo-fb.png"}
    {:property "og:image"                 :content "http://www.mysite.com/images/logo-180.png"}
    {:property "og:image:width"           :content "180"}
    {:property "og:image:height"          :content "110"}
@@ -25,17 +25,34 @@
 
 ;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def sm 736)
-(def lg 1069)
+;-- breakpoints ---------------------------------------------------------------;
+
+(def sm 760)
+(def md 1240)
+(def lg 1480)
+
+(defn lgr [n d] (b (r 1 1) sm (r n d)))
+
+;-- dimensions ----------------------------------------------------------------;
 
 (def gutter 6)
 
-(def stroke-grey (c 0xCCCCCC))
+;-- colors --------------------------------------------------------------------;
+
+(def border-grey (c 0xCCCCCC))
 (def fill-grey   (c 0xEEEEEE))
 (def font-grey   (c 0x888888))
 
 (def fail-color  (c 0xd43f3a))
 (def pass-color  (c 0x4cae4c))
+
+;-- fonts ---------------------------------------------------------------------;
+
+(def title-styles {:f 24})
+
+;-- forms ---------------------------------------------------------------------;
+
+(def text-styles {:ph 14 :pv 10 :r 5 :b 1 :bc border-grey :f 21})
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -46,12 +63,12 @@
         title)
       (elem :sh (r 1 2) :ah :end
         (when-tpl code
-          (elem :p gutter :c fill-grey :b 1 :bc stroke-grey :r 3
+          (elem :p gutter :c fill-grey :b 1 :bc border-grey :r 3
             code))))
     (dissoc attrs :code :pass :title) elems))
 
 (defelem box [attrs elems]
-  (elem :s 40 :a :mid :c (c 0xFFFFFF) :b 2 :bc stroke-grey
+  (elem :s 40 :a :mid :c (c 0xFFFFFF) :b 2 :bc border-grey
     attrs elems))
 
 (defelem test [{:keys [title pass] :as attrs} elems]
@@ -61,7 +78,7 @@
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
     (elem :s 200                                          ; sizing
             :p gutter :g gutter                             ; spacing
-            :c fill-grey :b 2 :bc stroke-grey               ; coloring
+            :c fill-grey :b 2 :bc border-grey               ; coloring
             :d (d 3 3 (c 0xAAAAAA) 4)                       ; shaDow
             (dissoc attrs :pass :title)
       elems)))
@@ -73,17 +90,18 @@
       (elem :sh 170 :f 10 :fc font-grey :v :hidden title))
     (elem :s (r 1 1)                                          ; sizing
             :p gutter :g gutter                             ; spacing
-            :c fill-grey :b 2 :bc stroke-grey               ; coloring
+            :c fill-grey :b 2 :bc border-grey               ; coloring
             :d (d 3 3 (c 0xAAAAAA) 4)                       ; shaDow
             (dissoc attrs :pass :title)
       elems)))
 
 (window
-  :title    "Hoplon UI"
-  :route    [["tests"] {:foo "bar" :baz "barf"}]
-  :metadata metadata
-  :scroll   true
-  (elem :sh (r 1 1) :p 6 :av :mid :b 2 :bc stroke-grey
+  :title           "Hoplon UI"
+  :route           [["tests"] {:foo "bar" :baz "barf"}]
+  :metadata        metadata
+  :positionchanged #(println "scrolling: " %1 " " %2)
+  :scroll          true
+  (elem :sh (r 1 1) :p 6 :av :mid :b 2 :bc border-grey
     (image :s 50 :url "http://hoplon.github.io/assets/images/logos/hoplon-logo.png")
     (elem :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "alignments" :code ":a :av :ah [:beg :bid :end :jst]" :pass false
@@ -251,7 +269,32 @@
         (box :s 40 "a")))
     (text-test
       (markdown
-        "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\nsome *italic text* and **bold text**\n"))))
+        "#header one\n##header two\n###header three\n####header four\n* bullet one\n* bullet two\nsome *italic text* and **bold text**\n")))
+  (elem :sh (r 1 1) :ah :mid
+    (form :sh (b (r 1 1) md 1200) :g 10 :submit #(prn "submitting data: " %)
+      (elem title-styles :sh (r 1 1) "forms")
+      (elem :sh (r 1 1) "form elem ctors are based on the type of input solicited from the user.  they may prompt the user to enter text, choose from a list of items, upload a file,  ")
+      (line text-styles :sh (lgr 3 8) :key :first-name  "first name")
+      (line text-styles :sh (lgr 1 8) :key :middle-name "mi")
+      (line text-styles :sh (lgr 1 2) :key :last-name   "last name")
+      (line text-styles :sh (lgr 1 1) :key :address     "street address")
+      (line text-styles :sh (lgr 1 2) :key :city        "city")
+      (line text-styles :sh (lgr 1 4) :key :state       "state")
+      (line text-styles :sh (lgr 1 4) :key :zip         "zip")
+      (line text-styles :sh (lgr 1 3) :key :photo       "profile photo")
+      (pick text-styles :sh (lgr 1 3) :key :gender :selection :male
+        (item :sh (r 1 1) :c (s :on :grey :off :white) :m :pointer :val :male   "male")
+        (item :sh (r 1 1) :c (s :on :grey :off :white) :m :pointer :val :female "female"))
+      (picks text-styles :sh (lgr 1 3) :key :meals :selections #{:hamburger}
+        (item :sh (r 1 1) :c (s :on :blue :off :white) :m :pointer :val :fries        "fries")
+        (item :sh (r 1 1) :c (s :on :blue :off :white) :m :pointer :val :hamburger    "hamburger")
+        (item :sh (r 1 1) :c (s :on :blue :off :white) :m :pointer :val :cheezeburger "cheezeburger"))
+      (picks text-styles :sh (lgr 1 3) :key :meals :selections #{:hamburger}
+        (for-tpl [[val label] [[:fries "fries"] [:hamburger "hamburger"] [:cheezeburger "cheeseburger"]]]
+          (item :val val label)))
+      (lines text-styles :sh (r 1 1) :key :description "description")
+      (file text-styles :sh (lgr 1 3) :key :photo       "profile photo")
+      (send text-styles :sh (r 1 1) :ah :mid :m :pointer :label "submit transaction"))))
 
   ; (test :ah :mid  :av :mid :title "box in cell aligns horizontal center & vertical center" :pass false
   ;   (cell (box "a")))

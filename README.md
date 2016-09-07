@@ -45,7 +45,15 @@ THIS API IS UNDER DEVELOPMENT AND SUBJECT TO ROUTINE BREAKING CHANGES.
 
 ### elems
 
-* **elem**: `elem`.  the primary function somewhat analagous to a div in html.
+* **elem**: `elem`.  the primary function somewhat analogous to a div in html.
+
+#### form elems
+the `form` function is used to set up a context when an atomic transaction must be associated from multiple fields.  these elements are constructed by functions corresponding to the format of the value(s) they collect.  they may be used either inside of or independently from a form context.
+
+* **forms**: `form`.  creates a form context to submit the values corresponding the enclosed field elems as a single transaction.
+* **lines**: `line lines`. accepts single and multiple lines of text (via text typed input and textarea elements), respectively.  pressing the enter key while the latter has focus will insert an newline instead of submitting the form.
+* **files**: `file files`. accepts single and multiple files uploaded from the filesystem (via a file typed element), respectively.
+* **picks**: `pick picks`. accepts single and multiple picks from a set of items, respectively.
 
 ### attributes
 the attributes on an `elem` may be set by passing its constructor the following keyword arguments.  it's good practice, as a matter of convention, to pass them in the same order they appear below. any attribute may accept the global values `:initial` and `:inherit`.  these attributes may be passed to any elem.
@@ -68,6 +76,25 @@ the layout attributes specify how an `elem` should align and space its children 
   * `:mid`. align children to the center and/or middle.
   * `:end`. align children to the right and/or bottom.
   * `:jst`. evenly space children to fill all but last line (currently only implemented in the horizontal).
+
+
+## examples
+masonry layout used on sites like pinterest:
+```
+(defc widgets [{:name "widget one" :desc "widget desc" :image "http://example.com/image"} ...])
+
+(def sm 760)
+(def md 1240)
+(def lg 1480)
+
+(let [n (b 1 sm 2 md 3 lg 4)]
+  (for-tpl [col (cell= (apply map vector (partition n models)))]
+    (elem :sh (cell= (r 1 n)) :gv 8
+      (for-tpl [{:keys [image name desc]} col]
+        (image :sh (r 1 1) :av :end :b 1 :bc :grey :url image
+          (elem :sh (r 1 1) :f 21 name)
+          (elem :sh (r 1 1) :f 18 desc))))))
+```
 
 ## hacking
 
