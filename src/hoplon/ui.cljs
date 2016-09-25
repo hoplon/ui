@@ -17,11 +17,11 @@
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^:export *exceptions* nil)
-(def ^:export *position*   nil)
-(def ^:export *clicks*     nil)
-(def ^:export *pointer*    nil)
-(def ^:export *state*      nil)
+(def ^:dynamic *exceptions* nil)
+(def ^:dynamic *position*   nil)
+(def ^:dynamic *clicks*     nil)
+(def ^:dynamic *pointer*    nil)
+(def ^:dynamic *state*      nil)
 
 (def empty-icon-url  "data:;base64,iVBORw0KGgo=")
 (def empty-image-url "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")
@@ -522,12 +522,22 @@
       (bind-in! e [in .-crossOrigin] xo)
       (bind-in! e [in .-data]        data))))
 
-(defn playable [ctor]
-  (fn [{:keys [controls url] :as attrs} elems]
-    {:pre []} ;; todo: validate
-    (with-let [e (ctor (dissoc attrs :controls :url) elems)]
-      (bind-in! e [in .-src]      url)
-      (bind-in! e [in .-controls] (when controls "controls")))))
+(defn videoable [ctor]
+  "set the size of the absolutely positioned inner elem to the padding"
+  (fn [{:keys [autoplay controls fit url] :as attrs} elems]
+    (with-let [e (ctor attrs elems)]
+      (let [v (.insertBefore (mid e) (.createElement js/document "video") (in e))]
+        (bind-in! v [.-style .-display]     :block)
+        (bind-in! v [.-style .-position]    :relative)
+        (bind-in! v [.-style .-width]       (cell= (when (= fit :cover) "" "100%")))
+        (bind-in! v [.-style .-overflow]    (cell= (when (= fit :cover) "hidden")))
+        (bind-in! v [.-style .-height]      (cell= (if (= fit :cover) "100%" "initial")))
+        (bind-in! v [.-autoplay]            autoplay)
+        (bind-in! v [.-controls]            (cell= (when controls "controls")))
+        (bind-in! v [.-src]                 url)
+        (bind-in! e [in .-style .-position] :absolute)
+        (bind-in! e [in .-style .-top]      0)
+        (bind-in! e [in .-style .-width]    "100%")))))
 
 (defn clickable [ctor] ;; todo: remove listener
   (fn [{:keys [click] :as attrs} elems]
@@ -653,24 +663,24 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem    (-> h/div         box assert-noattrs                                node            parse-args))
-(def cmpt*   (-> h/div         box assert-noattrs         interactive toggleable node            parse-args))
-(def image   (-> h/div         box assert-noattrs         imageable              node            parse-args))
-(def window* (->               doc assert-noattrs                                node windowable parse-args))
+(def elem    (-> h/div         box                                node            parse-args))
+(def cmpt*   (-> h/div         box         interactive toggleable node            parse-args))
+(def image   (-> h/div         box         imageable              node            parse-args))
+(def window* (->               doc                                node windowable parse-args))
 
-(def form*   (-> h/form        box assert-noattrs         formable                node            parse-args))
-(def line    (-> h/input       box assert-noattrs destyle fieldable   line-field  node            parse-args))
-(def lines   (-> h/textarea    box assert-noattrs destyle fieldable   lines-field node            parse-args))
-(def pick    (-> h/div         box assert-noattrs destyle fieldable   pick-field  node            parse-args))
-(def picks   (-> h/div         box assert-noattrs destyle fieldable   picks-field node            parse-args))
-(def item*   (-> h/option      box assert-noattrs destyle interactive selectable  item-field node parse-args))
-(def file    (-> h/div         box assert-noattrs         fieldable   file-field  node            parse-args))
-(def files   (-> h/div         box assert-noattrs         fieldable   file-field  node            parse-args))
-(def send    (-> h/input       box assert-noattrs destyle             send-field  node            parse-args))
+(def form*   (-> h/form        box         formable                node            parse-args))
+(def line    (-> h/input       box destyle fieldable   line-field  node            parse-args))
+(def lines   (-> h/textarea    box destyle fieldable   lines-field node            parse-args))
+(def pick    (-> h/div         box destyle fieldable   pick-field  node            parse-args))
+(def picks   (-> h/div         box destyle fieldable   picks-field node            parse-args))
+(def item*   (-> h/option      box destyle interactive selectable  item-field node parse-args))
+(def file    (-> h/div         box         fieldable   file-field  node            parse-args))
+(def files   (-> h/div         box         fieldable   file-field  node            parse-args))
+(def send    (-> h/input       box destyle             send-field  node            parse-args))
 
-(def object  (-> h/html-object box assert-noattrs         objectable             node            parse-args))
-(def video   (-> h/video       box assert-noattrs         playable               node            parse-args))
-(def frame   (-> h/iframe      box assert-noattrs         frameable              node            parse-args))
+(def object  (-> h/html-object box         objectable             node            parse-args))
+(def video   (-> h/div         box         videoable              node            parse-args))
+(def frame   (-> h/iframe      box         frameable              node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
