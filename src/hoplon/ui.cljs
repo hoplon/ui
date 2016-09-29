@@ -528,10 +528,14 @@
     (with-let [e (ctor attrs elems)]
       (let [v (.insertBefore (mid e) (.createElement js/document "video") (in e))]
         (bind-in! v [.-style .-display]     :block)
-        (bind-in! v [.-style .-position]    :relative)
-        (bind-in! v [.-style .-width]       (cell= (when (= fit :cover) "" "100%")))
-        (bind-in! v [.-style .-overflow]    (cell= (when (= fit :cover) "hidden")))
-        (bind-in! v [.-style .-height]      (cell= (if (= fit :cover) "100%" "initial")))
+        (bind-in! v [.-style .-position]    (cell= (if   (= fit :cover) :absolute :relative)))
+        (bind-in! v [.-style .-left]        (cell= (when (= fit :cover) "50%")))
+        (bind-in! v [.-style .-top]         (cell= (when (= fit :cover) "50%")))
+        (bind-in! v [.-style .-width]       (cell= (when (= fit :contain) "100%")))
+        (bind-in! v [.-style .-height]      (cell= (when (= fit :contain) "100%")))
+        (bind-in! v [.-style .-minWidth]    (cell= (when (= fit :cover)   "100%")))
+        (bind-in! v [.-style .-minHeight]   (cell= (when (= fit :cover)   "100%")))
+        (bind-in! v [.-style .-transform]   (cell= (when (= fit :cover)   "translate(-50%,-50%)")))
         (bind-in! v [.-autoplay]            autoplay)
         (bind-in! v [.-controls]            (cell= (when controls "controls")))
         (bind-in! v [.-src]                 url)
