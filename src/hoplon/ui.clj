@@ -24,7 +24,7 @@
     (item* ~@args)))
 
 (defmacro form [& args]
-  `(hoplon.binding/binding [*data*   (javelin.core/cell nil)
+  `(hoplon.binding/binding [*data*   (javelin.core/cell {})
                             *error*  (atom nil)
                             *submit* (atom nil)]
     (form* ~@args)))

@@ -207,7 +207,7 @@
     (with-let [e (ctor (dissoc attrs :p :ph :pv :pl :pr :pt :pb) elems)]
       (bind-in! e [mid .-style .-padding] (or pt pv p 0) (or pr ph p 0) (or pb pv p 0) (or pl ph p 0)))))
 
-(defn space [ctor]
+(defn gutter [ctor]
   "set the padding on the outer element of each child and a negative margin on
    the inner element of the elem itself equal to the padding.
 
@@ -353,27 +353,28 @@
 
 ;;; form middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^:export *data*   nil)
-(def ^:export *error*  nil)
-(def ^:export *submit* nil)
+(def ^:dynamic *data*   nil)
+(def ^:dynamic *error*  nil)
+(def ^:dynamic *submit* nil)
 
 (defn formable [ctor]
   "set up a form context"
   (fn [{:keys [change submit] :as attrs} elems]
-     (when change (cell= (when (seq (clean *data*)) (change (clean *data*))))) ;; init *data* to value of form fields on render
+    (when change (cell= (change (clean *data*)))) ;; init *data* to value of form fields on render
      (with-let [e (ctor (dissoc attrs :change :submit) elems)]
        (.addEventListener (in e) "keypress" (bound-fn [e] (when (= (.-which e) 13) (submit (clean @*data*))))))))
 
 (defn fieldable [ctor]
   "set the values common to all form fields."
   (fn [{:keys [key val req autofocus] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :key :val :req :autofocus) elems)]
-      (.addEventListener (in e) "change" (bound-fn [_] (when *data* (swap! *data* assoc (read-string (.-name (in e))) (not-empty (.-value (in e)))))))
-      (.addEventListener (in e) "keyup"  (bound-fn [_] (when *data* (swap! *data* assoc (read-string (.-name (in e))) (not-empty (.-value (in e)))))))
-      (bind-in! e [in .-name]     (cell= (pr-str key)))
-      (bind-in! e [in .-value]    val)
-      (bind-in! e [in .-required] (cell= (when req :required)))
-      (bind-in! e [in .-autofocus] autofocus))))
+    (with-let [e (ctor (dissoc attrs :key :val :req :autofocus :debounce) elems)]
+      (let [save (bound-fn  [_]  (when *data*  (swap! *data* assoc  (read-string  (.-name  (in e)))  (not-empty  (.-value  (in e))))))]
+        (.addEventListener (in e) "change" save)
+        (.addEventListener (in e) "keyup"  (if-let [deb (:debounce attrs)] (debounce deb save) save))
+        (bind-in! e [in .-name]     (cell= (pr-str key)))
+        (bind-in! e [in .-value]    val)
+        (bind-in! e [in .-required] (cell= (when req :required)))
+        (bind-in! e [in .-autofocus] autofocus)))))
 
 (defn file-field [ctor]
   (fn [{:keys [accept] :as attrs} elems]
@@ -477,73 +478,54 @@
     {:pre [(attrs? attrs)]}
     (ctor attrs elems)))
 
-(defn skin [ctor]
-  "add an svg skin to the component."
-  (fn [attrs elems]
-    (with-let [e (ctor attrs elems)]
-      (let [skin (.createElementNS js/document "http://www.w3.org/2000/svg" "svg")] ;; if skin then hide mid styles
-        (set! (.. skin -style -position) "absolute")
-        (set! (.. skin -style -top)      "0")
-        (set! (.. skin -style -left)     "0")
-        (set! (.. skin -style -width)    "100%")
-        (set! (.. skin -style -height)   "100%")
-        (set! (.. skin -style -zIndex)   "-1")
-        (set! (.. skin -innerHTML)       "<rect x='0' y='0' width='100%' height='100%' rx='10' ry='10' fill='#CCC' />")
-        (.appendChild (mid e) skin)))))
-
-(defn imageable [ctor]
-  "set the size of the absolutely positioned inner elem to the padding"
-  (fn [{:keys [url p ph pv pl pr pt pb] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :url) elems)]
-      (let [img (.insertBefore (mid e) (.createElement js/document "img") (in e))]
-        (bind-in! img [.-style .-display]   :block)
-        (bind-in! img [.-style .-position]  :relative)
-        (bind-in! img [.-style .-width]     "100%")
-        (bind-in! img [.-style .-height]    :initial)
-        (bind-in! img [.-src]               url)
-        (bind-in! e [in .-style .-position] :absolute)
-        (bind-in! e [in .-style .-top]      0)
-        (bind-in! e [in .-style .-width]    "100%")))))
+(defn underlay [ctor element-ctor]
+  (fn [{:keys [fit p ph pv pl pr pt pb] :as attrs} elems]
+    (with-let [e (ctor (dissoc attrs :fit) elems)]
+      (let [u (.insertBefore (mid e) (element-ctor) (in e))]
+        (bind-in! u [.-style .-display]     :block)
+        (bind-in! u [.-style .-position]    (cell= (if   (= fit :cover) :absolute :relative)))
+        (bind-in! u [.-style .-left]        (cell= (when (= fit :cover)   "50%")))
+        (bind-in! u [.-style .-top]         (cell= (when (= fit :cover)   "50%")))
+        (bind-in! u [.-style .-width]       (cell= (when (= fit :contain) "100%")))
+        (bind-in! u [.-style .-height]      (cell= (when (= fit :contain) "100%")))
+        (bind-in! u [.-style .-minWidth]    (cell= (when (= fit :cover)   "100%")))
+        (bind-in! u [.-style .-minHeight]   (cell= (when (= fit :cover)   "100%")))
+        (bind-in! u [.-style .-transform]   (cell= (when (= fit :cover)   "translate(-50%,-50%)")))
+        (bind-in! e [mid .-style .-overflow] (cell= (when (= fit :cover)   :hidden)))
+        (bind-in! e [in  .-style .-position] :absolute)
+        (bind-in! e [in  .-style .-top]      0)
+        (bind-in! e [in  .-style .-width]    "100%")))))
 
 (defn frameable [ctor]
   (fn [{:keys [type url] :as attrs} elems]
-    {:pre []} ;; todo: validate
+    {:pre []} ;; todo
     (with-let [e (ctor (dissoc attrs :type :url) elems)]
-      (bind-in! e [in .-width]  "100%")
-      (bind-in! e [in .-height] "100%")
-      (bind-in! e [in .-type]   type)
-      (bind-in! e [in .-src]    url))))
+      (bind-in! e [mid .-firstChild .-type] type)
+      (bind-in! e [mid .-firstChild .-src]  url))))
+
+(defn imageable [ctor]
+  (fn [{:keys [url] :as attrs} elems]
+    {:pre []} ;; todo
+    (with-let [e (ctor (dissoc attrs :url) elems)]
+      (bind-in! e [mid .-firstChild .-src] url))))
 
 (defn objectable [ctor]
-  (fn [{:keys [type data id xo] :as attrs} elems]
-    {:pre []} ;; todo: validate
-    (with-let [e (ctor (dissoc attrs :type :data :id :xo) elems)]
-      (bind-in! e [in .-type]        type)
-      (bind-in! e [in .-crossOrigin] xo)
-      (bind-in! e [in .-data]        data))))
+  (fn [{:keys [type data xo] :as attrs} elems]
+    {:pre []} ;; todo
+    (with-let [e (ctor (dissoc attrs :type :data :xo) elems)]
+      (bind-in! e [mid .-firstChild .-type]        type)
+      (bind-in! e [mid .-firstChild .-crossOrigin] xo)
+      (bind-in! e [mid .-firstChild .-data]        data))))
 
 (defn videoable [ctor]
-  "set the size of the absolutely positioned inner elem to the padding"
-  (fn [{:keys [autoplay controls fit url] :as attrs} elems]
-    (with-let [e (ctor attrs elems)]
-      (let [v (.insertBefore (mid e) (.createElement js/document "video") (in e))]
-        (bind-in! v [.-style .-display]     :block)
-        (bind-in! v [.-style .-position]    (cell= (if   (= fit :cover) :absolute :relative)))
-        (bind-in! v [.-style .-left]        (cell= (when (= fit :cover) "50%")))
-        (bind-in! v [.-style .-top]         (cell= (when (= fit :cover) "50%")))
-        (bind-in! v [.-style .-width]       (cell= (when (= fit :contain) "100%")))
-        (bind-in! v [.-style .-height]      (cell= (when (= fit :contain) "100%")))
-        (bind-in! v [.-style .-minWidth]    (cell= (when (= fit :cover)   "100%")))
-        (bind-in! v [.-style .-minHeight]   (cell= (when (= fit :cover)   "100%")))
-        (bind-in! v [.-style .-transform]   (cell= (when (= fit :cover)   "translate(-50%,-50%)")))
-        (bind-in! v [.-autoplay]            autoplay)
-        (bind-in! v [.-controls]            (cell= (when controls "controls")))
-        (bind-in! v [.-src]                 url)
-        (bind-in! e [in .-style .-position] :absolute)
-        (bind-in! e [in .-style .-top]      0)
-        (bind-in! e [in .-style .-width]    "100%")))))
+  (fn [{:keys [autoplay controls url] :as attrs} elems]
+    {:pre []} ;; todo
+    (with-let [e (ctor (dissoc attrs :autoplay :controls :url) elems)]
+      (bind-in! e [mid .-firstChild .-autoplay] autoplay)
+      (bind-in! e [mid .-firstChild .-controls] (cell= (when controls "controls")))
+      (bind-in! e [mid .-firstChild .-src]      url))))
 
-(defn clickable [ctor] ;; todo: remove listener
+(defn clickable [ctor] 
   (fn [{:keys [click] :as attrs} elems]
     {:pre [(callbacks? click)]}
     (with-let [e (ctor (dissoc attrs :click) elems)]
@@ -571,7 +553,6 @@
 (defn toggleable [ctor]
   (fn [attrs elems]
     (with-let [e (ctor attrs elems)]
-      (cell= (prn :pointer *pointer* :state *state*))
       (let [switch  #(if (odd? (:down %)) "on" "off")
             mouse   #(cond (not= (:over %) (:out %)) "over"
                            (not= (:down %) (:up  %)) "down"
@@ -580,7 +561,7 @@
 
 (defn windowable [ctor]
   ;; todo: finish mousechanged
-  (fn [{:keys [icon language metadata route position fonts scripts styles initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
+  (fn [{:keys [fonts icon language metadata route position scripts styles title initiated mousechanged positionchanged statuschanged routechanged scroll] :as attrs} elems]
     (let [get-hash   #(if (= (get js/location.hash 0) "#") (subs js/location.hash 1) js/location.hash)
           set-hash!  #(if (blank? %) (.replaceState js/history #js{} js/document.title ".") (set! js/location.hash %))
           get-route  (comp hash->route get-hash)
@@ -588,7 +569,7 @@
           get-agent  #(-> js/window .-navigator)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :icon :language :metadata :position :title :route :lang :fonts :styles :scripts :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
+        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :route :scripts :styles :title :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
@@ -620,7 +601,8 @@
             (h/html-meta :name "viewport"    :content "width=device-width, initial-scale=1")
             (for [m (if (map? metadata) (mapv (fn [[k v]] {:name k :content v}) metadata) metadata)]
               (h/html-meta (into {} (for [[k v] m] [k (name v)]))))
-            (h/title (:title attrs))
+            (when title
+              (h/title title))
             (h/link :rel "icon" :href (or icon empty-icon-url))
             (h/for-tpl [f fonts]   (h/style f))
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
@@ -663,28 +645,27 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional markdownable align shadow round border pad space nudge size dock fontable color transform clickable))
+(def node (comp exceptional markdownable align shadow round border pad gutter nudge size dock fontable color transform clickable))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def elem    (-> h/div         box                                node            parse-args))
-(def cmpt*   (-> h/div         box         interactive toggleable node            parse-args))
-(def image   (-> h/div         box         imageable              node            parse-args))
-(def window* (->               doc                                node windowable parse-args))
+(def elem    (-> h/div      box                                     node            parse-args))
+(def cmpt*   (-> h/div      box interactive              toggleable node            parse-args))
+(def frame   (-> h/div      box (underlay h/iframe)      frameable  node            parse-args))
+(def image   (-> h/div      box (underlay h/img)         imageable  node            parse-args))
+(def object  (-> h/div      box (underlay h/html-object) objectable node            parse-args))
+(def video   (-> h/div      box (underlay h/video)       videoable  node            parse-args))
+(def window* (->            doc                                     node windowable parse-args))
 
-(def form*   (-> h/form        box         formable                node            parse-args))
-(def line    (-> h/input       box destyle fieldable   line-field  node            parse-args))
-(def lines   (-> h/textarea    box destyle fieldable   lines-field node            parse-args))
-(def pick    (-> h/div         box destyle fieldable   pick-field  node            parse-args))
-(def picks   (-> h/div         box destyle fieldable   picks-field node            parse-args))
-(def item*   (-> h/option      box destyle interactive selectable  item-field node parse-args))
-(def file    (-> h/div         box         fieldable   file-field  node            parse-args))
-(def files   (-> h/div         box         fieldable   file-field  node            parse-args))
-(def send    (-> h/input       box destyle             send-field  node            parse-args))
-
-(def object  (-> h/html-object box         objectable             node            parse-args))
-(def video   (-> h/div         box         videoable              node            parse-args))
-(def frame   (-> h/iframe      box         frameable              node            parse-args))
+(def form*   (-> h/form     box         formable                    node            parse-args))
+(def line    (-> h/input    box destyle fieldable   line-field      node            parse-args))
+(def lines   (-> h/textarea box destyle fieldable   lines-field     node            parse-args))
+(def pick    (-> h/div      box destyle fieldable   pick-field      node            parse-args))
+(def picks   (-> h/div      box destyle fieldable   picks-field     node            parse-args))
+(def item*   (-> h/option   box destyle interactive selectable  item-field node     parse-args))
+(def file    (-> h/div      box         fieldable   file-field      node            parse-args))
+(def files   (-> h/div      box         fieldable   file-field      node            parse-args))
+(def write   (-> h/input    box destyle             send-field      node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -12,12 +12,6 @@
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn split-nodes [text]
-  (let [txt #(.createTextNode js/document %)]
-    (->> (split-lines text)
-         (interpose br)
-         (mapv #(if (fn? %) (%) (txt %))))))
-
 (defn parse [mdstr]
   (js->clj (.parse js/markdown mdstr) :keywordize-keys true))
 
@@ -37,11 +31,6 @@
   (-in  [e]))
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(extend-type string
-  hoplon.core/INode
-  (node [this]
-    (split-nodes this)))
 
 (deftype Markdown [mdstr]
   IPrintWithWriter
