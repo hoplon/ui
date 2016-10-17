@@ -18,7 +18,7 @@
   '[adzerk.bootlaces          :refer :all]
   '[adzerk.boot-cljs          :refer [cljs]]
   '[adzerk.boot-reload        :refer [reload]]
-  '[hoplon.boot-hoplon        :refer [hoplon]]
+  '[hoplon.boot-hoplon        :refer [hoplon ns+]]
   '[tailrecursion.boot-static :refer [serve]])
 
 (def +version+ "0.1.0-SNAPSHOT")
@@ -35,7 +35,7 @@
   (as-> (get-env) $
         (clojure.set/union (:source-paths $) (:test-paths $))
         (set-env! :source-paths $))
-  (comp (watch) (speak) (hoplon) (reload) (cljs :optimizations :none) (serve)))
+  (comp (watch) (speak) (hoplon) (ns+) (reload) (cljs :optimizations :none) (serve)))
 
 (task-options!
   pom    {:project     'hoplon/ui

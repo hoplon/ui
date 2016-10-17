@@ -110,6 +110,7 @@
 (def cursors?         (validate-cells v/cursor?         "Error validating attribute of type cursor with value"))
 (def decorations?     (validate-cells v/decoration?     "Error validating attribute of type decoration with value"))
 (def families?        (validate-cells v/family?         "Error validating attribute of type family with value"))
+(def fits?            (validate-cells v/fit?            "Error validating attribute of type fit with value"))
 (def kernings?        (validate-cells v/kerning?        "Error validating attribute of type kerning with value"))
 (def lengths?         (validate-cells v/length?         "Error validating attribute of type length with value"))
 (def opacities?       (validate-cells v/opacity?        "Error validating attribute of type opacity with value"))
@@ -479,19 +480,21 @@
     (ctor attrs elems)))
 
 (defn underlay [ctor element-ctor]
-  (fn [{:keys [fit p ph pv pl pr pt pb] :as attrs} elems]
+  (fn [{:keys [fit] :as attrs} elems]
+    {:pre [(fits? fit)]}
     (with-let [e (ctor (dissoc attrs :fit) elems)]
-      (let [u (.insertBefore (mid e) (element-ctor) (in e))]
-        (bind-in! u [.-style .-display]     :block)
-        (bind-in! u [.-style .-position]    (cell= (if   (= fit :cover) :absolute :relative)))
-        (bind-in! u [.-style .-left]        (cell= (when (= fit :cover)   "50%")))
-        (bind-in! u [.-style .-top]         (cell= (when (= fit :cover)   "50%")))
-        (bind-in! u [.-style .-width]       (cell= (when (= fit :contain) "100%")))
-        (bind-in! u [.-style .-height]      (cell= (when (= fit :contain) "100%")))
-        (bind-in! u [.-style .-minWidth]    (cell= (when (= fit :cover)   "100%")))
-        (bind-in! u [.-style .-minHeight]   (cell= (when (= fit :cover)   "100%")))
-        (bind-in! u [.-style .-transform]   (cell= (when (= fit :cover)   "translate(-50%,-50%)")))
-        (bind-in! e [mid .-style .-overflow] (cell= (when (= fit :cover)   :hidden)))
+      (let [u (.insertBefore (mid e) (element-ctor) (in e))
+            f (some #{fit} #{:cover :contain})]
+        (bind-in! u [.-style .-display]      :block)
+        (bind-in! u [.-style .-position]     (cell= (if f :absolute :relative)))
+        (bind-in! u [.-style .-left]         (cell= (when f                 "50%")))
+        (bind-in! u [.-style .-top]          (cell= (when f                 "50%")))
+        (bind-in! u [.-style .-width]        (cell= (when (not= fit :cover) "100%")))
+        (bind-in! u [.-style .-height]       (cell= (when (= fit :fill)     "100%"))) 
+        (bind-in! u [.-style .-minWidth]     (cell= (when (= fit :cover)    "100%")))
+        (bind-in! u [.-style .-minHeight]    (cell= (when (= fit :cover)    "100%")))
+        (bind-in! u [.-style .-transform]    (cell= (when f                 "translate(-50%,-50%)")))
+        (bind-in! e [mid .-style .-overflow] (cell= (when (= fit :cover) :hidden)))
         (bind-in! e [in  .-style .-position] :absolute)
         (bind-in! e [in  .-style .-top]      0)
         (bind-in! e [in  .-style .-width]    "100%")))))

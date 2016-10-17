@@ -62,6 +62,7 @@
 (def txstyles    [:preserve-3d :flat])
 (def overflows   [:visible :hidden :scroll :auto])
 (def weights     [:normal :bold :bolder :lighter :100 :200 :300 :400 :500 :600 :700 :800 :900])
+(def fits        [:cover :contain :fill])
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -126,6 +127,11 @@
         (keyword? v) (in? v families globals)
         (string?  v) v
         (nil?     v) :initial
+        :else        false))
+
+(defn fit? [v]
+  (cond (keyword? v) (in? v fits)
+        (nil?     v) :fill
         :else        false))
 
 (defn kerning? [v]
