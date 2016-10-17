@@ -48,7 +48,7 @@ THIS API IS UNDER DEVELOPMENT AND SUBJECT TO ROUTINE BREAKING CHANGES.
 * **elem**: `elem`.  the primary function somewhat analogous to a div in html.
 
 #### media elems
-these constructors return the elements necessary to render various kinds of visual media. unlike their html conterparts, they all accept children (which overlay the media content), but unlike other elems, their implicit sizes are derived from the media itself.  conversely, when the elems are explicitly passed a size argument and this size differs from the size of the underlying media, the `:fit` attribute may be passed the keyword `:fill`, `:cover`, or `:contain` to indicate whether the media content should be stretched, cropped, or reduced in size to fit within the elem's area.
+these constructors return the elements necessary to render various kinds of visual media. unlike their html conterparts, they all accept children (which overlay the media content), but unlike other elems, their implicit sizes are derived from the media itself.  conversely, when the elems are explicitly passed a size argument and this size differs from the size of the underlying media, the `:fit` attribute may be passed the keyword `:fill`, `:cover`, or `:contain` to indicate whether the media content should be stretched, cropped, or reduced in size to fit within the elem's area. the media content always remains horizontally and vertically centered behind any children.
 
 * **canvas**: `canvas`. renders a canvas element for drawing.
 * **frame**: `frame`. loads html content specified by the `:url` attribute. also accepts the attributes `:allow-fullscreen`, `:sandbox` and `:type`.
