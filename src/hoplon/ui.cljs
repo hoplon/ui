@@ -500,11 +500,13 @@
         (bind-in! e [in  .-style .-width]    "100%")))))
 
 (defn frameable [ctor]
-  (fn [{:keys [type url] :as attrs} elems]
+  (fn [{:keys [allow-fullscreen sandbox type url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :type :url) elems)]
-      (bind-in! e [mid .-firstChild .-type] type)
-      (bind-in! e [mid .-firstChild .-src]  url))))
+    (with-let [e (ctor (dissoc attrs :allow-fullscreen :sandbox :type :url) elems)]
+      (bind-in! e [mid .-firstChild .-allowFullscreen] allow-fullscreen)
+      (bind-in! e [mid .-firstChild .-sandbox]         sandbox)
+      (bind-in! e [mid .-firstChild .-type]            type)
+      (bind-in! e [mid .-firstChild .-src]             url))))
 
 (defn imageable [ctor]
   (fn [{:keys [url] :as attrs} elems]
@@ -654,6 +656,7 @@
 
 (def elem    (-> h/div      box                                     node            parse-args))
 (def cmpt*   (-> h/div      box interactive              toggleable node            parse-args))
+(def canvas  (-> h/div      box (underlay h/canvas)                 node            parse-args))
 (def frame   (-> h/div      box (underlay h/iframe)      frameable  node            parse-args))
 (def image   (-> h/div      box (underlay h/img)         imageable  node            parse-args))
 (def object  (-> h/div      box (underlay h/html-object) objectable node            parse-args))

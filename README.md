@@ -47,6 +47,15 @@ THIS API IS UNDER DEVELOPMENT AND SUBJECT TO ROUTINE BREAKING CHANGES.
 
 * **elem**: `elem`.  the primary function somewhat analogous to a div in html.
 
+#### media elems
+these constructors return the elements necessary to load their corresponding visual media.  unlike their html conterparts, they all accept children which are aligned and rendered in front of their respective media, but unlike other elems, their implicit size is derived from the media itself rather than any children that might overlay it.  on the other hand, when these elems are expicitly sized (and this size differs from that of the loaded media), the `:fit` attribute may be passed the keyword `:fill`, `:cover`, or `:contain` to specify whether the media content should be stretched, cropped, or reduced in size to fit within the elem`s area.
+
+* **canvas**: `canvas`. renders a canvas element for drawing.
+* **frame**: `frame`. loads html content specified by the `:url` attribute. also accepts the attributes `:allow-fullscreen`, `:sandbox` and `:type`.
+* **image**: `image`. loads an image from the location specified by the `:url` attribute.
+* **object**: `object`. loads an embeddable object via a browser plugin from the locaton specified by the `:url` attribute. also accepts the `:type` and `:cross-origin` attributes.
+* **video**: `video`. loads a video from the locations specified by the `:url` attribute. also accepts the attributes `:autoplay` and `:controls`.
+
 #### form elems
 the `form` function is used to set up a context when an atomic transaction must be associated from multiple fields.  these elements are constructed by functions corresponding to the format of the value(s) they collect.  they may be used either inside of or independently from a form context.
 
