@@ -9,7 +9,7 @@
                   [adzerk/bootlaces          "0.1.13"         :scope "test"]
                   [hoplon/boot-hoplon        "0.2.4"          :scope "test"]
                   [tailrecursion/boot-static "0.0.1-SNAPSHOT" :scope "test"]
-                  [hoplon/hoplon             "6.0.0-alpha16"]
+                  [hoplon/hoplon             "6.0.0-alpha17"]
                   [cljsjs/markdown           "0.6.0-beta1-0"]]
   :repositories  [["clojars"       "https://clojars.org/repo/"]
                   ["maven-central" "https://repo1.maven.org/maven2/"]])

@@ -79,13 +79,13 @@
     (f (map-indexed watch vs))))
 
 (defn swap-elems! [e f & vs] ;; todo: factor out
-  (cond (cell?     e) (cell= (apply swap-elems! e f vs))
-        (vector?   e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
-        (elem?     e) (apply f e vs)
-        (markdown? e) identity
-        (string?   e) identity
-        (nil?      e) identity
-        (fn?       e) identity
+  (cond (cell?       e) (cell= (apply swap-elems! e f vs))
+        (sequential? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
+        (elem?       e) (apply f e vs)
+        (markdown?   e) identity
+        (string?     e) identity
+        (nil?        e) identity
+        (fn?         e) identity
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn validate [validator]
@@ -515,12 +515,12 @@
       (bind-in! e [mid .-firstChild .-src] url))))
 
 (defn objectable [ctor]
-  (fn [{:keys [type data xo] :as attrs} elems]
+  (fn [{:keys [cross-origin type url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :type :data :xo) elems)]
+    (with-let [e (ctor (dissoc attrs :cross-origin :type :url) elems)]
+      (bind-in! e [mid .-firstChild .-crossOrigin] cross-origin)
       (bind-in! e [mid .-firstChild .-type]        type)
-      (bind-in! e [mid .-firstChild .-crossOrigin] xo)
-      (bind-in! e [mid .-firstChild .-data]        data))))
+      (bind-in! e [mid .-firstChild .-data]        url))))
 
 (defn videoable [ctor]
   (fn [{:keys [autoplay controls url] :as attrs} elems]
