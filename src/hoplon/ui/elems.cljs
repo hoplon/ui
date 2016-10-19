@@ -1,27 +1,9 @@
 (ns hoplon.ui.elems
   (:require
     [clojure.string :refer [split-lines]]
-    [hoplon.core    :refer [->node html body br div]]
-    [cljsjs.markdown])
+    [hoplon.core    :refer [->node html body br div]])
   (:require-macros
     [javelin.core   :refer [cell= with-let]]))
-
-;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def ^:dynamic *mdfn* nil)
-
-;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn parse [mdstr]
-  (js->clj (.parse js/markdown mdstr) :keywordize-keys true))
-
-(defn emit [[tag atr & nodes]]
-  (let [[atr nodes] (if (map? atr) [atr nodes] [nil (cons atr nodes)])]
-    #_(prn :mdtag tag :mdats atr :nodes nodes)
-    (*mdfn* (keyword tag) atr (mapv #(if (vector? %) (emit %) %) nodes))))
-
-(defn md->elems [mdstr]
-  (emit (parse mdstr)))
 
 ;;; protocols ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -31,16 +13,6 @@
   (-in  [e]))
 
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(deftype Markdown [mdstr]
-  IPrintWithWriter
-  (-pr-writer [_ w _]
-    (write-all w "#<Markdown: " mdstr ">"))
-  hoplon.core/INode
-  (node [_]
-    (->node (md->elems mdstr))))
-
-(defn markdown [str] (Markdown. str))
 
 (deftype Elem [o m i]
   IPrintWithWriter
@@ -94,7 +66,6 @@
     (set! (.. i -style -cursor)        "inherit")))    ;; apply the mouse cursor set on the middle div to the inner div as well
 
 (defn elem?     [v] (instance? Elem     v))
-(defn markdown? [v] (instance? Markdown v))
 
 (defn box-with [path-fn & tags]
   "create an Elem by wrapping the model outside of the element constructor"

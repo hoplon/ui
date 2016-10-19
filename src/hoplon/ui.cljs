@@ -6,9 +6,10 @@
     [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
-    [hoplon.ui.elems :refer [box doc out mid in elem? markdown?]]
+    [hoplon.ui.elems :refer [box doc out mid in elem?]]
     [hoplon.ui.validation :as v]
-    [hoplon.binding])
+    [hoplon.binding]
+    [cljsjs.markdown])
   (:require-macros
     [hoplon.core    :refer [with-timeout]]
     [hoplon.binding :refer [binding bound-fn]]
@@ -82,10 +83,9 @@
   (cond (cell?       e) (cell= (apply swap-elems! e f vs))
         (sequential? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
         (elem?       e) (apply f e vs)
-        (markdown?   e) identity
         (string?     e) identity
         (nil?        e) identity
-        (fn?         e) identity
+        (fn?       e) identity
         :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
 
 (defn validate [validator]
@@ -613,44 +613,9 @@
             (h/for-tpl [s styles]  (h/link :rel "stylesheet" :href s))
             (h/for-tpl [s scripts] (h/script :src s)))))))
 
-;;; markdown ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(declare elem)
-
-(def f
- {1 32
-  2 24
-  3 20
-  4 16
-  5 14
-  6 13})
-
-(defmulti  md (fn [tag ats elems] tag))
-(defmethod md :default    [tag ats elems] (elem elems))
-(defmethod md :markdown   [_ ats elems] elems)
-(defmethod md :header     [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :bulletlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :numberlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :listitem   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :para       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :code_block [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :inlinecode [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :img        [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :linebreak  [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :link       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :link_ref   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
-(defmethod md :em         [_ {:keys [level]} elems] (elem :fi :italic                 elems))
-(defmethod md :strong     [_ {:keys [level]} elems] (elem :ft :bold                   elems))
-
-(defn markdownable [ctor]
-  (fn [{:keys [mdfn] :as attrs} elems]
-    {:pre []} ;; todo: validate
-    (binding [hoplon.ui.elems/*mdfn* (or mdfn md)]
-      (ctor (dissoc attrs :mdfn) elems))))
-
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional markdownable align shadow round border pad gutter nudge size dock fontable color transform clickable))
+(def node (comp exceptional align shadow round border pad gutter nudge size dock fontable color transform clickable))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -706,6 +671,44 @@
                "src"           src
                "unicode-range" range}]
     (str "@font-face{" (apply str (mapcat (fn [[k v]] (str k ":" v ";")) (clean props))) "}")))
+
+;;; markdown ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def f
+ {1 32
+  2 24
+  3 20
+  4 16
+  5 14
+  6 13})
+
+(defmulti  md (fn [tag ats elems] tag))
+(defmethod md :default    [tag ats elems] (elem elems))
+(defmethod md :markdown   [_ ats elems] elems)
+(defmethod md :header     [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :bulletlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :numberlist [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :listitem   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :para       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :code_block [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :inlinecode [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :img        [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :linebreak  [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :link       [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :link_ref   [_ {:keys [level]} elems] (elem :sh (r 1 1) :f (f level 16) elems))
+(defmethod md :em         [_ {:keys [level]} elems] (elem :fi :italic                 elems))
+(defmethod md :strong     [_ {:keys [level]} elems] (elem :ft :bold                   elems))
+
+(defn parse [mdstr]
+  (js->clj (.parse js/markdown mdstr) :keywordize-keys true))
+
+(defn emit [[tag atr & nodes]]
+  (let [[atr nodes] (if (map? atr) [atr nodes] [nil (cons atr nodes)])]
+    #_(prn :mdtag tag :mdats atr :nodes nodes)
+    (md (keyword tag) atr (mapv #(if (vector? %) (emit %) %) nodes))))
+
+(defn markdown [mdstr]
+  (emit (parse mdstr)))
 
 ;;; todos ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
