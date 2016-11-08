@@ -615,7 +615,8 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def node (comp exceptional align shadow round border pad gutter nudge size dock fontable color transform clickable))
+(def leaf (comp exceptional shadow round border nudge size dock fontable color transform clickable))
+(def node (comp align pad gutter leaf))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -637,6 +638,8 @@
 (def file    (-> h/div      box         fieldable   file-field      node            parse-args))
 (def files   (-> h/div      box         fieldable   file-field      node            parse-args))
 (def write   (-> h/input    box destyle             send-field      node            parse-args))
+
+(def html    (-> h/div      box                                     node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
