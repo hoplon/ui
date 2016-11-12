@@ -48,6 +48,17 @@
 
 (defn clean [map] (into {} (filter second map)))
 
+(defn copy! [text]
+  (let [foc (.-activeElement js/document)
+        tgt (with-let [e (.createElement js/document "textarea")]
+              (set! (.-value e) text))]
+    (.appendChild (.-body js/document) tgt)
+    (.focus tgt)
+    (.setSelectionRange tgt 0 (.. tgt -value -length))
+    (.execCommand js/document "copy")
+    (.focus foc)
+    (.removeChild (.-body js/document) tgt)))
+
 (defn debounce [ms f]
   (let [id (atom nil)]
     (fn [& args]
