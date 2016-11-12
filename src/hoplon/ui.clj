@@ -16,7 +16,7 @@
 (defmacro cmpt [& args]
   `(hoplon.binding/binding [hoplon.ui/*pointer* (javelin.core/cell {:over 0 :down 0 :up 0 :out 0})
                             hoplon.ui/*state*   (javelin.core/cell nil)]
-    (comp* ~@args)))
+    (cmpt* ~@args)))
 
 (defmacro item [& args]
   `(hoplon.binding/binding [hoplon.ui/*pointer* (javelin.core/cell {:over 0 :down 0 :up 0 :out 0})
