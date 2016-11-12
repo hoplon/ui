@@ -523,11 +523,14 @@
       (bind-in! e [mid .-firstChild .-data]        url))))
 
 (defn videoable [ctor]
-  (fn [{:keys [autoplay controls url] :as attrs} elems]
+  (fn [{:keys [autoplay controls loop muted poster url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :autoplay :controls :url) elems)]
+    (with-let [e (ctor (dissoc attrs :autoplay :controls :loop :muted :poster :url) elems)]
       (bind-in! e [mid .-firstChild .-autoplay] autoplay)
       (bind-in! e [mid .-firstChild .-controls] (cell= (when controls "controls")))
+      (bind-in! e [mid .-firstChild .-loop]     loop)
+      (bind-in! e [mid .-firstChild .-muted]    muted)
+      (bind-in! e [mid .-firstChild .-poster]   poster)
       (bind-in! e [mid .-firstChild .-src]      url))))
 
 (defn clickable [ctor] 
