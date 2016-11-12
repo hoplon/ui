@@ -1,10 +1,9 @@
 (set-env!
   :source-paths #{"src"}
   :test-paths   #{"tst"}
-  :target-path  "tgt"
   :dependencies '[[org.clojure/clojure       "1.8.0"          :scope "provided"]
-                  [org.clojure/clojurescript "1.9.89"         :scope "provided"]
-                  [adzerk/boot-cljs          "1.7.228-1"      :scope "test"]
+                  [org.clojure/clojurescript "1.8.51"         :scope "provided"]
+                  [adzerk/boot-cljs          "1.7.228-2"      :scope "test"]
                   [adzerk/boot-reload        "0.4.12"         :scope "test"]
                   [adzerk/bootlaces          "0.1.13"         :scope "test"]
                   [hoplon/boot-hoplon        "0.2.4"          :scope "test"]
@@ -18,7 +17,7 @@
   '[adzerk.bootlaces          :refer :all]
   '[adzerk.boot-cljs          :refer [cljs]]
   '[adzerk.boot-reload        :refer [reload]]
-  '[hoplon.boot-hoplon        :refer [hoplon ns+]]
+  '[hoplon.boot-hoplon        :refer [hoplon]]
   '[tailrecursion.boot-static :refer [serve]])
 
 (def +version+ "0.1.0-SNAPSHOT")
@@ -35,7 +34,7 @@
   (as-> (get-env) $
         (clojure.set/union (:source-paths $) (:test-paths $))
         (set-env! :source-paths $))
-  (comp (watch) (speak) (hoplon) (ns+) (reload) (cljs :optimizations :none) (serve)))
+  (comp (watch) (speak) (hoplon) (reload) (cljs :optimizations :none) (serve)))
 
 (task-options!
   pom    {:project     'hoplon/ui
