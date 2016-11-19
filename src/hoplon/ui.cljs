@@ -93,11 +93,7 @@
 (defn swap-elems! [e f & vs] ;; todo: factor out
   (cond (cell?       e) (cell= (apply swap-elems! e f vs))
         (sequential? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
-        (elem?       e) (apply f e vs)
-        (string?     e) identity
-        (nil?        e) identity
-        (fn?       e) identity
-        :else       (throw-ui-exception "Invalid child of type " (type e) " with values " vs ".")))
+        (elem?       e) (apply f e vs)))
 
 (defn validate [validator]
   (fn [& vs]
@@ -501,7 +497,7 @@
         (bind-in! u [.-style .-left]         (cell= (when f                 "50%")))
         (bind-in! u [.-style .-top]          (cell= (when f                 "50%")))
         (bind-in! u [.-style .-width]        (cell= (when (not= fit :cover) "100%")))
-        (bind-in! u [.-style .-height]       (cell= (when (= fit :fill)     "100%"))) 
+        (bind-in! u [.-style .-height]       (cell= (when (= fit :fill)     "100%")))
         (bind-in! u [.-style .-minWidth]     (cell= (when (= fit :cover)    "100%")))
         (bind-in! u [.-style .-minHeight]    (cell= (when (= fit :cover)    "100%")))
         (bind-in! u [.-style .-transform]    (cell= (when f                 "translate(-50%,-50%)")))
@@ -544,7 +540,7 @@
       (bind-in! e [mid .-firstChild .-poster]   poster)
       (bind-in! e [mid .-firstChild .-src]      url))))
 
-(defn clickable [ctor] 
+(defn clickable [ctor]
   (fn [{:keys [click] :as attrs} elems]
     {:pre [(callbacks? click)]}
     (with-let [e (ctor (dissoc attrs :click) elems)]
@@ -629,7 +625,7 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def leaf (comp exceptional shadow round border nudge size dock fontable color transform clickable))
+(def leaf (comp shadow round border nudge size dock fontable color transform clickable))
 (def node (comp align pad gutter leaf))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -652,8 +648,6 @@
 (def file    (-> h/div      box         fieldable   file-field      node            parse-args))
 (def files   (-> h/div      box         fieldable   file-field      node            parse-args))
 (def write   (-> h/input    box destyle             send-field      node            parse-args))
-
-(def html    (-> h/div      box                                     node            parse-args))
 
 ;;; utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
