@@ -233,29 +233,6 @@
       (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
         (bind-in! e [in .-style .-margin] pv ph)))))
 
-(defn nudge [ctor]
-  "bump the position of an elem relative to its normal position in the layout.
-   useful as a final tweak in cases where the correctly calculated position of
-   an element may appear off visually.
-
-   implemented by setting the margins on the elem's outer element."
-  (fn [{:keys [nh nv] :as attrs} elems]
-    {:pre [(lengths? nh nv)]}
-    (with-let [e (ctor (dissoc attrs :nh :nv) elems)]
-      (bind-in! e [out .-style .-margin] (or nv 0) (or (cell= (- nh)) 0) (or (cell= (- nv)) 0) (or nh 0)))))
-
-(defn dock [ctor]
-  "fix the element to the window."
-  (fn [{:keys [xl xr xt xb] :as attrs} elems]
-    {:pre [(docks? xl xr xt xb)]} ;; todo: warn about pct w, pct h
-    (with-let [e (ctor (dissoc attrs :xl :xr :xt :xb) elems)]
-      (bind-in! e [out .-style .-position] (cell= (if (or xl xr xt xb) :fixed :initial)))
-      (bind-in! e [out .-style .-zIndex]   (cell= (if (or xl xr xt xb) "9999" :initial)))
-      (bind-in! e [out .-style .-left]     (cell= (or xl nil)))
-      (bind-in! e [out .-style .-right]    (cell= (or xr nil)))
-      (bind-in! e [out .-style .-top]      (cell= (or xt nil)))
-      (bind-in! e [out .-style .-bottom]   (cell= (or xb nil))))))
-
 (defn color [ctor]
   "set the background color an the inner element."
   (fn [{:keys [c o m v l] :as attrs} elems]
@@ -625,7 +602,7 @@
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def leaf (comp shadow round border nudge size dock fontable color transform clickable))
+(def leaf (comp shadow round border size fontable color transform clickable))
 (def node (comp align pad gutter leaf))
 
 ;;; element primitives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
