@@ -1,17 +1,10 @@
-(ns hoplon.ui
-  (:refer-clojure :exclude
-    [comp])
-  (:require
-    [javelin.core :refer [cell=]]))
+(ns hoplon.ui)
 
-(defmacro set-in! [elem path & values]
-  `(set! ~(reduce #(list %2 %1) elem path) (vstr ~values)))
+(defmacro set-in! [elem path value]
+  `(set! ~(reduce #(list %2 %1) elem path) (hoplon.ui.attrs/->attr ~value)))
 
-(defmacro set-in* [elem path values]
-  `(set! ~(reduce #(list %2 %1) elem path) (vstr ~values)))
-
-(defmacro bind-in! [elem path & values]
-  `(bind-with (fn [vs#] (set-in* ~elem ~path vs#)) (vector ~@values)))
+(defmacro bind-in! [elem path value]
+  `(bind-with (fn [v#] (set-in! ~elem ~path v#)) ~value))
 
 (defmacro cmpt [& args]
   `(hoplon.binding/binding [hoplon.ui/*pointer* (javelin.core/cell {:over 0 :down 0 :up 0 :out 0})

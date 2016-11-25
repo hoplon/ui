@@ -13,7 +13,7 @@
   (:require-macros
     [hoplon.core    :refer [with-timeout]]
     [hoplon.binding :refer [binding bound-fn]]
-    [hoplon.ui      :refer [bind-in!]]
+    [hoplon.ui      :refer [set-in! bind-in!]]
     [javelin.core   :refer [cell= with-let set-cell!=]]))
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,8 +77,11 @@
     (swap! *exceptions* conj {:msg (apply str msg)})
     (throw (js/Error (apply str msg)))))
 
+(defn bind-with [f value]
+  (f (if (cell? value) @(add-watch value (gensym) #(f %4)) value)))
+
 (defn vstr [vs]
-  (join " " (map ->attr vs)))
+  (join " " (mapv ->attr vs)))
 
 (defn bind-cells [f] ;; todo: loop recur
   (fn [& vs]
@@ -86,14 +89,10 @@
           watch (fn [i v] (if (coll? v) (into (empty v) (map-indexed watch v)) (watch i v)))]
       (apply f (map-indexed watch vs)))))
 
-(defn bind-with [f vs] ;;todo: consolidate with bind-cells
-  (let [watch (fn [i v] (if (cell? v) @(add-watch v (gensym) #(f (assoc vs i %4))) v))]
-    (f (map-indexed watch vs))))
-
-(defn swap-elems! [e f & vs] ;; todo: factor out
-  (cond (cell?       e) (cell= (apply swap-elems! e f vs))
-        (sequential? e) (doseq [e e] (apply swap-elems! e f vs)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
-        (elem?       e) (apply f e vs)))
+(defn swap-elems! [e f v] ;; todo: factor out
+  (cond (cell?       e) (cell= (swap-elems! e f v))
+        (sequential? e) (doseq [e e] (swap-elems! e f v)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
+        (elem?       e) (f e v)))
 
 (defn validate [validator]
   (fn [& vs]
@@ -213,7 +212,10 @@
     {:pre [(lengths? p ph pv pl pr pt pb)]}
     ;; todo: dissallow pct based paddings since tied to opposite dimension
     (with-let [e (ctor (dissoc attrs :p :ph :pv :pl :pr :pt :pb) elems)]
-      (bind-in! e [mid .-style .-padding] (or pt pv p 0) (or pr ph p 0) (or pb pv p 0) (or pl ph p 0)))))
+      (bind-in! e [mid .-style .-paddingLeft]   (or pl ph p))
+      (bind-in! e [mid .-style .-paddingRight]  (or pr ph p))
+      (bind-in! e [mid .-style .-paddingTop]    (or pt pv p))
+      (bind-in! e [mid .-style .-paddingBottom] (or pt pv p)))))
 
 (defn gutter [ctor]
   "set the padding on the outer element of each child and a negative margin on
@@ -228,10 +230,15 @@
           mv (cell= (/ (or gv g) 2))
           ph (cell= (- mh))
           pv (cell= (- mv))]
-        ;; todo: gutter between text nodes
-      (swap-elems! elems #(bind-in! % [out .-style .-padding] %2 %3 %4 %5) mv mh mv mh)
+      (swap-elems! elems #(do (bind-in! % [out .-style .-paddingLeft]   %2)
+                              (bind-in! % [out .-style .-paddingRight]  %2)) mh)
+      (swap-elems! elems #(do (bind-in! % [out .-style .-paddingTop]    %2)
+                              (bind-in! % [out .-style .-paddingBottom] %2)) mv)
       (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
-        (bind-in! e [in .-style .-margin] pv ph)))))
+        (bind-in! e [in .-style .-marginLeft]   ph)
+        (bind-in! e [in .-style .-marginRight]  ph)
+        (bind-in! e [in .-style .-marginTop]    pv)
+        (bind-in! e [in .-style .-marginBottom] pv)))))
 
 (defn color [ctor]
   "set the background color an the inner element."
@@ -255,7 +262,7 @@
     {:pre [(transforms? x) (origins? xx xy xz) (boxes? xb) (txstyles? xs)]}
     (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
       (bind-in! e [out .-style .-transform]       x)
-      (bind-in! e [out .-style .-transformOrigin] xx xy xz)
+      (bind-in! e [out .-style .-transformOrigin] (cell= (vstr (vector xx xy xz)))) ;; todo: remove vstr
       (bind-in! e [out .-style .-transformBox]    xb)
       (bind-in! e [out .-style .-transformStyle]  xs))))
 
@@ -264,7 +271,10 @@
   (fn [{:keys [r rtl rtr rbl rbr] :as attrs} elems]
     {:pre [(lengths? r rtl rtr rbl rbr)]}
     (with-let [e (ctor (dissoc attrs :r :rtl :rtr :rbl :rbr) elems)]
-      (bind-in! e [mid .-style .-borderRadius] (or rtl r) (or rtr r) (or rbr r) (or rbl r)))))
+      (bind-in! e [mid .-style .-borderTopLeftRadius]     (or rtl r))
+      (bind-in! e [mid .-style .-borderTopRightRadius]    (or rtr r))
+      (bind-in! e [mid .-style .-borderBottomLeftRadius]  (or rbl r))
+      (bind-in! e [mid .-style .-borderBottomRightRadius] (or rbr r)))))
 
 (defn shadow [ctor]
   "set the shadows on the middle element."
@@ -280,9 +290,15 @@
   (fn [{:keys [b bh bv bl br bt bb bc bch bcv bcl bcr bct bcb] :as attrs} elems]
     {:pre [(lengths? b bh bv bl br bt bb) (colors? bc bch bcv bcl bcr bct bcb)]}
     (with-let [e (ctor (dissoc attrs :b :bh :bv :bl :br :bt :bb :bw :bc :bch :bcv :bcl :bcr :bct :bcb) elems)]
-      (bind-in! e [mid .-style .-borderWidth] (or bt bv b 0)  (or br bh b 0)  (or bb bv b 0)  (or bl bh b 0))
-      (bind-in! e [mid .-style .-borderColor] (or bct bcv bc "transparent") (or bcr bch bc "transparent") (or bcb bcv bc "transparent") (or bcl bch bc "transparent"))
-      (bind-in! e [mid .-style .-borderStyle] :solid))))
+      (bind-in! e [mid .-style .-borderLeftWidth]   (or bl bh b))
+      (bind-in! e [mid .-style .-borderRightWidth]  (or br bh b))
+      (bind-in! e [mid .-style .-borderTopWidth]    (or bt bv b))
+      (bind-in! e [mid .-style .-borderBottomWidth] (or bb bv b))
+      (bind-in! e [mid .-style .-borderLeftColor]   (or bcl bch bc "transparent"))
+      (bind-in! e [mid .-style .-borderRightColor]  (or bcr bch bc "transparent"))
+      (bind-in! e [mid .-style .-borderTopColor]    (or bct bcv bc "transparent"))
+      (bind-in! e [mid .-style .-borderBottomColor] (or bcb bcv bc "transparent"))
+      (set-in!  e [mid .-style .-borderStyle]       "solid"))))
 
 (defn fontable [ctor]
     "- f  font size
@@ -446,22 +462,6 @@
       (bind-in! e [in .-value] label))))
 
 ;;; middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn exceptional [ctor]
-  "handle errors by highlighting the corresponding component"
-  (fn [attrs elems]
-    (binding [*exceptions* (atom [])]
-      (with-let [e (ctor attrs elems)]
-        (when (not-empty @*exceptions*)
-          (doseq [{:keys [msg]} @*exceptions*]
-            (.log js/console msg))
-          (bind-in! e [out .-title] (join "\n" (mapv :msg @*exceptions*)))
-          (bind-in! e [out .-style .-border] 3 :solid :red))))))
-
-(defn assert-noattrs [ctor]
-  (fn [attrs elems]
-    {:pre [(attrs? attrs)]}
-    (ctor attrs elems)))
 
 (defn underlay [ctor element-ctor]
   (fn [{:keys [fit] :as attrs} elems]
