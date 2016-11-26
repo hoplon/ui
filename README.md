@@ -122,6 +122,11 @@ functionally test the library.
 boot test
 ```
 
+functionally test the library in a production configuration without validation and with advanced optimizations
+```bash
+boot test -eo advanced
+```
+
 input validation and visual error rendering should be turned off for production builds by adding the following to the cljs task.
 ```
 :compiler-options {:elide-asserts true}
