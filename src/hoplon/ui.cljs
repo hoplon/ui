@@ -1,13 +1,13 @@
 (ns hoplon.ui
   (:refer-clojure :exclude [binding bound-fn])
   (:require
-    [hoplon.core :as h]
+    [hoplon.core          :as h]
+    [hoplon.ui.validation :as v]
     [clojure.string  :refer [blank? join split ends-with?]]
     [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
     [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
     [hoplon.ui.elems :refer [box doc out mid in elem?]]
-    [hoplon.ui.validation :as v]
     [hoplon.binding]
     [cljsjs.markdown])
   (:require-macros
@@ -18,7 +18,6 @@
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^:dynamic *exceptions* nil)
 (def ^:dynamic *position*   nil)
 (def ^:dynamic *clicks*     nil)
 (def ^:dynamic *pointer*    nil)
@@ -72,78 +71,16 @@
    "prerender" :background
    "unloaded"  :terminated})
 
-(defn throw-ui-exception [& msg]
-  (when *exceptions*
-    (swap! *exceptions* conj {:msg (apply str msg)})
-    (throw (js/Error (apply str msg)))))
-
-(defn bind-with [f value]
-  (f (if (cell? value) @(add-watch value (gensym) #(f %4)) value)))
+(defn bind-with! [f value]
+  (if (cell? value) (f @(add-watch value (gensym) #(f %4))) (f value)))
 
 (defn vstr [vs]
   (join " " (mapv ->attr vs)))
-
-(defn bind-cells [f] ;; todo: loop recur
-  (fn [& vs]
-    (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc (vec vs) i %4))) v))
-          watch (fn [i v] (if (coll? v) (into (empty v) (map-indexed watch v)) (watch i v)))]
-      (apply f (map-indexed watch vs)))))
 
 (defn swap-elems! [e f v] ;; todo: factor out
   (cond (cell?       e) (cell= (swap-elems! e f v))
         (sequential? e) (doseq [e e] (swap-elems! e f v)) ;;todo: handled with IElemValue if (hoplon.ui/elem?)
         (elem?       e) (f e v)))
-
-(defn validate [validator]
-  (fn [& vs]
-    (doseq [v vs]
-      (when-not (validator v)
-        (throw-ui-exception "Error validating attribute value " v ".")))
-    true))
-
-(defn validate-cells [validator message] ;; todo: refactor to include attribute key
-  (fn [& vs]
-    (doseq [v vs :let [valid? (bind-cells validator)]]
-      (when-not (valid? v)
-        (throw-ui-exception message " " v ".")))
-    true))
-
-(def adjusts?         (validate-cells v/adjust?         "Error validating attribute of type adjust with value"))
-(def aligns?          (validate-cells v/align?          "Error validating attribute of type align with value"))
-(def alignhs?         (validate-cells v/alignh?         "Error validating attribute of type alingh with value"))
-(def alignvs?         (validate-cells v/alignv?         "Error validating attribute of type alignv with value"))
-(def colors?          (validate-cells v/color?          "Error validating attribute of type color with value"))
-(def cursors?         (validate-cells v/cursor?         "Error validating attribute of type cursor with value"))
-(def decorations?     (validate-cells v/decoration?     "Error validating attribute of type decoration with value"))
-(def families?        (validate-cells v/family?         "Error validating attribute of type family with value"))
-(def fits?            (validate-cells v/fit?            "Error validating attribute of type fit with value"))
-(def kernings?        (validate-cells v/kerning?        "Error validating attribute of type kerning with value"))
-(def lengths?         (validate-cells v/length?         "Error validating attribute of type length with value"))
-(def opacities?       (validate-cells v/opacity?        "Error validating attribute of type opacity with value"))
-(def overflows?       (validate-cells v/overflow?       "Error validating attribute of type overflow with value"))
-(def renderings?      (validate-cells v/rendering?      "Error validating attribute of type rendering with value"))
-(def shadows?         (validate-cells v/shadow?         "Error validating attribute of type shadow with value"))
-(def sizes?           (validate-cells v/size?           "Error validating attribute of type size with value"))
-(def smoothings?      (validate-cells v/smoothing?      "Error validating attribute of type smoothing with value"))
-(def spacings?        (validate-cells v/spacing?        "Error validating attribute of type spacing with value"))
-(def stretches?       (validate-cells v/stretch?        "Error validating attribute of type stetch with value"))
-(def styles?          (validate-cells v/style?          "Error validating attribute of type style with value"))
-(def syntheses?       (validate-cells v/synthesis?      "Error validating attribute of type sythesis with value"))
-(def transforms?      (validate-cells v/transform?      "Error validating attribute of type transformation with value"))
-(def capitalizes?     (validate-cells v/capitalize?     "Error validating attribute of type capitalize with value"))
-(def origins?         (validate-cells v/origin?         "Error validating attribute of type transformation origin with value"))
-(def boxes?           (validate-cells v/box?            "Error validating attribute of type transformation box with value"))
-(def txstyles?        (validate-cells v/txstyle?        "Error validating attribute of type transformation style with value"))
-(def weights?         (validate-cells v/weight?         "Error validating attribute of type weight with value"))
-
-(def autocompletes?   (validate-cells v/autocomplete?   "Error validating attribute of type autocomplete with value"))
-(def autocapitalizes? (validate-cells v/autocapitalize? "Error validating attribute of type autocapitalize with value"))
-(def integers?        (validate-cells v/integer?        "Error validating attribute of type integer with value"))
-(def contents?        (validate-cells v/content?        "Error validating attribute of type char with value"))
-
-(def callbacks?       (validate-cells v/callback?       "Error validating attribute of type callback with value"))
-(def docks?           (validate-cells v/dock?           "Error validating attribute of type dock with value"))
-(def attrs?           (validate-cells empty?            "Unhandled attribute with value"))
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -166,7 +103,7 @@
    auto in the horizontal will set it to auto in the vertical as well, even if
    it is explictly set to visible."
   (fn [{:keys [s sh sv sh- sh+ scroll] :as attrs} elems]
-    {:pre [(lengths? s sh sv sh- sh+)]}
+    {:pre [(v/lengths? s sh sv sh- sh+)]}
     (with-let [e (ctor (dissoc attrs :s :sh :sv :sh- :sh+ :scroll) elems)]
       (let [rel? #(or (ratio? %) (calc? %))
             rel  #(cell= (if (rel? %) % %2))
@@ -191,7 +128,7 @@
   that, in addition to aligning the lines of children within the elem, the
   children are also aligned in the same manner within their respective lines."
   (fn [{:keys [a ah av] :as attrs} elems]
-    {:pre [(aligns? a) (alignhs? ah) (alignvs? av)]}
+    {:pre [(v/aligns? a) (v/alignhs? ah) (v/alignvs? av)]}
     (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a) "0%"))
           ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
           av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
@@ -209,7 +146,7 @@
 
    this adds space between the edges of the container and its children."
   (fn [{:keys [p ph pv pl pr pt pb] :as attrs} elems]
-    {:pre [(lengths? p ph pv pl pr pt pb)]}
+    {:pre [(v/lengths? p ph pv pl pr pt pb)]}
     ;; todo: dissallow pct based paddings since tied to opposite dimension
     (with-let [e (ctor (dissoc attrs :p :ph :pv :pl :pr :pt :pb) elems)]
       (bind-in! e [mid .-style .-paddingLeft]   (or pl ph p))
@@ -225,7 +162,7 @@
    negative inner margin on the elem itself offsets this padding to fencepost
    the children flush with the edges of the container."
   (fn [{:keys [g gh gv] :as attrs} elems]
-    {:pre [(lengths? g gh gv)]}
+    {:pre [(v/lengths? g gh gv)]}
     (let [mh (cell= (/ (or gh g) 2))
           mv (cell= (/ (or gv g) 2))
           ph (cell= (- mh))
@@ -243,7 +180,7 @@
 (defn color [ctor]
   "set the background color an the inner element."
   (fn [{:keys [c o m v l] :as attrs} elems]
-    {:pre [(colors? c) (opacities? o) (cursors? m)]}
+    {:pre [(v/colors? c) (v/opacities? o) (v/cursors? m)]}
     ;; todo: linking user select to cursor
     (with-let [e (ctor (dissoc attrs :c :o :m :v :l) elems)]
       (let [l (cell= (if l :text :none))]
@@ -259,7 +196,7 @@
 (defn transform [ctor]
   "apply a taransformation on the outer element."
   (fn [{:keys [x xx xy xz xb xs] :as attrs} elems]
-    {:pre [(transforms? x) (origins? xx xy xz) (boxes? xb) (txstyles? xs)]}
+    {:pre [(v/transforms? x) (v/origins? xx xy xz) (v/boxes? xb) (v/txstyles? xs)]}
     (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
       (bind-in! e [out .-style .-transform]       x)
       (bind-in! e [out .-style .-transformOrigin] (cell= (vstr (vector xx xy xz)))) ;; todo: remove vstr
@@ -269,7 +206,7 @@
 (defn round [ctor]
   "set the radius on the middle element."
   (fn [{:keys [r rtl rtr rbl rbr] :as attrs} elems]
-    {:pre [(lengths? r rtl rtr rbl rbr)]}
+    {:pre [(v/lengths? r rtl rtr rbl rbr)]}
     (with-let [e (ctor (dissoc attrs :r :rtl :rtr :rbl :rbr) elems)]
       (bind-in! e [mid .-style .-borderTopLeftRadius]     (or rtl r))
       (bind-in! e [mid .-style .-borderTopRightRadius]    (or rtr r))
@@ -279,7 +216,7 @@
 (defn shadow [ctor]
   "set the shadows on the middle element."
   (fn [{:keys [d] :as attrs} elems]
-    {:pre [(shadows? d)]}
+    {:pre [(v/shadows? d)]}
     (with-let [e (ctor (dissoc attrs :d) elems)]
       (bind-in! e [mid .-style .-boxShadow] d))))
 
@@ -288,7 +225,7 @@
 
    this adds space between the edges of the container and its children."
   (fn [{:keys [b bh bv bl br bt bb bc bch bcv bcl bcr bct bcb] :as attrs} elems]
-    {:pre [(lengths? b bh bv bl br bt bb) (colors? bc bch bcv bcl bcr bct bcb)]}
+    {:pre [(v/lengths? b bh bv bl br bt bb) (v/colors? bc bch bcv bcl bcr bct bcb)]}
     (with-let [e (ctor (dissoc attrs :b :bh :bv :bl :br :bt :bb :bw :bc :bch :bcv :bcl :bcr :bct :bcb) elems)]
       (bind-in! e [mid .-style .-borderLeftWidth]   (or bl bh b))
       (bind-in! e [mid .-style .-borderRightWidth]  (or br bh b))
@@ -318,7 +255,7 @@
      - fy font synthesis
      - fx font capitalize"
   (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fx fy fr fm] :as attrs} elems]
-    {:pre [(sizes? f) (spacings? fw fh) (weights? ft) (families? ff) (colors? fc) (decorations? fu) (styles? fi) (adjusts? fa) (stretches? fs) (syntheses? fy) (renderings? fr) (smoothings? fm) (capitalizes? fx)]}
+    {:pre [(v/sizes? f) (v/spacings? fw fh) (v/weights? ft) (v/families? ff) (v/colors? fc) (v/decorations? fu) (v/styles? fi) (v/adjusts? fa) (v/stretches? fs) (v/syntheses? fy) (v/renderings? fr) (v/smoothings? fm) (v/capitalizes? fx)]}
     (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fx :fy :fr :fm) elems)]
       (bind-in! e [in .-style .-fontSize]               f)
       (bind-in! e [in .-style .-letterSpacing]          fw)
@@ -417,7 +354,7 @@
 
 (defn line-field [ctor]
   (fn [{:keys [rows cols autocomplete autocapitalize content prompt charsize charmin charmax resizable] :as attrs} elems]
-    {:pre [(autocompletes? autocomplete) (autocapitalizes? autocapitalize) (contents? content) (integers? charsize charmin charmax)]}
+    {:pre [(v/autocompletes? autocomplete) (v/autocapitalizes? autocapitalize) (v/contents? content) (v/integers? charsize charmin charmax)]}
     (with-let [e (ctor (dissoc attrs :rows :cols :autocomplete :autocapitalize :content :prompt :charsize :charmin :charmax :resizeable) elems)]
       (bind-in! e [in .-style .-padding] "0")
       (bind-in! e [in .-rows]            (cell= (if rows (str rows) "1")))
@@ -436,7 +373,7 @@
 
 (defn lines-field [ctor]
   (fn [{:keys [rows cols autocomplete autocapitalize content prompt charsize charmin charmax resizable] :as attrs} elems]
-    {:pre [(autocompletes? autocomplete) (autocapitalizes? autocapitalize) (contents? content) (integers? charsize charmin charmax)]}
+    {:pre [(v/autocompletes? autocomplete) (v/autocapitalizes? autocapitalize) (v/contents? content) (v/integers? charsize charmin charmax)]}
     (with-let [e (ctor (dissoc attrs :rows :cols :autocomplete :autocapitalize :content :prompt :charsize :charmin :charmax :resizeable) elems)]
       (bind-in! e [in .-style .-padding] "0")
       (bind-in! e [in .-rows]            (cell= (if rows (str rows) "2")))
@@ -465,7 +402,7 @@
 
 (defn underlay [ctor element-ctor]
   (fn [{:keys [fit] :as attrs} elems]
-    {:pre [(fits? fit)]}
+    {:pre [(v/fits? fit)]}
     (with-let [e (ctor (dissoc attrs :fit) elems)]
       (let [u (.insertBefore (mid e) (element-ctor) (in e))
             f (some #{fit} #{:cover :contain})]
@@ -519,7 +456,7 @@
 
 (defn clickable [ctor]
   (fn [{:keys [click] :as attrs} elems]
-    {:pre [(callbacks? click)]}
+    {:pre [(v/callbacks? click)]}
     (with-let [e (ctor (dissoc attrs :click) elems)]
       (when click
         (.addEventListener (mid e) "click" click)))))

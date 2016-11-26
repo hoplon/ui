@@ -280,3 +280,55 @@
   (cond (clojure.core/integer? v) v
         (nil?                  v) true
         :else                     false))
+
+;;; validators ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn bind-cells [f] ;; todo: loop recur
+  (fn [& vs]
+    (let [watch (fn [i v] (if (javelin.core/cell? v) @(add-watch v i #(apply f (assoc (vec vs) i %4))) v))
+          watch (fn [i v] (if (coll? v) (into (empty v) (map-indexed watch v)) (watch i v)))]
+      (apply f (map-indexed watch vs)))))
+
+(defn validate-cells [validator message] ;; todo: refactor to include attribute key
+  (fn [& vs]
+    (doseq [v vs :let [valid? (bind-cells validator)]]
+      (when-not (valid? v)
+        (js/Error. message " " v ".")))
+    true))
+
+(def adjusts?         (validate-cells adjust?         "Error validating attribute of type adjust with value"))
+(def aligns?          (validate-cells align?          "Error validating attribute of type align with value"))
+(def alignhs?         (validate-cells alignh?         "Error validating attribute of type alingh with value"))
+(def alignvs?         (validate-cells alignv?         "Error validating attribute of type alignv with value"))
+(def colors?          (validate-cells color?          "Error validating attribute of type color with value"))
+(def cursors?         (validate-cells cursor?         "Error validating attribute of type cursor with value"))
+(def decorations?     (validate-cells decoration?     "Error validating attribute of type decoration with value"))
+(def families?        (validate-cells family?         "Error validating attribute of type family with value"))
+(def fits?            (validate-cells fit?            "Error validating attribute of type fit with value"))
+(def kernings?        (validate-cells kerning?        "Error validating attribute of type kerning with value"))
+(def lengths?         (validate-cells length?         "Error validating attribute of type length with value"))
+(def opacities?       (validate-cells opacity?        "Error validating attribute of type opacity with value"))
+(def overflows?       (validate-cells overflow?       "Error validating attribute of type overflow with value"))
+(def renderings?      (validate-cells rendering?      "Error validating attribute of type rendering with value"))
+(def shadows?         (validate-cells shadow?         "Error validating attribute of type shadow with value"))
+(def sizes?           (validate-cells size?           "Error validating attribute of type size with value"))
+(def smoothings?      (validate-cells smoothing?      "Error validating attribute of type smoothing with value"))
+(def spacings?        (validate-cells spacing?        "Error validating attribute of type spacing with value"))
+(def stretches?       (validate-cells stretch?        "Error validating attribute of type stetch with value"))
+(def styles?          (validate-cells style?          "Error validating attribute of type style with value"))
+(def syntheses?       (validate-cells synthesis?      "Error validating attribute of type sythesis with value"))
+(def transforms?      (validate-cells transform?      "Error validating attribute of type transformation with value"))
+(def capitalizes?     (validate-cells capitalize?     "Error validating attribute of type capitalize with value"))
+(def origins?         (validate-cells origin?         "Error validating attribute of type transformation origin with value"))
+(def boxes?           (validate-cells box?            "Error validating attribute of type transformation box with value"))
+(def txstyles?        (validate-cells txstyle?        "Error validating attribute of type transformation style with value"))
+(def weights?         (validate-cells weight?         "Error validating attribute of type weight with value"))
+
+(def autocompletes?   (validate-cells autocomplete?   "Error validating attribute of type autocomplete with value"))
+(def autocapitalizes? (validate-cells autocapitalize? "Error validating attribute of type autocapitalize with value"))
+(def integers?        (validate-cells integer?        "Error validating attribute of type integer with value"))
+(def contents?        (validate-cells content?        "Error validating attribute of type char with value"))
+
+(def callbacks?       (validate-cells callback?       "Error validating attribute of type callback with value"))
+(def docks?           (validate-cells dock?           "Error validating attribute of type dock with value"))
+(def attrs?           (validate-cells empty?            "Unhandled attribute with value"))

@@ -19,7 +19,7 @@
   '[hoplon.boot-hoplon        :refer [hoplon]]
   '[tailrecursion.boot-static :refer [serve]])
 
-(refer-clojure :exclude [test])
+(ns-unmap 'boot.user 'test)
 
 (def +version+ "0.1.0-SNAPSHOT")
 
