@@ -67,10 +67,10 @@
 
 (defn elem?     [v] (instance? Elem     v))
 
-(defn box-with [path-fn & tags]
+(defn box-with [path-fn octor mctor ictor]
   "create an Elem by wrapping the model outside of the element constructor"
   (fn [_ elems]
-    (let [[o m i] (-> tags box-tree path-fn box-model)]
+    (let [[o m i] (-> (vector octor mctor ictor) box-tree path-fn box-model)]
       (with-let [e (Elem. o m i)]
         (hoplon.core/add-children! e elems)))))
 

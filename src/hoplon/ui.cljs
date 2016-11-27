@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [binding bound-fn])
   (:require
     [hoplon.core          :as h]
-    #_[hoplon.ui.validation :as v]
+    [hoplon.ui.validation :as v]
     [clojure.string  :refer [blank? join split ends-with?]]
     [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
