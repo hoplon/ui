@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [binding bound-fn])
   (:require
     [hoplon.core          :as h]
-    [hoplon.ui.validation :as v]
+    #_[hoplon.ui.validation :as v]
     [clojure.string  :refer [blank? join split ends-with?]]
     [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
@@ -104,7 +104,7 @@
    it is explictly set to visible."
   (fn [{:keys [s sh sv sh- sh+ scroll] :as attrs} elems]
     {:pre [(v/lengths? s sh sv sh- sh+)]}
-    (with-let [e (ctor (dissoc attrs :s :sh :sv :sh- :sh+ :scroll) elems)]
+    (with-let [e (ctor attrs elems)]
       (let [rel? #(or (ratio? %) (calc? %))
             rel  #(cell= (if (rel? %) % %2))
             fix  #(cell= (if (rel? %) %2 %))]
@@ -133,7 +133,7 @@
           ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
           av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
-      (with-let [e (ctor (dissoc attrs :a :ah :av) elems)]
+      (with-let [e (ctor attrs elems)]
         (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; height is 100% only when based on size of children
         (bind-in! e [mid .-style .-textAlign]     ah)
         (bind-in! e [mid .-style .-verticalAlign] av)
@@ -148,7 +148,7 @@
   (fn [{:keys [p ph pv pl pr pt pb] :as attrs} elems]
     {:pre [(v/lengths? p ph pv pl pr pt pb)]}
     ;; todo: dissallow pct based paddings since tied to opposite dimension
-    (with-let [e (ctor (dissoc attrs :p :ph :pv :pl :pr :pt :pb) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-style .-paddingLeft]   (or pl ph p))
       (bind-in! e [mid .-style .-paddingRight]  (or pr ph p))
       (bind-in! e [mid .-style .-paddingTop]    (or pt pv p))
@@ -171,7 +171,7 @@
                               (bind-in! % [out .-style .-paddingRight]  %2)) mh)
       (swap-elems! elems #(do (bind-in! % [out .-style .-paddingTop]    %2)
                               (bind-in! % [out .-style .-paddingBottom] %2)) mv)
-      (with-let [e (ctor (dissoc attrs :g :gh :gv) elems)]
+      (with-let [e (ctor attrs elems)]
         (bind-in! e [in .-style .-marginLeft]   ph)
         (bind-in! e [in .-style .-marginRight]  ph)
         (bind-in! e [in .-style .-marginTop]    pv)
@@ -182,7 +182,7 @@
   (fn [{:keys [c o m v l] :as attrs} elems]
     {:pre [(v/colors? c) (v/opacities? o) (v/cursors? m)]}
     ;; todo: linking user select to cursor
-    (with-let [e (ctor (dissoc attrs :c :o :m :v :l) elems)]
+    (with-let [e (ctor attrs elems)]
       (let [l (cell= (if l :text :none))]
         (bind-in! e [mid .-style .-backgroundColor]  c)
         (bind-in! e [mid .-style .-opacity]          o)
@@ -197,7 +197,7 @@
   "apply a taransformation on the outer element."
   (fn [{:keys [x xx xy xz xb xs] :as attrs} elems]
     {:pre [(v/transforms? x) (v/origins? xx xy xz) (v/boxes? xb) (v/txstyles? xs)]}
-    (with-let [e (ctor (dissoc attrs :x :xx :xy :xz :xb :xs) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [out .-style .-transform]       x)
       (bind-in! e [out .-style .-transformOrigin] (cell= (vstr (vector xx xy xz)))) ;; todo: remove vstr
       (bind-in! e [out .-style .-transformBox]    xb)
@@ -207,7 +207,7 @@
   "set the radius on the middle element."
   (fn [{:keys [r rtl rtr rbl rbr] :as attrs} elems]
     {:pre [(v/lengths? r rtl rtr rbl rbr)]}
-    (with-let [e (ctor (dissoc attrs :r :rtl :rtr :rbl :rbr) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-style .-borderTopLeftRadius]     (or rtl r))
       (bind-in! e [mid .-style .-borderTopRightRadius]    (or rtr r))
       (bind-in! e [mid .-style .-borderBottomLeftRadius]  (or rbl r))
@@ -217,7 +217,7 @@
   "set the shadows on the middle element."
   (fn [{:keys [d] :as attrs} elems]
     {:pre [(v/shadows? d)]}
-    (with-let [e (ctor (dissoc attrs :d) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-style .-boxShadow] d))))
 
 (defn border [ctor]
@@ -226,7 +226,7 @@
    this adds space between the edges of the container and its children."
   (fn [{:keys [b bh bv bl br bt bb bc bch bcv bcl bcr bct bcb] :as attrs} elems]
     {:pre [(v/lengths? b bh bv bl br bt bb) (v/colors? bc bch bcv bcl bcr bct bcb)]}
-    (with-let [e (ctor (dissoc attrs :b :bh :bv :bl :br :bt :bb :bw :bc :bch :bcv :bcl :bcr :bct :bcb) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-style .-borderLeftWidth]   (or bl bh b))
       (bind-in! e [mid .-style .-borderRightWidth]  (or br bh b))
       (bind-in! e [mid .-style .-borderTopWidth]    (or bt bv b))
@@ -256,7 +256,7 @@
      - fx font capitalize"
   (fn [{:keys [f fw fh ft ff fc fu fi fk fa fs fx fy fr fm] :as attrs} elems]
     {:pre [(v/sizes? f) (v/spacings? fw fh) (v/weights? ft) (v/families? ff) (v/colors? fc) (v/decorations? fu) (v/styles? fi) (v/adjusts? fa) (v/stretches? fs) (v/syntheses? fy) (v/renderings? fr) (v/smoothings? fm) (v/capitalizes? fx)]}
-    (with-let [e (ctor (dissoc attrs :f :fw :fh :ft :ff :fc :fu :fi :fk :fa :fs :fx :fy :fr :fm) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [in .-style .-fontSize]               f)
       (bind-in! e [in .-style .-letterSpacing]          fw)
       (bind-in! e [in .-style .-lineHeight]             fh)
@@ -299,13 +299,13 @@
   "set up a form context"
   (fn [{:keys [change submit] :as attrs} elems]
     (when change (cell= (change (clean *data*)))) ;; init *data* to value of form fields on render
-     (with-let [e (ctor (dissoc attrs :change :submit) elems)]
+     (with-let [e (ctor attrs elems)]
        (.addEventListener (in e) "keypress" (bound-fn [e] (when (= (.-which e) 13) (submit (clean @*data*))))))))
 
 (defn fieldable [ctor]
   "set the values common to all form fields."
   (fn [{:keys [key val req autofocus] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :key :val :req :autofocus :debounce) elems)]
+    (with-let [e (ctor attrs elems)]
       (let [save (bound-fn  [_]  (when *data*  (swap! *data* assoc  (read-string  (.-name  (in e)))  (not-empty  (.-value  (in e))))))]
         (.addEventListener (in e) "change" save)
         (.addEventListener (in e) "keyup"  (if-let [deb (:debounce attrs)] (debounce deb save) save))
@@ -317,7 +317,7 @@
 (defn file-field [ctor]
   (fn [{:keys [accept] :as attrs} elems]
     ;{:pre []} ;accept [".jpg" ".png" "audio/*" "video/*" "image/*" "application/ogg"]
-    (with-let [e (ctor (dissoc attrs :accept) elems)]
+    (with-let [e (ctor attrs elems)]
       (let [i (.appendChild (mid e) (.createElement js/document "input"))]
         (bind-in! i [.-style .-position] "absolute")
         (bind-in! i [.-style .-left]     "0")
@@ -332,30 +332,30 @@
 
 (defn pick-field [ctor]
   (fn [{:keys [selection] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :selection) elems)]
+    (with-let [e (ctor attrs elems)]
       #_(bind-in! e [in .-name] key))))
 
 (defn picks-field [ctor]
   (fn [{:keys [selections] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :selections) elems)]
+    (with-let [e (ctor attrs elems)]
       #_(bind-in! e [in .-name] key))))
 
 (defn item-field [ctor]
   (fn [{:keys [val] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :val) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [in .-value] (cell= (pr-str val)))
       (.addEventListener (mid e) "mousedown" (bound-fn [] (when (= *state* :on) nil #_(reset! *selected* val)))))))
 
 (defn items-field [ctor]
   (fn [{:keys [val] :as attrs} elems]
-    (with-let [e (ctor (dissoc attrs :val) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [in .-value] (cell= (pr-str val)))
       (.addEventListener (mid e) "mousedown" (bound-fn [] (if (= *state* :on) nil #_(reset! *selected* val)))))))
 
 (defn line-field [ctor]
   (fn [{:keys [rows cols autocomplete autocapitalize content prompt charsize charmin charmax resizable] :as attrs} elems]
     {:pre [(v/autocompletes? autocomplete) (v/autocapitalizes? autocapitalize) (v/contents? content) (v/integers? charsize charmin charmax)]}
-    (with-let [e (ctor (dissoc attrs :rows :cols :autocomplete :autocapitalize :content :prompt :charsize :charmin :charmax :resizeable) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [in .-style .-padding] "0")
       (bind-in! e [in .-rows]            (cell= (if rows (str rows) "1")))
       (bind-in! e [in .-style .-height]  (cell= (if rows nil "100%")))
@@ -374,7 +374,7 @@
 (defn lines-field [ctor]
   (fn [{:keys [rows cols autocomplete autocapitalize content prompt charsize charmin charmax resizable] :as attrs} elems]
     {:pre [(v/autocompletes? autocomplete) (v/autocapitalizes? autocapitalize) (v/contents? content) (v/integers? charsize charmin charmax)]}
-    (with-let [e (ctor (dissoc attrs :rows :cols :autocomplete :autocapitalize :content :prompt :charsize :charmin :charmax :resizeable) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [in .-style .-padding] "0")
       (bind-in! e [in .-rows]            (cell= (if rows (str rows) "2")))
       (bind-in! e [in .-style .-height]  (cell= (if rows nil "100%")))
@@ -393,7 +393,7 @@
 (defn send-field [ctor]
   (fn [{label :label submit' :submit :as attrs} elems]
     {:pre []} ;; todo: validate
-    (with-let [e (ctor (dissoc attrs :label :submit) elems)]
+    (with-let [e (ctor attrs elems)]
       (.addEventListener (mid e) "click" (bound-fn [_] (or submit' *submit*) *data*))
       (bind-in! e [in .-type]  "button")
       (bind-in! e [in .-value] label))))
@@ -403,7 +403,7 @@
 (defn underlay [ctor element-ctor]
   (fn [{:keys [fit] :as attrs} elems]
     {:pre [(v/fits? fit)]}
-    (with-let [e (ctor (dissoc attrs :fit) elems)]
+    (with-let [e (ctor attrs elems)]
       (let [u (.insertBefore (mid e) (element-ctor) (in e))
             f (some #{fit} #{:cover :contain})]
         (bind-in! u [.-style .-display]      :block)
@@ -423,7 +423,7 @@
 (defn frameable [ctor]
   (fn [{:keys [allow-fullscreen sandbox type url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :allow-fullscreen :sandbox :type :url) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-firstChild .-allowFullscreen] allow-fullscreen)
       (bind-in! e [mid .-firstChild .-sandbox]         sandbox)
       (bind-in! e [mid .-firstChild .-type]            type)
@@ -432,13 +432,13 @@
 (defn imageable [ctor]
   (fn [{:keys [url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :url) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-firstChild .-src] url))))
 
 (defn objectable [ctor]
   (fn [{:keys [cross-origin type url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :cross-origin :type :url) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-firstChild .-crossOrigin] cross-origin)
       (bind-in! e [mid .-firstChild .-type]        type)
       (bind-in! e [mid .-firstChild .-data]        url))))
@@ -446,7 +446,7 @@
 (defn videoable [ctor]
   (fn [{:keys [autoplay controls loop muted poster url] :as attrs} elems]
     {:pre []} ;; todo
-    (with-let [e (ctor (dissoc attrs :autoplay :controls :loop :muted :poster :url) elems)]
+    (with-let [e (ctor attrs elems)]
       (bind-in! e [mid .-firstChild .-autoplay] autoplay)
       (bind-in! e [mid .-firstChild .-controls] (cell= (when controls "controls")))
       (bind-in! e [mid .-firstChild .-loop]     loop)
@@ -457,7 +457,7 @@
 (defn clickable [ctor]
   (fn [{:keys [click] :as attrs} elems]
     {:pre [(v/callbacks? click)]}
-    (with-let [e (ctor (dissoc attrs :click) elems)]
+    (with-let [e (ctor attrs elems)]
       (when click
         (.addEventListener (mid e) "click" click)))))
 
@@ -498,7 +498,7 @@
           get-agent  #(-> js/window .-navigator)
           get-refer  #(-> js/window .-document .-referrer)
           get-status #(-> js/window .-document .-visibilityState visibility->status)]
-        (with-let [e (ctor (dissoc attrs :fonts :icon :language :metadata :position :route :scripts :styles :title :initiated :mousechanged :positionchanged :statuschanged :routechanged :scroll) elems)]
+        (with-let [e (ctor attrs elems)]
           (bind-in! e [out .-lang] (or language "en"))
           (bind-in! e [out .-style .-width]     "100%")
           (bind-in! e [out .-style .-height]    "100%")
