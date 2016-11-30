@@ -227,6 +227,10 @@
   (fn [{:keys [b bh bv bl br bt bb bc bch bcv bcl bcr bct bcb] :as attrs} elems]
     {:pre [(v/lengths? b bh bv bl br bt bb) (v/colors? bc bch bcv bcl bcr bct bcb)]}
     (with-let [e (ctor attrs elems)]
+      (bind-in! e [mid .-style .-borderLeftStyle]   (cell= (when (or bl bh b) "solid")))
+      (bind-in! e [mid .-style .-borderRightStyle]  (cell= (when (or br bh b) "solid")))
+      (bind-in! e [mid .-style .-borderTopStyle]    (cell= (when (or bt bv b) "solid")))
+      (bind-in! e [mid .-style .-borderBottomStyle] (cell= (when (or bb bv b) "solid")))
       (bind-in! e [mid .-style .-borderLeftWidth]   (or bl bh b))
       (bind-in! e [mid .-style .-borderRightWidth]  (or br bh b))
       (bind-in! e [mid .-style .-borderTopWidth]    (or bt bv b))
@@ -234,8 +238,7 @@
       (bind-in! e [mid .-style .-borderLeftColor]   (or bcl bch bc "transparent"))
       (bind-in! e [mid .-style .-borderRightColor]  (or bcr bch bc "transparent"))
       (bind-in! e [mid .-style .-borderTopColor]    (or bct bcv bc "transparent"))
-      (bind-in! e [mid .-style .-borderBottomColor] (or bcb bcv bc "transparent"))
-      (set-in!  e [mid .-style .-borderStyle]       "solid"))))
+      (bind-in! e [mid .-style .-borderBottomColor] (or bcb bcv bc "transparent")))))
 
 (defn fontable [ctor]
     "- f  font size

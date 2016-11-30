@@ -2,6 +2,7 @@
   (:refer-clojure
     :exclude [integer?])
   (:require
+    [javelin.core :refer [cell?]]
     [hoplon.ui.attrs :as a]))
 
 ;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -11,6 +12,8 @@
 (def aligns      [:beg :mid :end])
 (def haligns     [:jst])
 (def valigns     [:baseline :sub :super :text-top :text-bottom])
+(def borders     [:none :hidden :dotted :dashed :solid :double :groove :ridge
+                  :inset :outset])
 (def colors      [:transparent :antiquewhite :aqua :aquamarine :azure :beige
                   :bisque :black :blanchedalmond :blue :blueviolet :brown
                   :burlywood :cadetblue :chartreuse :chocolate :coral
@@ -97,6 +100,11 @@
 (defn callback? [v]
   (cond (fn? v)   v
         (nil?     v) true
+        :else        false))
+
+(defn border? [v]
+  (cond (keyword? v) (in? v borders globals)
+        (nil?     v) :initial
         :else        false))
 
 (defn color? [v]
@@ -285,7 +293,7 @@
 
 (defn bind-cells [f] ;; todo: loop recur
   (fn [& vs]
-    (let [watch (fn [i v] (if (javelin.core/cell? v) @(add-watch v i #(apply f (assoc (vec vs) i %4))) v))
+    (let [watch (fn [i v] (if (cell? v) @(add-watch v i #(apply f (assoc (vec vs) i %4))) v))
           watch (fn [i v] (if (coll? v) (into (empty v) (map-indexed watch v)) (watch i v)))]
       (apply f (map-indexed watch vs)))))
 
@@ -300,6 +308,7 @@
 (def aligns?          (validate-cells align?          "Error validating attribute of type align with value"))
 (def alignhs?         (validate-cells alignh?         "Error validating attribute of type alingh with value"))
 (def alignvs?         (validate-cells alignv?         "Error validating attribute of type alignv with value"))
+(def borders?         (validate-cells border?         "Error validating attribute of type border with value"))
 (def colors?          (validate-cells color?          "Error validating attribute of type color with value"))
 (def cursors?         (validate-cells cursor?         "Error validating attribute of type cursor with value"))
 (def decorations?     (validate-cells decoration?     "Error validating attribute of type decoration with value"))
