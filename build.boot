@@ -2,11 +2,11 @@
   :source-paths #{"src"}
   :test-paths   #{"tst"}
   :dependencies '[[org.clojure/clojure       "1.8.0"          :scope "provided"]
-                  [org.clojure/clojurescript "1.8.51"         :scope "provided"]
+                  [org.clojure/clojurescript "1.9.293"        :scope "provided"]
                   [adzerk/boot-cljs          "1.7.228-2"      :scope "test"]
                   [adzerk/boot-reload        "0.4.13"         :scope "test"]
                   [adzerk/bootlaces          "0.1.13"         :scope "test"]
-                  [tailrecursion/boot-static "0.0.1-SNAPSHOT" :scope "test"]
+                  [tailrecursion/boot-static "0.1.0"          :scope "test"]
                   [hoplon/hoplon             "6.0.0-alpha17"]
                   [cljsjs/markdown           "0.6.0-beta1-0"]]
   :repositories  [["clojars"       "https://clojars.org/repo/"]
