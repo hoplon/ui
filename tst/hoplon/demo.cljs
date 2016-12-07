@@ -1,13 +1,10 @@
-(ns+ hoplon.demo
-  (:page
-    "index.html")
+(ns ^{:hoplon/page "index.html"} hoplon.demo
   (:refer-clojure
     :exclude [-])
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [window elem frame image object video form line lines pick picks file files item s b]]
-    [hoplon.ui.elems :refer [markdown]]
+    [hoplon.ui       :refer [window elem frame image object video form line lines pick picks file files item s b markdown]]
     [hoplon.ui.attrs :refer [- c r d]]))
 
 ;;; model ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
