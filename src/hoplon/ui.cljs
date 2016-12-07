@@ -134,7 +134,7 @@
           av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
       (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
       (with-let [e (ctor attrs elems)]
-        (bind-in! e [in  .-style .-height]        (cell= (if av :auto "100%"))) ;; height is 100% only when based on size of children
+        (bind-in! e [in  .-style .-height]        (cell= (if (or (= av :middle) (= av :bottom)) :auto "100%"))) ;; height is 100% only when based on size of children
         (bind-in! e [mid .-style .-textAlign]     ah)
         (bind-in! e [mid .-style .-verticalAlign] av)
         (when (= (-> e in .-style .-position) "absolute")
