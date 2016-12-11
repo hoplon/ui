@@ -6,7 +6,7 @@
     [clojure.string  :refer [blank? join split ends-with?]]
     [cljs.reader     :refer [read-string]]
     [javelin.core    :refer [cell cell?]]
-    [hoplon.ui.attrs :refer [r ratio? calc? ->attr]]
+    [hoplon.ui.attrs :refer [r ratio? calc? ->attr extrinsic explicit]]
     [hoplon.ui.elems :refer [box doc out mid in elem?]]
     [hoplon.binding]
     [cljsjs.markdown])
@@ -84,6 +84,13 @@
 
 ;;; attribute middlewares ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def ^:dynamic *sx*)
+(def ^:dynamic *sy*)
+
+(defn parse-args [ctor]
+  (fn [& args]
+     (apply ctor (#'hoplon.core/parse-args args))))
+
 (defn size [ctor]
   "set the size on the outer element when it is expressed as a ratio, and on the
    inner element when it is a length.
@@ -104,42 +111,19 @@
    it is explictly set to visible."
   (fn [{:keys [s sh sv sh- sh+ scroll] :as attrs} elems]
     {:pre [(v/lengths? s sh sv sh- sh+)]}
+    (binding [*sx* (or sh s)
+              *sy* (or sv s)]
     (with-let [e (ctor attrs elems)]
-      (let [rel? #(or (ratio? %) (calc? %))
-            rel  #(cell= (if (rel? %) % %2))
-            fix  #(cell= (if (rel? %) %2 %))]
-        (bind-in! e [out .-style .-width]     (rel (or sh s) nil))
-        (bind-in! e [out .-style .-minWidth]  (rel sh- nil))
-        (bind-in! e [out .-style .-maxWidth]  (rel sh+ nil))
-        (bind-in! e [out .-style .-height]    (rel (or sv s) nil))
-        (bind-in! e [mid .-style .-width]     (fix (or sh s) nil))
-        (bind-in! e [mid .-style .-minWidth]  (fix sh- nil))
-        (bind-in! e [mid .-style .-maxWidth]  (fix sh+ nil))
-        (bind-in! e [mid .-style .-height]    (fix (or sv s) nil))
-        (bind-in! e [mid .-style .-maxHeight] (fix (or sv s) nil))
-        (bind-in! e [in  .-style .-overflowY] (cell= (when (and scroll (or sv s)) :auto))))))) ;; default likely breaks 100% height where a sibling overflows
-
-(defn align [ctor]
-  "set the text-align and vertical-align attributes on the elem and proxy the
-   vertical-align attribute to the outer element of each child.  set vertical
-   height of the inner element to auto when the align vertical attribute is set.
-
-  the vertical alignment is proxied to the outer elements of the children so
-  that, in addition to aligning the lines of children within the elem, the
-  children are also aligned in the same manner within their respective lines."
-  (fn [{:keys [a ah av] :as attrs} elems]
-    {:pre [(v/aligns? a) (v/alignhs? ah) (v/alignvs? av)]}
-    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a) "0%"))
-          ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
-          av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
-      (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
-      (with-let [e (ctor attrs elems)]
-        (bind-in! e [in  .-style .-height]        (cell= (if (or (= av :middle) (= av :bottom)) :auto "100%"))) ;; height is 100% only when based on size of children
-        (bind-in! e [mid .-style .-textAlign]     ah)
-        (bind-in! e [mid .-style .-verticalAlign] av)
-        (when (= (-> e in .-style .-position) "absolute")
-          (bind-in! e [in .-style .-top]       pv)
-          (bind-in! e [in .-style .-transform] (cell= (str "translateY(-" pv ")"))))))))
+      (bind-in! e [out .-style .-width]     (cell= (extrinsic *sx*)))
+      (bind-in! e [out .-style .-minWidth]  (cell= (extrinsic  sh-)))
+      (bind-in! e [out .-style .-maxWidth]  (cell= (extrinsic  sh+)))
+      (bind-in! e [out .-style .-height]    (cell= (extrinsic *sy*)))
+      (bind-in! e [mid .-style .-width]     (cell= (explicit  *sx*)))
+      (bind-in! e [mid .-style .-minWidth]  (cell= (explicit   sh-)))
+      (bind-in! e [mid .-style .-maxWidth]  (cell= (explicit   sh+)))
+      (bind-in! e [mid .-style .-height]    (cell= (explicit  *sy*)))
+      (bind-in! e [mid .-style .-maxHeight] (cell= (explicit  *sy*))) ;; todo: review
+      (bind-in! e [in  .-style .-overflowY] (cell= (when (and scroll *sy*) :auto))))))) ;; default likely breaks 100% height where a sibling overflows
 
 (defn pad [ctor]
   "set the padding on the elem's inner element.
@@ -176,6 +160,28 @@
         (bind-in! e [in .-style .-marginRight]  ph)
         (bind-in! e [in .-style .-marginTop]    pv)
         (bind-in! e [in .-style .-marginBottom] pv)))))
+
+(defn align [ctor]
+  "set the text-align and vertical-align attributes on the elem and proxy the
+   vertical-align attribute to the outer element of each child.  set vertical
+   height of the inner element to auto when the align vertical attribute is set.
+
+  the vertical alignment is proxied to the outer elements of the children so
+  that, in addition to aligning the lines of children within the elem, the
+  children are also aligned in the same manner within their respective lines."
+  (fn [{:keys [a ah av] :as attrs} elems]
+    {:pre [(v/aligns? a) (v/alignhs? ah) (v/alignvs? av)]}
+    (let [pv (cell= ({:beg "0%"  :mid "50%"   :end "100%"}               (or av a) "0%"))
+          ah (cell= ({:beg :left :mid :center :end :right :jst :justify} (or ah a) (or ah a)))
+          av (cell= ({:beg :top  :mid :middle :end :bottom}              (or av a) (or av a)))]
+      (swap-elems! elems #(bind-in! %1 [out .-style .-verticalAlign] %2) (cell= (or av :top)))
+      (with-let [e (ctor attrs elems)]
+        (bind-in! e [in  .-style .-height]        (cell= (if (or (= av :middle) (= av :bottom)) :auto "100%"))) ;; height is 100% only when based on size of children
+        (bind-in! e [mid .-style .-textAlign]     ah)
+        (bind-in! e [mid .-style .-verticalAlign] av)
+        (when (= (-> e in .-style .-position) "absolute")
+          (bind-in! e [in .-style .-top]       pv)
+          (bind-in! e [in .-style .-transform] (cell= (str "translateY(-" pv ")"))))))))
 
 (defn color [ctor]
   "set the background color an the inner element."
@@ -463,10 +469,6 @@
     (with-let [e (ctor attrs elems)]
       (when click
         (.addEventListener (mid e) "click" click)))))
-
-(defn parse-args [ctor]
-  (fn [& args]
-     (apply ctor (#'hoplon.core/parse-args args))))
 
 (defn interactive [ctor]
   (fn [attrs elems]

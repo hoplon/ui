@@ -12,17 +12,31 @@
   "Serialize to DOM Attr"
   (-dom-attribute [_]))
 
+(defprotocol ISize
+  (-extrinsic [_])
+  (-explicit  [_]))
+
 ;;; types ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extend-type nil
   IAttr
   (-dom-attribute [this]
-    ""))
+    "")
+  ISize
+  (-extrinsic [_]
+    nil)
+  (-explicit [_]
+    nil))
 
 (extend-type number
   IAttr
   (-dom-attribute [this]
-    (str this "px")))
+    (str this "px"))
+  ISize
+  (-extrinsic [_]
+    nil)
+  (-explicit [this]
+    this))
 
 (extend-type boolean
   IAttr
@@ -53,7 +67,14 @@
     (write-all w "#<Calc: " (.toString this) ">"))
   IAttr
   (-dom-attribute [this]
-    (.toString this)))
+    (.toString this))
+  ISize
+  (-extrinsic [this]
+    (when (some -extrinsic vs)
+      this))
+  (-explicit [this]
+    (when-not (some -extrinsic vs)
+      this)))
 
 (deftype Color [r g b a]
   Object
@@ -72,7 +93,12 @@
     (write-all w v " em"))
   IAttr
   (-dom-attribute [this]
-    (str v  "em")))
+    (str v  "em"))
+  ISize
+  (-extrinsic [_]
+    nil)
+  (-explicit [this]
+    this))
 
 (deftype Pixels [v]
   IPrintWithWriter
@@ -80,7 +106,12 @@
     (write-all w v " pixels"))
   IAttr
   (-dom-attribute [_]
-    (if v (str v "px") "initial")))
+    (if v (str v "px") "initial"))
+  ISize
+  (-extrinsic [_]
+    nil)
+  (-explicit [this]
+    this))
 
 (deftype Points [v]
   IPrintWithWriter
@@ -88,7 +119,12 @@
     (write-all w v " pt"))
   IAttr
   (-dom-attribute [this]
-    (str v  "pt")))
+    (str v  "pt"))
+  ISize
+  (-extrinsic [_]
+    nil)
+  (-explicit [this]
+    this))
 
 (deftype Ratio [n d]
   IPrintWithWriter
@@ -96,7 +132,12 @@
     (write-all w n "/" d))
   IAttr
   (-dom-attribute [_]
-    (if n (str (* (/ n d) 100) "%") "initial")))
+    (if n (str (* (/ n d) 100) "%") "initial"))
+  ISize
+  (-extrinsic [this]
+    this)
+  (-explicit [_]
+    nil))
 
 (deftype Shadow [x y color blur spread inset]
   Object
@@ -148,6 +189,9 @@
 
 (defn attr? [v] (satisfies? IAttr v))
 (defn ->attr [v] (-dom-attribute v))
+
+(defn extrinsic [v] (-extrinsic v))
+(defn explicit  [v] (-explicit  v))
 
 (defn mkcalc [f fname]
   (fn [& vs]
