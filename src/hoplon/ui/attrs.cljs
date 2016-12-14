@@ -83,6 +83,13 @@
   IPrintWithWriter
   (-pr-writer [this w _]
     (write-all w "#<Color: " (.toString this) ">"))
+  IAssociative
+  (-assoc [this key val]
+    (let [v #(if (= key %1) val %2)]
+      (Color. (v :r r) (v :g g) (v :b b) (v :a a))))
+  IFn
+  (-invoke [this & args]
+    (apply assoc this args))
   IAttr
   (-dom-attribute [this]
     (.toString this)))
