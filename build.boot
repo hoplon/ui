@@ -35,6 +35,16 @@
   "Deploy the library snapshot to clojars"
   (comp (speak) (build-jar) (push-snapshot)))
 
+(deftask connect
+  "Launch Sauce Connect Proxy"
+  [u username USER str "Username"
+   k access-key PASS str "Access Key"]
+  (with-pass-thru _
+    (let [u (or username   (System/getProperty "SAUCE_LABS_USERNAME"))
+          k (or access-key (System/getProperty "SAUCE_LABS_ACCESS_KEY"))]
+      (boot.util/info "Starting Sauce Connect proxy...\n")
+      (prn sh (sh "sc" "-u" u "-k" k)))))
+
 (deftask test
   "Continuously rebuild the test suite during development.
 
@@ -49,7 +59,7 @@
         c {:elide-asserts no-validate}]
     (set-env! :source-paths   (clojure.set/union (:source-paths   (get-env)) app-paths)
               :resource-paths (clojure.set/union (:resource-paths (get-env)) tst-paths))
-    (comp (init) (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (t/test :namespaces namespaces))))
+    (comp (init) (connect) (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
 
 (task-options!
   init   {:file        "cnf/local.env"}

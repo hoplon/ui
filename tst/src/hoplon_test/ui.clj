@@ -2,10 +2,7 @@
   (:import
     [java.net                    URL]
     [org.openqa.selenium         By Dimension Point]
-    [org.openqa.selenium.remote  RemoteWebDriver DesiredCapabilities]
-    [org.openqa.selenium.chrome  ChromeDriver]
-    [org.openqa.selenium.firefox FirefoxDriver]
-    [org.openqa.selenium.safari  SafariDriver])
+    [org.openqa.selenium.remote  RemoteWebDriver DesiredCapabilities])
   (:require
     [adzerk.env :as env]
     [clojure.test :refer [deftest is use-fixtures]]))
@@ -50,12 +47,10 @@
         (.setPosition (Point. 0 0))
         (.setSize (Dimension. 1024 768)))
       (try
-          (.get driver "http:///www.google.com")
+          (.get driver "http://localhost:5000")
           (binding [*driver* driver]
             (test))
           (finally (.quit driver))))))
-
-;;; supported browsers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def supported-browsers
   ;; https://wiki.saucelabs.com/display/DOCS/Platform+Configurator
@@ -75,4 +70,4 @@
 
 (deftest title
   (let [t (.getTitle *driver*)]
-    (is (= t "Google") "title is google")))
+    (is (= t "Hoplon UI") "title is Hoplon UI")))
