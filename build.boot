@@ -40,7 +40,7 @@
   [o optimizations OPM   kw   "Optimizations to pass the cljs compiler."
    v no-validate         bool "Elide assertions used to validate attibutes."]
   "Serve the test app locally"
-  (set-env! :source-paths #{"lib/src" "app/src"})
+  (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"app/rsc"})
   (let [o (or optimizations :none)
         c {:elide-asserts no-validate}]
     (comp (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve))))
