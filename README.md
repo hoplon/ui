@@ -116,21 +116,33 @@ build and install the library
 ```bash
 boot build-jar
 ```
+continuously rebuild and run the test applicatino as changes are made
 
-functionally test the library.
-```bash
-boot test
 ```
-
-functionally test the library in a production configuration without validation and with advanced optimizations
-```bash
-boot test -eo advanced
+boot demo
 ```
 
 input validation and visual error rendering should be turned off for production builds by adding the following to the cljs task.
 ```
 :compiler-options {:elide-asserts true}
  ```
+
+## testing
+to run the cross-browser tests from saurce labs, you'll need to install [sauce connect](https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+with+a+Proxy+Setup) then create the file `cnf/local.env` and add your sauce labs username and access key.
+```
+SAUCE_LABS_USERNAME=<username>
+SAUCE_LABS_ACCESS_KEY=<access_key>
+```
+
+test the library across all supported browsers
+```bash
+boot test
+```
+
+test the library in a production configuration without validation and with advanced optimizations
+```bash
+boot test -eo advanced
+```
 
 ## support
 ask questions in the [hoplon slack channel](https://clojurians.slack.com/messages/hoplon/)
