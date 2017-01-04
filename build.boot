@@ -1,5 +1,4 @@
 (set-env!
-  :source-paths #{"src"}
   :dependencies '[[org.clojure/clojure                   "1.8.0"          :scope "provided"]
                   [org.clojure/clojurescript             "1.9.293"        :scope "provided"]
                   [adzerk/env                            "0.4.0"          :scope "test"]
@@ -25,15 +24,26 @@
 
 (def +version+ "0.1.0-SNAPSHOT")
 
-(bootlaces! +version+)
+#_(bootlaces! +version+) ;; https://github.com/adzerk-oss/bootlaces/issues/9
 
 (deftask develop []
   "Continuously rebuild and reinstall the library."
+  (set-env! :source-paths #{"lib/src"})
   (comp (watch) (speak) (build-jar)))
 
 (deftask deploy []
   "Deploy the library snapshot to clojars"
+  (set-env! :source-paths #{"lib/src"})
   (comp (speak) (build-jar) (push-snapshot)))
+
+(deftask demo
+  [o optimizations OPM   kw   "Optimizations to pass the cljs compiler."
+   v no-validate         bool "Elide assertions used to validate attibutes."]
+  "Serve the test app locally"
+  (set-env! :source-paths #{"lib/src" "app/src"})
+  (let [o (or optimizations :none)
+        c {:elide-asserts no-validate}]
+    (comp (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve))))
 
 (deftask connect
   "Launch Sauce Connect Proxy"
@@ -50,27 +60,22 @@
 
   To simulate a production environment, the tests should be built with advanced
   optimizations and without validations"
-  [a app-paths PATH    #{str}   "Source paths containing application tests."
-   t tst-paths PATH    #{str}   "Resource paths containing unit tests."
-   n namespaces NS     #{sym}   "Namespaces containing unit tests."
-   o optimizations OPM kw       "Optimizations to pass the cljs compiler."
-   v no-validate       bool     "Elide assertions used to validate attibutes."]
+  [n namespaces NS       #{sym}   "Namespaces containing unit tests."
+   o optimizations OPM   kw       "Optimizations to pass the cljs compiler."
+   v no-validate         bool     "Elide assertions used to validate attibutes."]
   (let [o (or optimizations :none)
         c {:elide-asserts no-validate}]
-    (set-env! :source-paths   (clojure.set/union (:source-paths   (get-env)) app-paths)
-              :resource-paths (clojure.set/union (:resource-paths (get-env)) tst-paths))
+    (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"tst/src" "app/rsc"})
     (comp (init) (connect) (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
 
 (task-options!
-  init   {:file        "cnf/local.env"}
-  pom    {:project     'hoplon/ui
-          :version     +version+
-          :description "a cohesive layer of composable abstractions over the dom."
-          :url         "https://github.com/hoplon/ui"
-          :scm         {:url "https://github.com/hoplon/ui"}
-          :license     {"EPL" "http://www.eclipse.org/legal/epl-v10.html"}}
-  serve  {:port        5000}
-  test   {:app-paths  #{"tst/app"}
-          :tst-paths  #{"tst/src"}
-          :namespaces '#{hoplon-test.ui}})
+  init   {:file            "cnf/local.env"}
+  pom    {:project         'hoplon/ui
+          :version         +version+
+          :description     "a cohesive layer of composable abstractions over the dom."
+          :url             "https://github.com/hoplon/ui"
+          :scm             {:url "https://github.com/hoplon/ui"}
+          :license         {"EPL" "http://www.eclipse.org/legal/epl-v10.html"}}
+  serve  {:port            5000}
+  test   {:namespaces     '#{hoplon-test.ui}})
 
