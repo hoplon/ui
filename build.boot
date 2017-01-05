@@ -57,7 +57,7 @@
       (boot.util/info "Starting Sauce Connect proxy...\n")
       (prn sh (sh "sc" "-u" u "-k" k)))))
 
-(deftask test
+(deftask test-local
   "Continuously rebuild the test suite during development.
 
   To simulate a production environment, the tests should be built with advanced
@@ -69,6 +69,19 @@
         c {:elide-asserts no-validate}]
     (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"tst/src" "app/rsc"})
     (comp (init) (connect) (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
+
+(deftask test
+  "Continuously rebuild the test suite during development.
+
+  To simulate a production environment, the tests should be built with advanced
+  optimizations and without validations"
+  [n namespaces NS       #{sym}   "Namespaces containing unit tests."
+   o optimizations OPM   kw       "Optimizations to pass the cljs compiler."
+   v no-validate         bool     "Elide assertions used to validate attibutes."]
+  (let [o (or optimizations :none)
+        c {:elide-asserts no-validate}]
+    (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"tst/src" "app/rsc"})
+    (comp (init) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
 
 (task-options!
   init   {:file            "cnf/local.env"}
