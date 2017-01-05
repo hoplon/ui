@@ -1,4 +1,4 @@
-# UI
+# UI [![build status][1]][2]
 a *cohesive* layer of *composable* abstractions over the dom.
 
 [](dependency)
@@ -161,3 +161,6 @@ be found in the file epl-v10.html at the root of this distribution. By using
 this software in any fashion, you are agreeing to be bound by the terms of
 this license. You must not remove this notice, or any other, from this software.
 ```
+
+[1]: https://travis-ci.org/hoplon/ui.svg?branch=master
+[2]: https://travis-ci.org/hoplon/ui

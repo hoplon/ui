@@ -10,7 +10,8 @@
 ;;; environment ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (env/def SAUCE_LABS_USERNAME   :required
-         SAUCE_LABS_ACCESS_KEY :required)
+         SAUCE_LABS_ACCESS_KEY :required
+         TRAVIS_JOB_NUMBER     nil)
 
 (def url (str "https://" SAUCE_LABS_USERNAME ":" SAUCE_LABS_ACCESS_KEY "@ondemand.saucelabs.com:443/wd/hub"))
 
@@ -31,8 +32,9 @@
 (defn capability [bs-key bs-ver os-key os-ver]
   (let [bs-key (if (= bs-key :iedge) (if (< (read-string bs-ver) 12) :ie :edge) bs-key)]
     (doto (browsers bs-key)
-      (.setCapability "version"  bs-ver)
-      (.setCapability "platform" (str (oss os-key) " " os-ver)))))
+      (.setCapability "version"           bs-ver)
+      (.setCapability "platform"          (str (oss os-key) " " os-ver))
+      (.setCapability "tunnel-identifier" TRAVIS_JOB_NUMBER))))
 
 (defn driver [& args]
   (boot.util/info "testing with %s \n" args)

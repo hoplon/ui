@@ -1,4 +1,5 @@
 (set-env!
+  :source-paths #{"lib/src"}
   :dependencies '[[org.clojure/clojure                   "1.8.0"          :scope "provided"]
                   [org.clojure/clojurescript             "1.9.293"        :scope "provided"]
                   [adzerk/env                            "0.4.0"          :scope "test"]
@@ -9,6 +10,7 @@
                   [org.seleniumhq.selenium/selenium-java "3.0.1"          :scope "test"]
                   [tailrecursion/boot-static             "0.1.0"          :scope "test"]
                   [hoplon/hoplon                         "6.0.0-alpha17"]
+                  [hoplon/javelin                        "3.9.0"]
                   [cljsjs/markdown                       "0.6.0-beta1-0"]])
 
 (require
