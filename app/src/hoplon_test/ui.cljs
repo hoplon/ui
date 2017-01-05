@@ -114,7 +114,7 @@
   :metadata  metadata
   :scroll    true
   (elem :sh (r 1 1) :sv 50 :p 6 :a :mid :b 2 :bc border-grey
-    (image :url "hoplon-logo.png")
+    #_(image :url "hoplon-logo.png")
     (elem :sh+ (r 1 1) :pl 6 :f 21 "Hoplon UI Live Reference & Functional Tests"))
   (suite :title "alignments" :code ":a :av :ah [:beg :bid :end :jst]" :pass false
     (test :ah :beg :av :beg :title "box aligns horizontal left & vertical top" :pass true

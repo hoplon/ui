@@ -72,4 +72,4 @@
 
 (deftest title
   (let [t (.getTitle *driver*)]
-    (is (= t "Hoplon UI") "title is Hoplon UI")))
+    (is (= "Hoplon UI" t) "title is Hoplon UI")))

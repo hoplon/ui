@@ -1,17 +1,17 @@
 (set-env!
   :source-paths #{"lib/src"}
-  :dependencies '[[org.clojure/clojure                   "1.8.0"          :scope "provided"]
-                  [org.clojure/clojurescript             "1.9.293"        :scope "provided"]
-                  [adzerk/env                            "0.4.0"          :scope "test"]
-                  [adzerk/boot-cljs                      "1.7.228-2"      :scope "test"]
-                  [adzerk/boot-test                      "1.1.2"          :scope "test"]
-                  [adzerk/boot-reload                    "0.4.13"         :scope "test"]
-                  [adzerk/bootlaces                      "0.1.13"         :scope "test"]
-                  [org.seleniumhq.selenium/selenium-java "3.0.1"          :scope "test"]
-                  [tailrecursion/boot-static             "0.1.0"          :scope "test"]
-                  [hoplon/hoplon                         "6.0.0-alpha17"]
-                  [hoplon/javelin                        "3.9.0"]
-                  [cljsjs/markdown                       "0.6.0-beta1-0"]])
+  :dependencies '[[org.clojure/clojure                      "1.8.0"          :scope "provided"]
+                  [org.clojure/clojurescript                "1.9.293"        :scope "provided"]
+                  [adzerk/env                               "0.4.0"          :scope "test"]
+                  [adzerk/boot-cljs                         "1.7.228-2"      :scope "test"]
+                  [adzerk/boot-test                         "1.1.2"          :scope "test"]
+                  [adzerk/boot-reload                       "0.4.13"         :scope "test"]
+                  [adzerk/bootlaces                         "0.1.13"         :scope "test"]
+                  [org.seleniumhq.selenium/selenium-support "3.0.1"          :scope "test"]
+                  [tailrecursion/boot-static                "0.1.0"          :scope "test"]
+                  [hoplon/hoplon                            "6.0.0-alpha17"]
+                  [hoplon/javelin                           "3.9.0"]
+                  [cljsjs/markdown                          "0.6.0-beta1-0"]])
 
 (require
   '[adzerk.bootlaces          :refer :all]
@@ -68,7 +68,7 @@
   (let [o (or optimizations :none)
         c {:elide-asserts no-validate}]
     (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"tst/src" "app/rsc"})
-    (comp (init) (connect) (watch) (speak) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
+    (comp (init) (connect) (watch) (speak) (hoplon) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
 
 (deftask test
   "Continuously rebuild the test suite during development.
@@ -81,7 +81,7 @@
   (let [o (or optimizations :none)
         c {:elide-asserts no-validate}]
     (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"tst/src" "app/rsc"})
-    (comp (init) (hoplon) (reload) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
+    (comp (hoplon) (cljs :optimizations o :compiler-options c) (serve) (t/test :namespaces namespaces))))
 
 (task-options!
   init   {:file            "cnf/local.env"}
