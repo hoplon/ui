@@ -1,5 +1,5 @@
 (set-env!
-  :source-paths #{"lib/src"}
+  :resource-paths #{"lib/src"}
   :dependencies '[[org.clojure/clojure                      "1.8.0"          :scope "provided"]
                   [org.clojure/clojurescript                "1.9.293"        :scope "provided"]
                   [adzerk/env                               "0.4.0"          :scope "test"]
@@ -30,18 +30,16 @@
 
 (deftask develop []
   "Continuously rebuild and reinstall the library."
-  (set-env! :source-paths #{"lib/src"})
   (comp (watch) (speak) (build-jar)))
 
 (deftask deploy []
   "Deploy the library snapshot to clojars"
-  (set-env! :source-paths #{"lib/src"})
   (comp (speak) (build-jar) (push-snapshot)))
 
 (deftask demo
+  "Serve the test app locally"
   [o optimizations OPM   kw   "Optimizations to pass the cljs compiler."
    v no-validate         bool "Elide assertions used to validate attibutes."]
-  "Serve the test app locally"
   (set-env! :source-paths #{"lib/src" "app/src"} :resource-paths #{"app/rsc"})
   (let [o (or optimizations :none)
         c {:elide-asserts no-validate}]
@@ -93,4 +91,3 @@
           :license         {"EPL" "http://www.eclipse.org/legal/epl-v10.html"}}
   serve  {:port            5000}
   test   {:namespaces     '#{hoplon-test.ui}})
-
