@@ -24,7 +24,7 @@
 
 (ns-unmap 'boot.user 'test)
 
-(def +version+ "0.1.0-SNAPSHOT")
+(def +version+ "0.2.0-SNAPSHOT")
 
 #_(bootlaces! +version+) ;; https://github.com/adzerk-oss/bootlaces/issues/9
 
