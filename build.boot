@@ -26,7 +26,7 @@
 
 (def +version+ "0.2.0-SNAPSHOT")
 
-#_(bootlaces! +version+) ;; https://github.com/adzerk-oss/bootlaces/issues/9
+(bootlaces! +version+)
 
 (deftask develop []
   "Continuously rebuild and reinstall the library."
