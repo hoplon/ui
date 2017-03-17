@@ -24,9 +24,9 @@
 
 (ns-unmap 'boot.user 'test)
 
-(def +version+ "0.2.0-SNAPSHOT")
+(def +version+ "0.2.1-SNAPSHOT")
 
-(bootlaces! +version+)
+(bootlaces! +version+ :dont-modify-paths? true)
 
 (deftask develop []
   "Continuously rebuild and reinstall the library."
