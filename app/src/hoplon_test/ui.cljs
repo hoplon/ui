@@ -6,7 +6,7 @@
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui       :refer [window elem image form line lines pick picks file files item write s b]]
     #_[hoplon.ui.elems :refer [markdown]]
-    [hoplon.ui.attrs :refer [- rgb hsl lgr r d]]))
+    [hoplon.ui.attrs :refer [- rgb hsl lgr r s]]))
 
 (defc things ["a" "b" "c"])
 
@@ -77,7 +77,7 @@
     (elem :s 200                                          ; sizing
             :p gutter :g gutter                             ; spacing
             :c fill-grey :b 2 :bc border-grey               ; coloring
-            :d (d 3 3 (rgb 0xAAAAAA) 4)                       ; shaDow
+            :d (s 3 3 (rgb 0xAAAAAA) 4)                       ; shaDow
             (dissoc attrs :pass :title)
       elems)))
 
@@ -89,7 +89,7 @@
     (elem :s (r 1 1)                                          ; sizing
             :p gutter :g gutter                             ; spacing
             :c fill-grey :b 2 :bc border-grey               ; coloring
-            :d (d 3 3 (rgb 0xAAAAAA) 4)                       ; shaDow
+            :d (s 3 3 (rgb 0xAAAAAA) 4)                       ; shaDow
             (dissoc attrs :pass :title)
       elems)))
 
