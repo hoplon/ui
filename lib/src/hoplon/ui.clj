@@ -24,10 +24,6 @@
                             *submit* (atom nil)]
     (form* ~@args)))
 
-(defmacro window [& args]
-  `(hoplon.binding/binding [*position* (javelin.core/cell nil)]
-     (window* ~@args)))
-
 #_(defn slurp-bytes [x]
   (with-open [out (java.io.ByteArrayOutputStream.)]
     (clojure.java.io/copy (clojure.java.io/input-stream (clojure.java.io/resource x)) out)
