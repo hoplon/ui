@@ -1,7 +1,7 @@
 (set-env!
   :resource-paths #{"lib/src"}
   :dependencies '[[org.clojure/clojure                      "1.8.0"          :scope "provided"]
-                  [org.clojure/clojurescript                "1.9.293"        :scope "provided"]
+                  [org.clojure/clojurescript                "1.9.494"        :scope "provided"]
                   [adzerk/env                               "0.4.0"          :scope "test"]
                   [adzerk/boot-cljs                         "1.7.228-2"      :scope "test"]
                   [adzerk/boot-test                         "1.1.2"          :scope "test"]
