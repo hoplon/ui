@@ -4,7 +4,7 @@
   (:require
     [javelin.core    :refer [defc defc= cell= cell]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui       :refer [window elem image form line lines pick picks file files item write s b]]
+    [hoplon.ui       :refer [window elem image form line lines pick picks file files item submit s b]]
     #_[hoplon.ui.elems :refer [markdown]]
     [hoplon.ui.attrs :refer [- rgb hsl lgr r s]]))
 
@@ -306,7 +306,7 @@
           (item :val val label)))
       (lines text-styles :sh (r 1 1) :key :description "description")
       (file text-styles :sh (>sm 1 3) :key :photo       "profile photo")
-      (write text-styles :sh (r 1 1) :ah :mid :m :pointer :label "submit transaction")))
+      (submit text-styles :sh (r 1 1) :ah :mid :m :pointer :label "submit transaction")))
   (test :title "background color is rgb" :c (rgb 50 50 50 (r 1 2))
     (str (rgb 50 50 50 (r 1 2))))
   (test :title "background color is hsl" :c (hsl 50 (r 7 10) (r 1 2))
