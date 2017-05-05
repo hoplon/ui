@@ -6,7 +6,7 @@
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui            :refer [window elem line lines file path line-path image video b t ]]
     [hoplon.ui.attrs      :refer [- r font hsl rgb]]
-    [hoplon.ui.transforms :refer [linear]]))
+    [hoplon.ui.transforms :refer [linear quad]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -67,7 +67,8 @@
    :media       "media"])
 
 (def transforms
-  ["Linear" linear])
+  ["Linear" linear
+  "Second" quad])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -120,8 +121,9 @@
   (let [size (cell 150)]
     (elem :sh (r 1 1) :p g :g g
       (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
-        (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
-          label)))))
+        (elem :sh (r 1 1)
+          (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
+            label))))))
 
 (window :src route :title "Hoplon UI"
   (elem :sh (r 1 1) :sv 80 :av :mid :p g :g g :c orange :bt 4 :bc yellow
