@@ -9,8 +9,7 @@
                   [adzerk/bootlaces                         "0.1.13"         :scope "test"]
                   [org.seleniumhq.selenium/selenium-support "3.0.1"          :scope "test"]
                   [tailrecursion/boot-static                "0.1.0"          :scope "test"]
-                  [hoplon/hoplon                            "7.0.0-SNAPSHOT"]
-                  [hoplon/javelin                           "3.9.0"]
+                  [hoplon/hoplon                            "7.0.1"]
                   [cljsjs/markdown                          "0.6.0-beta1-0"]])
 
 (require
