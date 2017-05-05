@@ -4,7 +4,7 @@
   (:require
     [javelin.core         :refer [cell= cell]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui            :refer [window elem image video b t]]
+    [hoplon.ui            :refer [window elem path line-path image video b t ]]
     [hoplon.ui.attrs      :refer [- r font hsl rgb]]
     [hoplon.ui.transforms :refer [linear]])
   (:require-macros
@@ -83,11 +83,12 @@
         (elem "contained")))))
 
 (defn scales-view []
-  (let [size (cell 1)]
-    (elem :sh (r 1 1) :p g :g g
-      #_(for [[index [label function]] (map-indexed vector (partition 2 transforms))]
-        (elem +label-text+ :s 200  :p g :c (hsl (* (count transforms) 20) (r 1 2) (r 1 2)) :av :mid :click #(swap! size update inc)
-          label)))))
+  (let [xs (mapv (partial * 30) (range 21))]
+    (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
+      (elem :s 600 :b 4 :bc :grey :d :pile
+        (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
+          (path +label-text+ :s (r 1 1) :b 600 :p g :k 4 :kc (hsl (* (count transforms) 20) (r 1 2) (r 1 2)) :av :mid
+            :src (mapcat vector xs (mapv (linear [0 600] [0 -600]) xs))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
