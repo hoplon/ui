@@ -4,7 +4,7 @@
   (:require
     [javelin.core         :refer [cell= cell]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui            :refer [window elem line lines path line-path image video b t ]]
+    [hoplon.ui            :refer [window elem line lines file path line-path image video b t ]]
     [hoplon.ui.attrs      :refer [- r font hsl rgb]]
     [hoplon.ui.transforms :refer [linear]]))
 
@@ -99,7 +99,8 @@
         (line  -field- +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name]))
         (line  -field- +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
         (lines -field- +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
-        (elem  -button- +field+ :sh (>sm 400) :click #(swap! sess assoc :data data)
+        (file  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
           "Submit")))))
 
 (defn scales-view []
