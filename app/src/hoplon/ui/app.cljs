@@ -104,18 +104,23 @@
           "Submit")))))
 
 (defn scales-view []
-  (let [xs (mapv (partial * 30) (range 21))]
+  (let [xs  (mapv (partial * 30) (range 21))
+        xfs (map-indexed vector (partition 2 transforms))]
     (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
       (elem :s 600 :b 4 :bc :grey :d :pile
-        (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
-          (path +label+ :s (r 1 1) :b 600 :p g :k 4 :kc (hsl (* (count transforms) 20) (r 1 2) (r 1 2)) :av :mid
-            :src (mapcat vector xs (mapv (linear [0 600] [0 -600]) xs))))))))
+        (elem :s (r 1 1) :p g
+          (for [[index [label _]] xfs]
+            (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
+              label)))
+        (for [[index [_ function]] xfs]
+          (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+            :src (mapcat vector xs (mapv (function [0 600] [0 -600]) xs))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
     (elem :sh (r 1 1) :p g :g g
       (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
-        (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* (count transforms) 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
+        (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
           label)))))
 
 (window :src route :title "Hoplon UI"
