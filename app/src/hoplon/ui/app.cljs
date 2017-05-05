@@ -68,7 +68,7 @@
 
 (def transforms
   ["Linear" linear
-  "Second" quad])
+  "Quad" quad])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
