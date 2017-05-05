@@ -97,9 +97,9 @@
     (let [data (cell (or (:data sess) {}))]
       (cell= (prn :data data))
       (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
-        (line  -field- +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name]))
-        (line  -field- +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
-        (lines -field- +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
+        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
         (file  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
         (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
           "Submit")))))
@@ -115,8 +115,8 @@
               label)))
         (for [[index [label function]] indexed-transforms]
           (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-            :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
-            (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs)))))))))
+            :src (interleave xs (mapv (function [0 600] [-50 -600]) xs))
+            (prn label (interleave xs (mapv (function [0 600] [100 -600]) xs)))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
