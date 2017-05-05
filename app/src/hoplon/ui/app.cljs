@@ -2,11 +2,11 @@
   (:refer-clojure
     :exclude [-])
   (:require
+    [hoplon.ui.transforms :as t]
     [javelin.core         :refer [cell= cell]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui            :refer [window elem line lines file path line-path image video b t ]]
-    [hoplon.ui.attrs      :refer [- r font hsl rgb]]
-    [hoplon.ui.transforms :refer [linear quad]]))
+    [hoplon.ui.attrs      :refer [- r font hsl rgb]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -67,8 +67,8 @@
    :media       "media"])
 
 (def transforms
-  ["Linear" linear
-  "Quad" quad])
+  ["Linear"    t/linear
+   "Quadratic" t/quadratic])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -105,17 +105,18 @@
           "Submit")))))
 
 (defn scales-view []
-  (let [xs  (mapv (partial * 30) (range 21))
-        xfs (map-indexed vector (partition 2 transforms))]
+  (let [xs                 (mapv (partial * 30) (range 21))
+        indexed-transforms (map-indexed vector (partition 2 transforms))]
     (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
       (elem :s 600 :b 4 :bc :grey :d :pile
         (elem :s (r 1 1) :p g
-          (for [[index [label _]] xfs]
+          (for [[index [label _]] indexed-transforms]
             (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
               label)))
-        (for [[index [_ function]] xfs]
+        (for [[index [label function]] indexed-transforms]
           (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-            :src (mapcat vector xs (mapv (function [0 600] [0 -600]) xs))))))))
+            :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
+            (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs)))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
