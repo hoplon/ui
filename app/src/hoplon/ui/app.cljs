@@ -72,11 +72,17 @@
    "Quadratic-Out" t/quadratic-out
    "Quadratic-In-Out" t/quadratic-in-out
    "Cubic-In" t/cubic-in
-   "Cublic-Out" t/cubic-out
+   "Cubic-Out" t/cubic-out
+   "Cubic-In-Out" t/cubic-in-out
    "Quartic-In" t/quartic-in
    "Quartic-Out" t/quartic-out
+   "Quartic-In-Out" t/quartic-in-out
    "Quintic-In" t/quintic-in
-   "Quintic-Out" t/quintic-out])
+   "Quintic-Out" t/quintic-out
+   "Quintic-In-Out" t/quintic-in-out
+   "Sine-In" t/sine-in
+   "Sine-Out" t/sine-out
+   "Sine-In-Out" t/sine-in-out])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
