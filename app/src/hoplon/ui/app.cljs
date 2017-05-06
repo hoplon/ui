@@ -68,7 +68,8 @@
 
 (def transforms
   ["Linear"    t/linear
-   "Quadratic" t/quadratic])
+   "Quadratic-In" t/quadratic-in
+   "Quadratic-Out" t/quadratic-out])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -115,8 +116,17 @@
               label)))
         (for [[index [label function]] indexed-transforms]
           (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-            :src (interleave xs (mapv (function [0 600] [-50 -600]) xs))
-            (prn label (interleave xs (mapv (function [0 600] [100 -600]) xs)))))))))
+            :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
+            (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs))))))
+      (elem :s 600 :b 4 :bc :grey :d :pile
+        (elem :s (r 1 1) :p g
+          (for [[index [label _]] indexed-transforms]
+            (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
+              label)))
+        (for [[index [label function]] indexed-transforms]
+          (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+            :src (interleave xs (mapv (function [300 600] [-300 -600]) xs))
+            (prn label (interleave xs (mapv (function [300 600] [-300 -600]) xs)))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
