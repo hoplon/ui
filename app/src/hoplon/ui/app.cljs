@@ -69,7 +69,13 @@
 (def transforms
   ["Linear"    t/linear
    "Quadratic-In" t/quadratic-in
-   "Quadratic-Out" t/quadratic-out])
+   "Quadratic-Out" t/quadratic-out
+   "Cubic-In" t/cubic-in
+   "Cublic-Out" t/cubic-out
+   "Quartic-In" t/quartic-in
+   "Quartic-Out" t/quartic-out
+   "Quintic-In" t/quintic-in
+   "Quintic-Out" t/quintic-out])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
