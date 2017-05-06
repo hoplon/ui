@@ -70,6 +70,7 @@
   ["Linear"    t/linear
    "Quadratic-In" t/quadratic-in
    "Quadratic-Out" t/quadratic-out
+   "Quadratic-In-Out" t/quadratic-in-out
    "Cubic-In" t/cubic-in
    "Cublic-Out" t/cubic-out
    "Quartic-In" t/quartic-in
@@ -142,7 +143,7 @@
           (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
             label))))))
 
-(window :src route :title "Hoplon UI"
+(window :src route :title "Hoplon UI" :scroll true
   (elem :sh (r 1 1) :sv 80 :av :mid :p g :g g :c orange :bt 4 :bc yellow
     (image :s 50 :m :pointer :click #(reset! state :home) :url "hoplon-logo.png")
     (elem :sh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
