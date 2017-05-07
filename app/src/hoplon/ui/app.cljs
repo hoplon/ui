@@ -67,7 +67,7 @@
    :media       "media"])
 
 (def transforms
-  ["Linear"    t/linear
+  #_["Linear"    t/linear
    "Quadratic-In" t/quadratic-in
    "Quadratic-Out" t/quadratic-out
    "Quadratic-In-Out" t/quadratic-in-out
@@ -82,7 +82,13 @@
    "Quintic-In-Out" t/quintic-in-out
    "Sine-In" t/sine-in
    "Sine-Out" t/sine-out
-   "Sine-In-Out" t/sine-in-out])
+   "Sine-In-Out" t/sine-in-out]
+   ["Exponential-In" t/exp-in
+   "Exponential-Out" t/exp-out
+   "Exponential-In-Out" t/exp-in-out
+   "Circular-In" t/circ-in
+   "Circular-Out" t/circ-out
+   "Circular-In-Out" t/circ-in-out])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -119,7 +125,7 @@
           "Submit")))))
 
 (defn scales-view []
-  (let [xs                 (mapv (partial * 30) (range 21))
+  (let [xs                 (mapv (partial * 5) (range 121))
         indexed-transforms (map-indexed vector (partition 2 transforms))]
     (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
       (elem :s 600 :b 4 :bc :grey :d :pile
