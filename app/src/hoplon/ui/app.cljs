@@ -67,7 +67,7 @@
    :media       "media"])
 
 (def transforms
-  #_["Linear"    t/linear
+  ["Linear"    t/linear
    "Quadratic-In" t/quadratic-in
    "Quadratic-Out" t/quadratic-out
    "Quadratic-In-Out" t/quadratic-in-out
@@ -82,8 +82,8 @@
    "Quintic-In-Out" t/quintic-in-out
    "Sine-In" t/sine-in
    "Sine-Out" t/sine-out
-   "Sine-In-Out" t/sine-in-out]
-   ["Exponential-In" t/exp-in
+   "Sine-In-Out" t/sine-in-out
+   "Exponential-In" t/exp-in
    "Exponential-Out" t/exp-out
    "Exponential-In-Out" t/exp-in-out
    "Circular-In" t/circ-in
@@ -127,25 +127,23 @@
 (defn scales-view []
   (let [xs                 (mapv (partial * 5) (range 121))
         indexed-transforms (map-indexed vector (partition 2 transforms))]
-    (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
-      (elem :s 600 :b 4 :bc :grey :d :pile
-        (elem :s (r 1 1) :p g
-          (for [[index [label _]] indexed-transforms]
+    (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :g g :a :mid
+      (for [[index [label function]] indexed-transforms]
+        (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
+          (elem :s 600 :b 4 :bc :grey :d :pile
+            (elem :s (r 1 1) :p g
+              (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
+                label))
+            (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+              :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
+              (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs)))))
+          (elem :s 600 :b 4 :bc :grey :d :pile
+            (elem :s (r 1 1) :p g
             (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
-              label)))
-        (for [[index [label function]] indexed-transforms]
-          (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-            :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
-            (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs))))))
-      (elem :s 600 :b 4 :bc :grey :d :pile
-        (elem :s (r 1 1) :p g
-          (for [[index [label _]] indexed-transforms]
-            (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
-              label)))
-        (for [[index [label function]] indexed-transforms]
-          (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-            :src (interleave xs (mapv (function [300 600] [-300 -600]) xs))
-            (prn label (interleave xs (mapv (function [300 600] [-300 -600]) xs)))))))))
+              label))
+            (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+              :src (interleave xs (mapv (function [300 600] [-300 -600]) xs))
+              (prn label (interleave xs (mapv (function [300 600] [-300 -600]) xs))))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
