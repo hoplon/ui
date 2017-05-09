@@ -94,7 +94,7 @@
 
 (defn media-view []
   (elem :sh (r 1 1)
-    #_(elem :sh (>sm md) :p 50 :g 50 :a :mid
+    (elem :sh (>sm md) :p 50 :g 50 :a :mid
       (image :a :mid :b 2 :bc :black :url "http://placehold.it/200x100"
         (elem "content"))
       (image :s 200 :a :mid :b 2 :bc :black :fit :fill :url "http://placehold.it/200x100"
@@ -118,6 +118,7 @@
       (cell= (prn :data data))
       (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address"    :src (path= data [:address]))
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
         (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
         (file  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
