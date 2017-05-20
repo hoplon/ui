@@ -126,25 +126,28 @@
           "Submit")))))
 
 (defn scales-view []
-  (let [xs                 (mapv (partial * 5) (range 121))
+  (let [
+        st                 (cell 50)
+        en                 300
+        step               5
+        xs                 (cell= (range st (+ en step) step))
         indexed-transforms (map-indexed vector (partition 2 transforms))]
     (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :g g :a :mid
+      (cell= (prn st))
       (for [[index [label function]] indexed-transforms]
         (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
-          (elem :s 600 :b 4 :bc :grey :d :pile
-            (elem :s (r 1 1) :p g
+          (elem :s 300 :b 4 :bc :grey :d :pile :m :pointer :click #(swap! st (partial + 50))
+            (elem :s (r 1 1) :p g :a :end
               (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
                 label))
-            (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-              :src (interleave xs (mapv (function [0 600] [0 -600]) xs))
-              (prn label (interleave xs (mapv (function [0 600] [0 -600]) xs)))))
-          (elem :s 600 :b 4 :bc :grey :d :pile
-            (elem :s (r 1 1) :p g
-            (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
-              label))
-            (path +label+ :s (r 1 1) :b 600 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-              :src (interleave xs (mapv (function [300 600] [-300 -600]) xs))
-              (prn label (interleave xs (mapv (function [300 600] [-300 -600]) xs))))))))))
+            (path +label+ :s (r 1 1) :b 300 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+              :src (cell= (interleave xs (mapv (function [st en] [(- st) (- en)]) xs)))
+              (cell= (prn label (interleave xs (mapv (function [st en] [(- st) (- en)]) xs)))))
+            (path +label+ :s (r 1 1) :b 300 :k 1 :kc (hsl 0 (r 1 1000) (r 1 3)) :av :mid
+              :src (cell= (interleave [st st] [0 (- en)])))
+            (path +label+ :s (r 1 1) :b 300 :k 1 :kc (hsl 0 (r 1 1000) (r 1 3)) :av :mid
+              :src (cell= (interleave [0 en] [(- st) (- st)])))
+        ))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
