@@ -64,51 +64,72 @@
   [:forms       "forms"
    :transitions "transitions"
    :scales      "scales"
-   :media       "media"])
+   :media       "media"
+   :components  "components"])
+
+(def images
+  ["Mondrian One"   "mondrian-1.png"
+   "Mondrian Two"   "mondrian-2.png"
+   "Mondrian Three" "mondrian-3.png"])
 
 (def transforms
-  ["Linear"    t/linear
-   "Quadratic-In" t/quadratic-in
-   "Quadratic-Out" t/quadratic-out
-   "Quadratic-In-Out" t/quadratic-in-out
-   "Cubic-In" t/cubic-in
-   "Cubic-Out" t/cubic-out
-   "Cubic-In-Out" t/cubic-in-out
-   "Quartic-In" t/quartic-in
-   "Quartic-Out" t/quartic-out
-   "Quartic-In-Out" t/quartic-in-out
-   "Quintic-In" t/quintic-in
-   "Quintic-Out" t/quintic-out
-   "Quintic-In-Out" t/quintic-in-out
-   "Sine-In" t/sine-in
-   "Sine-Out" t/sine-out
-   "Sine-In-Out" t/sine-in-out
-   "Exponential-In" t/exp-in
-   "Exponential-Out" t/exp-out
+  ["Linear"             t/linear
+   "Quadratic-In"       t/quadratic-in
+   "Quadratic-Out"      t/quadratic-out
+   "Quadratic-In-Out"   t/quadratic-in-out
+   "Cubic-In"           t/cubic-in
+   "Cubic-Out"          t/cubic-out
+   "Cubic-In-Out"       t/cubic-in-out
+   "Quartic-In"         t/quartic-in
+   "Quartic-Out"        t/quartic-out
+   "Quartic-In-Out"     t/quartic-in-out
+   "Quintic-In"         t/quintic-in
+   "Quintic-Out"        t/quintic-out
+   "Quintic-In-Out"     t/quintic-in-out
+   "Sine-In"            t/sine-in
+   "Sine-Out"           t/sine-out
+   "Sine-In-Out"        t/sine-in-out
+   "Exponential-In"     t/exp-in
+   "Exponential-Out"    t/exp-out
    "Exponential-In-Out" t/exp-in-out
-   "Circular-In" t/circ-in
-   "Circular-Out" t/circ-out
-   "Circular-In-Out" t/circ-in-out])
+   "Circular-In"        t/circ-in
+   "Circular-Out"       t/circ-out
+   "Circular-In-Out"    t/circ-in-out])
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn media-view []
   (elem :sh (r 1 1)
     (elem :sh (>sm md) :p 50 :g 50 :a :mid
-      (image :a :mid :b 2 :bc :black :url "http://placehold.it/200x100"
+      (image :a :mid :b 2 :bc :black :src "http://placehold.it/200x100"
         (elem "content"))
-      (image :s 200 :a :mid :b 2 :bc :black :fit :fill :url "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b 2 :bc :black :fit :fill :src "http://placehold.it/200x100"
         (elem "filled"))
-      (image :s 200 :p 20 :b 2 :bc :black :fit :cover :url "http://placehold.it/200x100"
+      (image :s 200 :p 20 :b 2 :bc :black :fit :cover :src "http://placehold.it/200x100"
         (elem "covered"))
-      (image :s 200 :a :mid :b 2 :bc :black :fit :contain :url "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b 2 :bc :black :fit :contain :src "http://placehold.it/200x100"
         (elem "contained"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :fill :autoplay :true :url "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b 2 :bc :black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "filled"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :cover :autoplay :true :url "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b 2 :bc :black :fit :cover :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "covered"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :contain :autoplay :true :url "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b 2 :bc :black :fit :contain :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "contained")))))
+
+(defn components-view []
+  (elem :sh (r 1 1) :p g
+    (elem +title+ :sh (r 1 1)
+      "Carousel")
+    (let [idx    (cell 0)
+          images (partition 2 images)]
+      (elem :s (r 1 1) :g g :a :mid
+        (elem -button- :click #(swap! idx (fn [i] (mod (dec i) (count images))))
+          "Prev")
+        (elem :sh 800 :sv 600 :d :pile
+          (for [[idx* [label filename]] (map-indexed vector images)]
+            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/circ-in-out) 1)) :src filename)))
+        (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
+          "Next")))))
 
 (defn forms-view []
   (elem :sh (r 1 1) :p g
@@ -169,7 +190,7 @@
 
 (window :src route :title "Hoplon UI" :scroll true
   (elem :sh (r 1 1) :sv 80 :av :mid :p g :g g :c orange :bt 4 :bc yellow
-    (image :s 50 :m :pointer :click #(reset! state :home) :url "hoplon-logo.png")
+    (image :s 50 :m :pointer :click #(reset! state :home) :src "hoplon-logo.png")
     (elem :sh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
       (for [[*state label] (partition 2 menu-items) :let [sel (cell= (= *state state))]]
         (elem +menu+ :sh (>sm :auto) :m :pointer :bb (cell= (when sel 3)) :bc :white :click #(reset! state *state)
@@ -178,4 +199,5 @@
     :forms       (forms-view)
     :media       (media-view)
     :scales      (scales-view)
-    :transitions (transitions-view)))
+    :transitions (transitions-view)
+    :components  (components-view)))
