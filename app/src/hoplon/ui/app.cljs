@@ -3,9 +3,9 @@
     :exclude [-])
   (:require
     [hoplon.ui.transforms :as t]
-    [javelin.core         :refer [cell= cell]]
+    [javelin.core         :refer [cell cell= dosync]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui            :refer [window elem line lines file path line-path image video b t ]]
+    [hoplon.ui            :refer [window elem line lines file path line-path image video b t]]
     [hoplon.ui.attrs      :refer [- r font hsl rgb]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,6 +33,7 @@
 
 ;-- sizes ---------------------------------------------------------------------;
 
+(def bd 3)
 (def g 16)
 
 ;-- colors --------------------------------------------------------------------;
@@ -55,8 +56,8 @@
 
 ;-- attributes -----------------------------------------------------------------
 
-(def -button- {:ph 12 :pv 6 :r 3 :a :mid :c grey :b 2 :bc black :m :pointer})
-(def -field-  {:ph 12 :pv 6 :r 3 :c grey :b 2 :bc black})
+(def -button- {:ph 12 :pv 6 :r 3 :a :mid :c grey :b bd :bc black :m :pointer})
+(def -field-  {:ph 12 :pv 6 :r 3         :c grey :b bd :bc black})
 
 ;;; content ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -101,19 +102,19 @@
 (defn media-view []
   (elem :sh (r 1 1)
     (elem :sh (>sm md) :p 50 :g 50 :a :mid
-      (image :a :mid :b 2 :bc :black :src "http://placehold.it/200x100"
+      (image :a :mid :b bd :bc :black :src "http://placehold.it/200x100"
         (elem "content"))
-      (image :s 200 :a :mid :b 2 :bc :black :fit :fill :src "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b bd :bc :black :fit :fill :src "http://placehold.it/200x100"
         (elem "filled"))
-      (image :s 200 :p 20 :b 2 :bc :black :fit :cover :src "http://placehold.it/200x100"
+      (image :s 200 :p 20 :b bd :bc :black :fit :cover :src "http://placehold.it/200x100"
         (elem "covered"))
-      (image :s 200 :a :mid :b 2 :bc :black :fit :contain :src "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b bd :bc :black :fit :contain :src "http://placehold.it/200x100"
         (elem "contained"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b bd :bc :black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "filled"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :cover :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b bd :bc :black :fit :cover :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "covered"))
-      (video :s 200 :a :mid :b 2 :bc :black :fit :contain :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :s 200 :a :mid :b bd :bc :black :fit :contain :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "contained")))))
 
 (defn components-view []
@@ -127,7 +128,7 @@
           "Prev")
         (elem :sh 800 :sv 600 :d :pile
           (for [[idx* [label filename]] (map-indexed vector images)]
-            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/circ-in-out) 1)) :src filename)))
+            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/linear) 1)) :src filename)))
         (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
           "Next")))))
 
@@ -147,38 +148,56 @@
           "Submit")))))
 
 (defn scales-view []
-  (let [stx                (cell 50)
-        sty                (cell 50)
-        en                 300
-        step               5
-        xs                 (cell= (range stx (+ en step) step))
-        indexed-transforms (map-indexed vector (partition 2 transforms))]
-    (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :g g :a :mid
-    (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16
-      (elem  -button- +field+ :sh (>sm 300) :click #(swap! stx (partial + 5))
-        "Increase X by 5" (cell= (prn "stx" stx)))
-      (elem  -button- +field+ :sh (>sm 300) :click #(swap! stx (partial + (- 5)))
-        "Decrease X by 5" (cell= (prn "stx" stx)))
-      (elem  -button- +field+ :sh (>sm 300) :click #(swap! sty (partial + 5))
-          "Increase Y by 5" (cell= (prn "sty" sty)))
-      (elem  -button- +field+ :sh (>sm 300) :click #(swap! sty (partial + (- 5)))
-          "Decrease Y by 5" (cell= (prn "sty" sty)))
-          (if  (cell= (> stx 100))
-                (prn "True")
-                (prn "False")))
-      (for [[index [label function]] indexed-transforms]
-        (elem :sh (r 1 1) :sv (- (r 1 1) 80) :p g :a :mid
-          (elem :s 300 :b 4 :bc :grey :d :pile
-            (elem :s (r 1 1) :p g :a :end
-              (elem +label+ :sh (r 1 1) :tc (hsl (* index 20) (r 1 2) (r 1 2))
-                label))
-            (path +label+ :s (r 1 1) :b 300 :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
-              :src (cell= (interleave xs (mapv (function [stx en] [(- sty) (- en)]) xs)))
-              #_(cell= (prn label (interleave xs (mapv (function [stx en] [(- sty) (- en)]) xs)))))
-            (path +label+ :s (r 1 1) :b 300 :k 1 :kc (hsl 0 (r 1 1000) (r 1 3)) :av :mid
-              :src (cell= (interleave [stx stx] [0 (- en)])))
-            (path +label+ :s (r 1 1) :b 300 :k 1 :kc (hsl 0 (r 1 1000) (r 1 3)) :av :mid
-              :src (cell= (interleave [0 en] [(- sty) (- sty)])))))))))
+  (let [size 300
+        step 5
+        col  4
+        bx  (cell 30)
+        by  (cell 30)
+        ex  (cell 270)
+        ey  (cell 270)
+        xs  (cell= (range bx (+ ex step) step))]
+    (elem :sh (r 1 1) :sv (- (r 1 1) 80) :ah :mid
+      (elem :sh (+ (* (+ 300 g) col) (* g 2) (- g)) :p g :g g
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! bx (fn [x] (- x step)))
+          "Beg Left  5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! bx (fn [x] (+ x step)))
+          "Beg Right 5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! by (fn [y] (+ y step)))
+          "Beg Up    5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! by (fn [y] (- y step)))
+          "Beg Down  5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! ex (fn [x] (- x step)))
+          "End Left  5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! ex (fn [x] (+ x step)))
+          "End Right 5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! ey (fn [y] (+ y step)))
+          "End Up    5")
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! ey (fn [y] (- y step)))
+          "End Down  5")
+        (for [[index [label function]] (map-indexed vector (partition 2 transforms))
+              :let [g  8
+                    px (cell 0)
+                    py (cell 0)
+                    tx (t px 2000 function)
+                    ty (t py 2000 function)]]
+          (elem :sh size :gv g
+            (elem +label+ :s (r 3 4) :ph g :tc (hsl (* index 20) (r 1 2) (r 1 2))
+              label)
+            (elem +label+ :s (r 1 4) :ph g :ah :end :tc (hsl (* index 20) (r 1 2) (r 1 2)) :m :pointer :click #(dosync (reset! px (- @ex @bx)) (reset! py (- @ey @by)))
+              "run >")
+            (elem :s (>sm 300) :b bd :bc :grey :d :pile
+              (path :s (r 1 1) :b size :k 4 :kc (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid
+                :src (cell= (interleave xs (mapv (function [bx ex] [(- by) (- ey)]) xs))))
+              (elem :s (r 1 1) :pl (cell= (- bx bd 2)) :ah :beg
+                (elem :sv (r 1 1) :sh 2 :c grey))
+              (elem :s (r 1 1) :pb (cell= (- by bd 2)) :av :end
+                (elem :sh (r 1 1) :sv 2 :c grey))
+              (elem :s (r 1 1) :pl (cell= (- ex bd 2)) :ah :beg
+                (elem :sv (r 1 1) :sh 2 :c grey))
+              (elem :s (r 1 1) :pb (cell= (- ey bd 2)) :av :end
+                (elem :sh (r 1 1) :sv 2 :c grey)))
+            (elem :sh (r 1 1) :pl bx :pr (cell= (- size ex))
+              (elem +label+ :sh tx :sv 4 :r (/ 4 2) :c (hsl (* index 20) (r 1 2) (r 1 2))))))))))
 
 (defn transitions-view []
   (let [size (cell 150)]
