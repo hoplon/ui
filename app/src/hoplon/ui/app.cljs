@@ -73,6 +73,15 @@
    "Mondrian Two"   "mondrian-2.png"
    "Mondrian Three" "mondrian-3.png"])
 
+(def testdata
+  ["Dublin"   34
+   "London"   72
+   "Boston"   45
+   "Madrid"   54
+   "NYC"      80
+   "Paris"    22
+   "Berlin"   45])
+
 (def transforms
   ["Linear"             t/linear
    "Quadratic-In"       t/quadratic-in
@@ -130,7 +139,25 @@
           (for [[idx* [label filename]] (map-indexed vector images)]
             (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/linear) 1)) :src filename)))
         (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
-          "Next")))))
+          "Next")))
+    (elem :sh (r 1 1) :a :mid
+      (elem +title+ :sh (r 1 1)
+        "Bar Chart")
+      (let [size   500
+            gu     5]
+        (elem :sh (r 1 1) :a :end
+          (elem :sh (r 1 1)
+            (elem :sv size
+              (elem +field+ "100" :sv (r 1 1) :a :beg) ;;issues with y-axis label
+              (elem +field+ "0" :sv (r 1 1) :a :end))
+            (elem :sv size :sh (r 9 10) :g gu :av :end :b bd :bc :grey :ah :mid
+              (for [[index [label value]] (map-indexed vector (partition 2 testdata))
+                    :let [num (/ (count testdata) 2)]]
+                  (elem :sh (r 1 num) :g gu :av :beg
+                    (prn gu)
+                    (elem :sh (r 1 1) :sv ((t/linear [0 100] [0 size]) value) :g gu :c :orange :ah :mid
+                      (elem +label+ :s (r 1 1) :ah :mid value)
+                      (elem +field+ :sh (r 1 1) :a :mid label)))))))))))
 
 (defn forms-view []
   (elem :sh (r 1 1) :p g
