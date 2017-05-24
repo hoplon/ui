@@ -79,7 +79,6 @@
    "Boston"   45
    "Madrid"   54
    "NYC"      80
-   "Paris"    22
    "Berlin"   45])
 
 (def transforms
@@ -148,8 +147,9 @@
         (elem :sh (r 1 1) :a :end
           (elem :sh (r 1 1)
             (elem :sv size
-              (elem +field+ "100" :sv (r 1 1) :a :beg) ;;issues with y-axis label
-              (elem +field+ "0" :sv (r 1 1) :a :end))
+              (elem +field+ "100" :sh (r 1 1) :a :end)
+                 ;;issues with y-axis label
+              (elem +field+ "0" :sh (r 1 1) :a :end))
             (elem :sv size :sh (r 9 10) :g gu :av :end :b bd :bc :grey :ah :mid
               (for [[index [label value]] (map-indexed vector (partition 2 testdata))
                     :let [num (/ (count testdata) 2)]]
