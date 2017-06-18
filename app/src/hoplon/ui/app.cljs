@@ -5,7 +5,7 @@
     [hoplon.ui.transforms :as t]
     [javelin.core         :refer [cell cell= dosync]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui            :refer [window elem line lines file path line-path image video b t]]
+    [hoplon.ui            :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs      :refer [- r font hsl rgb]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14,7 +14,7 @@
 
 ;;; models ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defonce sess (cell {:state :transitions}))
+(defonce sess (cell {:state :forms}))
 
 ;;; derivations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -170,7 +170,7 @@
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]))
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
         (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
-        (file  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
+        (files  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
         (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
           "Submit")))))
 
@@ -234,7 +234,7 @@
           (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
             label))))))
 
-(window :src route :title "Hoplon UI" :scroll true
+(window :src route :scroll true :title "Hoplon UI"
   (elem :sh (r 1 1) :sv 80 :av :mid :p g :g g :c orange :bt 4 :bc yellow
     (image :s 50 :m :pointer :click #(reset! state :home) :src "hoplon-logo.png")
     (elem :sh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
