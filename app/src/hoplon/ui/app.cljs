@@ -166,11 +166,11 @@
     (let [data (cell (or (:data sess) {}))]
       (cell= (prn :data data))
       (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name]))
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]))
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email]))
-        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
-        (files  -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :auto :given-name    :src (path= data [:name]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :auto :address-line1 :src (path= data [:address]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :auto :email         :src (path= data [:email]))
+        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message"                      :src (path= data [:message]))
+        (files -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
         (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
           "Submit")))))
 
