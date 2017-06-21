@@ -3,18 +3,32 @@
     :exclude [-])
   (:require
     [hoplon.ui.transforms :as t]
-    [javelin.core         :refer [cell cell= dosync]]
+    [javelin.core         :refer [defc cell cell= dosync lens? alts!]]
     [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui            :refer [window elem line lines file files path line-path image video b t]]
-    [hoplon.ui.attrs      :refer [- r font hsl rgb]]))
+    [hoplon.ui.attrs      :refer [- r font hsl rgb sdw]]
+    [hoplon.ui.utils      :refer [clamp loc x y]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn path= [c path] (cell= (get-in c path) (partial swap! c assoc-in path)))
 
+(defn cache [c]
+  (let [v (cell nil)
+        a (alts! c v)]
+    (cell= (first a) #(if (lens? c) (reset! c %) (reset! v %)))))
+
+(defn tx= [c f]
+  (let [val (cell nil)
+        set #(dosync (when (not= % @c) (f %)) (reset! val nil))]
+    (cell= (or val c) #(if (= % ::tx) (set val) (reset! val %)))))
+
+(defn commit! [cell]
+  (reset! cell ::tx))
+
 ;;; models ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defonce sess (cell {:state :forms}))
+(defonce sess (cell {:state :components}))
 
 ;;; derivations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -33,8 +47,9 @@
 
 ;-- sizes ---------------------------------------------------------------------;
 
-(def bd 3)
-(def g 16)
+(def bd   3)
+(def g    16)
+(def knob 16)
 
 ;-- colors --------------------------------------------------------------------;
 
@@ -73,7 +88,7 @@
    "Mondrian Two"   "mondrian-2.png"
    "Mondrian Three" "mondrian-3.png"])
 
-(def testdata
+(defc cities
   ["Dublin"   34
    "London"   72
    "Boston"   45
@@ -105,6 +120,28 @@
    "Circular-Out"       t/circ-out
    "Circular-In-Out"    t/circ-in-out])
 
+;;; components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defelem slider [{:keys [sh sv s src] r* :r :as attrs}]
+  (let [src    (cache src)
+        w      (cell= (or sh s))
+        h      (cell= (or sv s))
+        kd     (cell= (min 32 w h))
+        kr     (cell= (/ kd 2))
+        dx->rx (cell= (t/linear [0       100] [0  (- w kd)]))
+        rx->dx (cell= (t/linear [kr (- w kr)] [0       100]))
+        dy->ry (cell= (t/linear [0       100] [(- h kd)  0]))
+        ry->dy (cell= (t/linear [(- h kr) kr] [0       100]))
+        pos    (cell= [(dx->rx (x src)) (dy->ry (y src))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
+        sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
+    (elem :d (sdw :inset true) :r r* :m :pointer
+      :pl   (t (cell= (x pos)) 300 t/quadratic-out)
+      :pt   (t (cell= (y pos)) 300 t/quadratic-out)
+      :down #(reset! pos (loc %))
+      :move #(when (= (.-which %) 1) (reset! pos (loc %)))
+      (dissoc attrs :src)
+      (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
+
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn media-view []
@@ -126,7 +163,7 @@
         (elem "contained")))))
 
 (defn components-view []
-  (elem :sh (r 1 1) :p g
+  (elem :sh (r 1 1) :p g :g g
     (elem +title+ :sh (r 1 1)
       "Carousel")
     (let [idx    (cell 0)
@@ -139,7 +176,7 @@
             (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/linear) 1)) :src filename)))
         (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
           "Next")))
-    (elem :sh (r 1 1) :a :mid
+    (elem :sh (r  1 1) :a :mid
       (elem +title+ :sh (r 1 1)
         "Bar Chart")
       (let [size   500
@@ -151,13 +188,26 @@
                  ;;issues with y-axis label
               (elem +field+ "0" :sh (r 1 1) :a :end))
             (elem :sv size :sh (r 9 10) :g gu :av :end :b bd :bc :grey :ah :mid
-              (for [[index [label value]] (map-indexed vector (partition 2 testdata))
-                    :let [num (/ (count testdata) 2)]]
-                  (elem :sh (r 1 num) :g gu :av :beg
-                    (prn gu)
-                    (elem :sh (r 1 1) :sv ((t/linear [0 100] [0 size]) value) :g gu :c :orange :ah :mid
+              (let [num (cell= (/ (count cities) 2))]
+                (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
+                  (elem :sh (cell= (r 1 num)) :g gu :av :beg
+                    (elem :sh (r 1 1) :sv (t (cell= ((t/linear [0 100] [0 size]) value)) 800 t/cubic-out) :g gu :c :orange :ah :mid
                       (elem +label+ :s (r 1 1) :ah :mid value)
-                      (elem +field+ :sh (r 1 1) :a :mid label)))))))))))
+                      (elem +field+ :sh (r 1 1) :a :mid label))))))))))
+   (elem +title+ :sh (r 1 1)
+     "Sliders")
+   (let [is     (cell #{})
+         si->ci (comp inc (partial * 2))
+         cs     (cell= (cities (si->ci (first is))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat %)))))]
+     (list
+        (elem :sh (r 1 1) :a :mid :p g :g (* g 4)
+         (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
+           (elem :s 32 :r 18 :c (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0 true) :m :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
+       (elem :sh (r 1 1) :g g :a :mid
+         (slider :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (int (x %)))))
+         (slider :sh 32  :sv 400 :r 18 :c grey :src (cell= [0  cs] #(reset! cs (int (y %)))))
+         (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %))))))
+       (elem :sh (r 1 1) :sv 400)))))
 
 (defn forms-view []
   (elem :sh (r 1 1) :p g
@@ -166,11 +216,11 @@
     (let [data (cell (or (:data sess) {}))]
       (cell= (prn :data data))
       (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :auto :given-name    :src (path= data [:name]))
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :auto :address-line1 :src (path= data [:address]))
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :auto :email         :src (path= data [:email]))
-        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message"                      :src (path= data [:message]))
-        (files -button- +field+ :sh (r 1 1) :prompt "photo" :src (path= data [:photo]))
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
+        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
+        (files -button- +field+ :sh (r 1 1)          :prompt "Photo"   :src (path= data [:photo]) :types [:image/*])
         (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
           "Submit")))))
 
