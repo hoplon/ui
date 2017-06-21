@@ -213,9 +213,10 @@
          (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
            (elem :s 32 :r 18 :c (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0 true) :m :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
        (elem :sh (r 1 1) :g g :a :mid
-         (slider :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (int (x %)))))
-         (slider :sh 32  :sv 400 :r 18 :c grey :src (cell= [0  cs] #(reset! cs (int (y %)))))
-         (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %))))))))
+         (elem :sh (+ 400 32 g) :g g
+           (slider :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (int (x %)))))
+           (slider :sh 32  :sv 400 :r 18 :c grey :src (cell= [0  cs] #(reset! cs (int (y %)))))
+           (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %)))))))))
    (elem :sh (r 1 1) :sv 400)
    (elem +title+ :sh (r 1 1)
      "Color Pickers")
