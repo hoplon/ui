@@ -197,8 +197,9 @@
    (elem +title+ :sh (r 1 1)
      "Sliders")
    (let [is     (cell #{})
-         si->ci (comp inc (partial * 2))
-         cs     (cell= (cities (si->ci (first is))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat %)))))]
+         si->ci #(when % (inc (* 2 %)))
+         cs     (cell= (get cities (si->ci (apply min (vec is)))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat %)))))]
+     (cell= (prn :cs cs))
      (list
         (elem :sh (r 1 1) :a :mid :p g :g (* g 4)
          (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
