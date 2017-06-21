@@ -2,12 +2,12 @@
   (:refer-clojure
     :exclude [-])
   (:require
-    [hoplon.ui.transforms :as t]
-    [javelin.core         :refer [defc cell cell= dosync lens? alts!]]
-    [hoplon.core          :refer [defelem for-tpl when-tpl case-tpl]]
-    [hoplon.ui            :refer [window elem line lines file files path line-path image video b t]]
-    [hoplon.ui.attrs      :refer [- r font hsl rgb sdw]]
-    [hoplon.ui.utils      :refer [clamp loc x y]]))
+    [hoplon.ui.interpolators :as i]
+    [javelin.core    :refer [defc cell cell= dosync lens? alts!]]
+    [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
+    [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
+    [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
+    [hoplon.ui.utils :refer [clamp loc x y]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -97,46 +97,55 @@
    "Berlin"   45])
 
 (def transforms
-  ["Linear"             t/linear
-   "Quadratic-In"       t/quadratic-in
-   "Quadratic-Out"      t/quadratic-out
-   "Quadratic-In-Out"   t/quadratic-in-out
-   "Cubic-In"           t/cubic-in
-   "Cubic-Out"          t/cubic-out
-   "Cubic-In-Out"       t/cubic-in-out
-   "Quartic-In"         t/quartic-in
-   "Quartic-Out"        t/quartic-out
-   "Quartic-In-Out"     t/quartic-in-out
-   "Quintic-In"         t/quintic-in
-   "Quintic-Out"        t/quintic-out
-   "Quintic-In-Out"     t/quintic-in-out
-   "Sine-In"            t/sine-in
-   "Sine-Out"           t/sine-out
-   "Sine-In-Out"        t/sine-in-out
-   "Exponential-In"     t/exp-in
-   "Exponential-Out"    t/exp-out
-   "Exponential-In-Out" t/exp-in-out
-   "Circular-In"        t/circ-in
-   "Circular-Out"       t/circ-out
-   "Circular-In-Out"    t/circ-in-out])
+  ["Linear"          i/linear
+   "Quadratic In"    i/quadratic-in
+   "Quadratic Out"   i/quadratic-out
+   "Quadratic"       i/quadratic
+   "Cubic In"        i/cubic-in
+   "Cubic Out"       i/cubic-out
+   "Cubic"           i/cubic
+   "Quartic In"      i/quartic-in
+   "Quartic Out"     i/quartic-out
+   "Quartic"         i/quartic
+   "Quintic In"      i/quintic-in
+   "Quintic Out"     i/quintic-out
+   "Quintic"         i/quintic
+   "Sine In"         i/sine-in
+   "Sine Out"        i/sine-out
+   "Sine"            i/sine
+   "Exponential In"  i/exp-in
+   "Exponential Out" i/exp-out
+   "Exponential"     i/exp
+   "Circular In"     i/circ-in
+   "Circular Out"    i/circ-out
+   "Circular"        i/circ])
 
 ;;; components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defelem slider [{:keys [sh sv s src] r* :r :as attrs}]
+  ;- change sizes to body after api refactoring where border becomes stroke
+  ;- substract border from sizes / add border to body bh bv b
+  ;- support different types of transitions
+  ;- consider passing the knob as a child, how to proxy values to knob
+  ;- switch from grab to grabbing mouse cursors during drag
+  ;- consider tool tip with values
+  ;- consider passing curried interpolator function
+  ;- handle overflowing margins without overflow: none due to perf problem. new
+  ;  box model may fix.
   (let [src    (cache src)
         w      (cell= (or sh s))
         h      (cell= (or sv s))
         kd     (cell= (min 32 w h))
         kr     (cell= (/ kd 2))
-        dx->rx (cell= (t/linear [0       100] [0  (- w kd)]))
-        rx->dx (cell= (t/linear [kr (- w kr)] [0       100]))
-        dy->ry (cell= (t/linear [0       100] [(- h kd)  0]))
-        ry->dy (cell= (t/linear [(- h kr) kr] [0       100]))
+        dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
+        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
+        dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
+        ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
         pos    (cell= [(dx->rx (x src)) (dy->ry (y src))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r r* :m :pointer
-      :pl   (t (cell= (x pos)) 300 t/quadratic-out)
-      :pt   (t (cell= (y pos)) 300 t/quadratic-out)
+      :pl   (t (cell= (x pos)) 300 i/quadratic-out)
+      :pt   (t (cell= (y pos)) 300 i/quadratic-out)
       :down #(reset! pos (loc %))
       :move #(when (= (.-which %) 1) (reset! pos (loc %)))
       (dissoc attrs :src)
@@ -147,13 +156,13 @@
 (defn media-view []
   (elem :sh (r 1 1)
     (elem :sh (>sm md) :p 50 :g 50 :a :mid
-      (image :a :mid :b bd :bc :black :src "http://placehold.it/200x100"
+      (image :a :mid :b bd :bc :black :src "http://placehold.ii/200x100"
         (elem "content"))
-      (image :s 200 :a :mid :b bd :bc :black :fit :fill :src "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b bd :bc :black :fit :fill :src "http://placehold.ii/200x100"
         (elem "filled"))
-      (image :s 200 :p 20 :b bd :bc :black :fit :cover :src "http://placehold.it/200x100"
+      (image :s 200 :p 20 :b bd :bc :black :fit :cover :src "http://placehold.ii/200x100"
         (elem "covered"))
-      (image :s 200 :a :mid :b bd :bc :black :fit :contain :src "http://placehold.it/200x100"
+      (image :s 200 :a :mid :b bd :bc :black :fit :contain :src "http://placehold.ii/200x100"
         (elem "contained"))
       (video :s 200 :a :mid :b bd :bc :black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (elem "filled"))
@@ -173,7 +182,7 @@
           "Prev")
         (elem :sh 800 :sv 600 :d :pile
           (for [[idx* [label filename]] (map-indexed vector images)]
-            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 t/linear) 1)) :src filename)))
+            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 i/linear) 1)) :src filename)))
         (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
           "Next")))
     (elem :sh (r  1 1) :a :mid
@@ -191,7 +200,7 @@
               (let [num (cell= (/ (count cities) 2))]
                 (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
                   (elem :sh (cell= (r 1 num)) :g gu :av :beg
-                    (elem :sh (r 1 1) :sv (t (cell= ((t/linear [0 100] [0 size]) value)) 800 t/cubic-out) :g gu :c :orange :ah :mid
+                    (elem :sh (r 1 1) :sv (t (cell= ((i/linear [0 100] [0 size]) value)) 800 i/cubic-out) :g gu :c :orange :ah :mid
                       (elem +label+ :s (r 1 1) :ah :mid value)
                       (elem +field+ :sh (r 1 1) :a :mid label))))))))))
    (elem +title+ :sh (r 1 1)
@@ -199,7 +208,6 @@
    (let [is     (cell #{})
          si->ci #(when % (inc (* 2 %)))
          cs     (cell= (get cities (si->ci (apply min (vec is)))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat %)))))]
-     (cell= (prn :cs cs))
      (list
         (elem :sh (r 1 1) :a :mid :p g :g (* g 4)
          (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
@@ -207,8 +215,14 @@
        (elem :sh (r 1 1) :g g :a :mid
          (slider :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (int (x %)))))
          (slider :sh 32  :sv 400 :r 18 :c grey :src (cell= [0  cs] #(reset! cs (int (y %)))))
-         (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %))))))
-       (elem :sh (r 1 1) :sv 400)))))
+         (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %))))))))
+   (elem :sh (r 1 1) :sv 400)
+   (elem +title+ :sh (r 1 1)
+     "Color Pickers")
+   (elem :sh (r 1 1) :g 100 :a :mid
+     (slider :s 400 :r 18  :c (apply lgr 0 (map #(hsl % (r 360 360) (r 1 2)) (range 0 360 10))))
+     (slider :s 400 :r 200 :c (apply lgr 0 (map #(hsl % (r 360 360) (r 1 2)) (range 0 360 10))) :src [50 50]))
+   (elem :sh (r 1 1) :sv 400)))
 
 (defn forms-view []
   (elem :sh (r 1 1) :p g
