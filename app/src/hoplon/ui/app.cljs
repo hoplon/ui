@@ -137,11 +137,11 @@
         h      (cell= (or sv s))
         kd     (cell= (min 32 w h))
         kr     (cell= (/ kd 2))
-        dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
-        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
-        dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
-        ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
-        pos    (cell= [(dx->rx (x src)) (dy->ry (y src))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
+        dx->rx (cell= (clamp (i/linear [0       100] [0  (- w kd)]) 0 100))
+        rx->dx (cell= (clamp (i/linear [kr (- w kr)] [0       100]) 0 100))
+        dy->ry (cell= (clamp (i/linear [0       100] [(- h kd)  0]) 0 100))
+        ry->dy (cell= (clamp (i/linear [(- h kr) kr] [0       100]) 0 100))
+        pos    (cell= [(dx->rx (x src)) (dy->ry (y src))] #(reset! src [(@rx->dx (x %)) (@ry->dy (y %))]))
         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r r* :m :pointer
       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
@@ -150,6 +150,12 @@
       :move #(when (= (.-which %) 1) (reset! pos (loc %)))
       (dissoc attrs :src)
       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
+
+(defelem hslider [{:keys [src] :as attrs}]
+  (slider :src (cell= (vector src 0) #(reset! src (x %))) (dissoc attrs :src)))
+
+(defelem vslider [{:keys [src] :as attrs}]
+  (slider :src (cell= (vector 0 src) #(reset! src (y %))) (dissoc attrs :src)))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -207,15 +213,15 @@
      "Sliders")
    (let [is     (cell #{})
          si->ci #(when % (inc (* 2 %)))
-         cs     (cell= (get cities (si->ci (apply min (vec is)))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat %)))))]
+         cs     (cell= (get cities (si->ci (apply min (vec is)))) #(when (seq @is) (apply swap! cities assoc (interleave (map si->ci @is) (repeat (int %))))))]
      (elem :sh (r 1 1) :g g :a :mid
        (elem :sh (+ 400 32 g) :g g
           (elem :sh 400 :ah :mid :g 40
             (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
               (elem :s 32 :r 18 :c (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0 true) :m :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
-         (slider :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (int (x %)))))
-         (slider :sh 32  :sv 400 :r 18 :c grey :src (cell= [0  cs] #(reset! cs (int (y %)))))
-         (slider :sh 400 :sv 32  :r 18 :c grey :src (cell= [cs  0] #(reset! cs (int (x %))))))))
+         (slider  :s 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (x %))))
+         (vslider :sh 32  :sv 400 :r 18 :c grey :src cs)
+         (hslider :sh 400 :sv 32  :r 18 :c grey :src cs))))
    (elem :sh (r 1 1) :sv 400)
    (elem +title+ :sh (r 1 1)
      "Color Pickers")
