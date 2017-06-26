@@ -7,7 +7,7 @@
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [clamp loc x y]]))
+    [hoplon.ui.utils :refer [clamp loc x y debounce]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -23,6 +23,14 @@
         set #(dosync (when (not= % @c) (f %)) (reset! val nil))]
     (cell= (or val c) #(if (= % ::tx) (set val) (reset! val %)))))
 
+(defn deb= [c f & [ms]]
+  "debouncing transaction lens"
+  (let [val (cell nil)
+        set #(dosync (when (not= % @c) (f %)) (reset! val nil))
+        deb (debounce (or ms 1000) set)
+        deb #(do (deb %) (reset! val %))]
+    (cell= (or val c) #(if (= % ::tx) (set val) (deb %)))))
+
 (defn commit! [cell]
   (reset! cell ::tx))
 
@@ -33,7 +41,7 @@
 ;;; derivations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def state (path= sess [:state]))
-(def route (cell= [[state]] #(reset! state (ffirst %))))
+(def route (cell= [[state]]  #(reset! state (ffirst %))))
 
 ;;; styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -137,11 +145,11 @@
         h      (cell= (or sv s))
         kd     (cell= (min 32 w h))
         kr     (cell= (/ kd 2))
-        dx->rx (cell= (clamp (i/linear [0       100] [0  (- w kd)]) 0 100))
-        rx->dx (cell= (clamp (i/linear [kr (- w kr)] [0       100]) 0 100))
-        dy->ry (cell= (clamp (i/linear [0       100] [(- h kd)  0]) 0 100))
-        ry->dy (cell= (clamp (i/linear [(- h kr) kr] [0       100]) 0 100))
-        pos    (cell= [(dx->rx (x src)) (dy->ry (y src))] #(reset! src [(@rx->dx (x %)) (@ry->dy (y %))]))
+        dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
+        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
+        dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
+        ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
+        pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r r* :m :pointer
       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
@@ -156,6 +164,17 @@
 
 (defelem vslider [{:keys [src] :as attrs}]
   (slider :src (cell= (vector 0 src) #(reset! src (y %))) (dissoc attrs :src)))
+
+; (defelem hswitch [{:keys [sh sv s src] r* :r :as attrs}]
+;   (let [src (deb= src #(reset! src %) 300)
+;         w   (cell= (or sh s))
+;         sw  (cell= (/ w 2))
+;         sdw (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
+;     (elem :d (sdw :inset true) :r 4 :m :pointer
+;       :pl   (t (cell= (if-not src 0 sw)) 300 quadratic-out)
+;       :down #(swap! src not)
+;       (dissoc attrs :src)
+;       (elem :sh sw :sv (r 1 1) :c red :r 4 :b 2 :bc (white :a 0.6) :d sdw))))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
