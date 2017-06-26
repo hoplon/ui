@@ -7,7 +7,7 @@
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [clamp loc x y debounce]]))
+    [hoplon.ui.utils :refer [clamp loc x y debounce prv nxt]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -203,12 +203,12 @@
     (let [idx    (cell 0)
           images (partition 2 images)]
       (elem :s (r 1 1) :g g :a :mid
-        (elem -button- :click #(swap! idx (fn [i] (mod (dec i) (count images))))
+        (elem -button- :click #(swap! idx (partial prv (count images)))
           "Prev")
         (elem :sh 800 :sv 600 :d :pile
           (for [[idx* [label filename]] (map-indexed vector images)]
             (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 i/linear) 1)) :src filename)))
-        (elem -button- :click #(swap! idx (fn [i] (mod (inc i) (count images))))
+        (elem -button- :click #(swap! idx (partial nxt (count images)))
           "Next")))
     (elem :sh (r  1 1) :a :mid
       (elem +title+ :sh (r 1 1)
