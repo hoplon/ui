@@ -3,11 +3,11 @@
     :exclude [-])
   (:require
     [hoplon.ui.interpolators :as i]
-    [javelin.core    :refer [defc cell cell= dosync lens? alts!]]
+    [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [clamp loc x y debounce prv nxt]]))
+    [hoplon.ui.utils :refer [clamp loc rect x y debounce prv nxt lb]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -36,7 +36,7 @@
 
 ;;; models ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defonce sess (cell {:state :components}))
+(defonce sess (cell {:state :forms}))
 
 ;;; derivations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -75,7 +75,7 @@
 (def +title+ {:t 26 :tf baloo :tc black :tw 2})
 (def +menu+  {:t 18 :tf baloo :tc white :tw 1.5})
 (def +label+ {:t 16 :tf baloo :tc white :tw 1})
-(def +field+ {:t 24 :tf baloo :tc black :tw 1})
+(def +field+ {:t 18 :tf baloo :tc black :tw 1})
 
 ;-- attributes -----------------------------------------------------------------
 
@@ -176,7 +176,47 @@
 ;       (dissoc attrs :src)
 ;       (elem :sh sw :sv (r 1 1) :c red :r 4 :b 2 :bc (white :a 0.6) :d sdw))))
 
+
+(defelem popup [{:keys [x y show]} elems]
+  (let [e (hoplon.core/div
+            :css/display  "block"
+            :css/position "absolute"
+            :css/left     (cell= (str x "px"))
+            :css/top      (cell= (str y "px"))
+              elems)]
+    (cell= (if show (.appendChild js/document.body e) (.removeChild js/document.body e)))
+    nil))
+
+(defelem dropdown-menu [{:keys [prompt src] :as attrs}]
+  (let [pos (cell nil)]
+    (elem :m :pointer :click #(reset! pos (if @pos nil (lb %))) (dissoc attrs :src)
+      prompt
+      (popup :x (cell= (x pos)) :y (cell= (y pos)) :show pos
+        (elem :sh 140 :r 4 :c :white :b 2 :bc :grey
+          (for-tpl [[index [label value]] (cell= (map-indexed vector src))]
+            (let [over? (cell false)]
+              (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))
+                label))))))))
+
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defn forms-view []
+  (elem :sh (r 1 1) :p g
+    (elem +title+ :sh (r 1 1)
+      "Forms")
+    (let [data (cell (or (:data sess) {}))]
+      (cell= (prn :data data))
+      (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
+        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
+        (dropdown-menu -field- +field+ :sh (r 1 2)   :prompt "City"    :src (cell= (partition 2 cities)))
+        (dropdown-menu -field- +field+ :sh (r 1 2)   :prompt "City"    :src (cell= (partition 2 cities)))
+        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
+        (files -button- +field+ :sh (r 1 1)          :prompt "Photo"   :src (path= data [:photo]) :types [:image/*])
+        (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
+          "Submit")))))
 
 (defn media-view []
   (elem :sh (r 1 1)
@@ -248,21 +288,6 @@
      (slider :s 400 :r 18  :c (apply lgr 0 (map #(hsl % (r 360 360) (r 1 2)) (range 0 360 10))))
      (slider :s 400 :r 200 :c (apply lgr 0 (map #(hsl % (r 360 360) (r 1 2)) (range 0 360 10))) :src [50 50]))
    (elem :sh (r 1 1) :sv 400)))
-
-(defn forms-view []
-  (elem :sh (r 1 1) :p g
-    (elem +title+ :sh (r 1 1)
-      "Forms")
-    (let [data (cell (or (:data sess) {}))]
-      (cell= (prn :data data))
-      (elem +label+ :s (r 1 1) :p (b 16 sm 50) :g 16 :ah :end
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
-        (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
-        (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
-        (files -button- +field+ :sh (r 1 1)          :prompt "Photo"   :src (path= data [:photo]) :types [:image/*])
-        (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
-          "Submit")))))
 
 (defn scales-view []
   (let [size 300
