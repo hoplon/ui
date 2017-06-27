@@ -4,10 +4,10 @@
   (:require
     [hoplon.ui.interpolators :as i]
     [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
-    [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
+    [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl with-dom]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [clamp loc rect x y debounce prv nxt lb]]))
+    [hoplon.ui.utils :refer [clamp point x y w h lb debounce prv nxt current]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -154,8 +154,8 @@
     (elem :d (sdw :inset true) :r r* :m :pointer
       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
       :pt   (t (cell= (y pos)) 300 i/quadratic-out)
-      :down #(reset! pos (loc %))
-      :move #(when (= (.-which %) 1) (reset! pos (loc %)))
+      :down #(reset! pos (point %))
+      :move #(when (= (.-which %) 1) (reset! pos (point %)))
       (dissoc attrs :src)
       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
 
@@ -176,30 +176,35 @@
 ;       (dissoc attrs :src)
 ;       (elem :sh sw :sv (r 1 1) :c red :r 4 :b 2 :bc (white :a 0.6) :d sdw))))
 
+(defelem popout [{:keys [anchor visible] :as attrs} elems]
+  (let [owner   (cell nil)
+        point   (cell= ((or anchor lb) owner))
+        element (hoplon.core/div)]
+    (with-dom element
+      (reset! owner (.-parentElement (.-parentElement element))))
+    (cell= (if visible (.appendChild js/document.body element) (when owner (.appendChild owner element))))
+    (element :css/position "absolute"
+      :css/display  (cell= (if visible "block" "none"))
+      :css/left     (cell= (str (x point) "px"))
+      :css/top      (cell= (str (y point) "px"))
+      :css/width    (cell= (str (w owner) "px"))
+      :css/height   (cell= (str (h owner) "px"))
+      (elem (dissoc attrs :anchor :visible)
+        elems))))
 
-(defelem popup [{:keys [x y show]} elems]
-  (let [e (hoplon.core/div
-            :css/display  "block"
-            :css/position "absolute"
-            :css/left     (cell= (str x "px"))
-            :css/top      (cell= (str y "px"))
-              elems)]
-    (cell= (if show (.appendChild js/document.body e) (.removeChild js/document.body e)))
-    nil))
-
-(defelem dropdown-menu [{:keys [prompt src] :as attrs}]
-  (let [pos (cell nil)]
-    (elem :m :pointer :click #(reset! pos (if @pos nil (lb %))) (dissoc attrs :src)
-      prompt
-      (popup :x (cell= (x pos)) :y (cell= (y pos)) :show pos
-        (elem :sh 140 :r 4 :c :white :b 2 :bc :grey
-          (for-tpl [[index [label value]] (cell= (map-indexed vector src))]
-            (let [over? (cell false)]
-              (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))
-                label))))))))
+(defelem popout-menu [{:keys [src items prompt] :as attrs}]
+  (let [key (cell nil)
+        pop (cell false)]
+    (elem :m :pointer :click #(reset! pop true) (dissoc attrs :src)
+      (cell= (get items key prompt))
+      (popout :sh (r 1 1) :rb 4 :c :white :b bd :bt 0 :bc black :click #(reset! pop false) #_:click-off #_(reset! pop false) :visible pop
+        (for-tpl [[k v] (cell= (if (seq items) (map-indexed vector items) items))]
+          (let [over?    (cell false)
+                selected? (cell= (= k key))]
+            (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :click (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
+              v)))))))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 (defn forms-view []
   (elem :sh (r 1 1) :p g
@@ -211,8 +216,8 @@
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
         (line  -field-  +field+ :sh (r 1 1)          :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
-        (dropdown-menu -field- +field+ :sh (r 1 2)   :prompt "City"    :src (cell= (partition 2 cities)))
-        (dropdown-menu -field- +field+ :sh (r 1 2)   :prompt "City"    :src (cell= (partition 2 cities)))
+        (popout-menu -field- +field+ :sh (r 1 2)     :prompt "State"   :items ["Alabama" "California" "Florida" "Texas" "Wyoming"])
+        (popout-menu -field- +field+ :sh (r 1 2)     :prompt "Country" :items ["Canada" "United States" "Mexico"])
         (lines -field-  +field+ :sh (r 1 1) :rows 10 :prompt "Message" :src (path= data [:message]))
         (files -button- +field+ :sh (r 1 1)          :prompt "Photo"   :src (path= data [:photo]) :types [:image/*])
         (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)

@@ -23,7 +23,7 @@
 
 (ns-unmap 'boot.user 'test)
 
-(def +version+ "0.2.1-SNAPSHOT")
+(def +version+ "0.2.2-SNAPSHOT")
 
 (bootlaces! +version+ :dont-modify-paths? true)
 
