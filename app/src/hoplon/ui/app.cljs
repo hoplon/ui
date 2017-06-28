@@ -4,10 +4,10 @@
   (:require
     [hoplon.ui.interpolators :as i]
     [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
-    [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl with-dom]]
+    [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [x y w h mouse lb clamp debounce prv nxt current]]))
+    [hoplon.ui.utils :refer [x y w h mouse lb clamp debounce prv nxt current with-ready]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -180,9 +180,10 @@
   (let [owner   (cell nil)
         point   (cell= ((or anchor lb) owner))
         element (hoplon.core/div)]
-    (with-dom element
-      (reset! owner (.-parentElement (.-parentElement element))))
-    (cell= (if visible (.appendChild js/document.body element) (when owner (.appendChild owner element))))
+    (with-ready element
+      (reset! owner (.-parentElement (.-parentElement element)))
+      (.removeChild @owner element))
+    (cell= (if visible (.appendChild js/document.body element) (when owner (.removeChild js/document.body element))))
     (element :css/position "absolute"
       :css/display  (cell= (if visible "block" "none"))
       :css/left     (cell= (str (x point) "px"))
@@ -192,12 +193,12 @@
       (elem (dissoc attrs :anchor :visible)
         elems))))
 
-(defelem popout-menu [{:keys [src items prompt] :as attrs}]
+(defelem popout-menu [{:keys [src items prompt] :as attrs}] ;; consider giving a for-tpl binding semantic
   (let [key (cell nil)
         pop (cell false)]
     (elem :m :pointer :click #(reset! pop true) (dissoc attrs :src)
       (cell= (get items key prompt))
-      (popout :sh (r 1 1) :rb 4 :c :white :b bd :bt 0 :bc black :click #(reset! pop false) #_:click-off #_(reset! pop false) :visible pop
+      (popout :sh (r 1 1) :rb 4 :c :white :b bd :bt 0 :bc black :click #(reset! pop false) #_:click-off #_(prn :off %) #_(when pop (reset! pop false)) :visible pop
         (for-tpl [[k v] (cell= (if (seq items) (map-indexed vector items) items))]
           (let [over?    (cell false)
                 selected? (cell= (= k key))]
