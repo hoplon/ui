@@ -7,7 +7,7 @@
     [hoplon.core     :refer [defelem for-tpl when-tpl case-tpl with-dom]]
     [hoplon.ui       :refer [window elem line lines file files path line-path image video b t]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [clamp point x y w h lb debounce prv nxt current]]))
+    [hoplon.ui.utils :refer [x y w h mouse lb clamp debounce prv nxt current]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -154,8 +154,8 @@
     (elem :d (sdw :inset true) :r r* :m :pointer
       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
       :pt   (t (cell= (y pos)) 300 i/quadratic-out)
-      :down #(reset! pos (point %))
-      :move #(when (= (.-which %) 1) (reset! pos (point %)))
+      :down #(reset! pos (mouse %))
+      :move #(when (= (.-which %) 1) (reset! pos (mouse %)))
       (dissoc attrs :src)
       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
 
