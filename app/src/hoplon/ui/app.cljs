@@ -7,7 +7,7 @@
     [hoplon.core     :refer [defelem for-tpl when-tpl if-tpl case-tpl]]
     [hoplon.ui       :refer [window elem fore line lines file files path line-path image video b t markdown]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
-    [hoplon.ui.utils :refer [x y w h mouse lb clamp debounce prv nxt current with-ready xssoc-in]]))
+    [hoplon.ui.utils :refer [x y w h mouse down? lb clamp debounce prv nxt current with-ready xssoc-in]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,11 +26,11 @@
 (defn deb= [c f & [ms]]
   "debouncing transaction lens"
   (let [val (cell nil)
-        set #(when (and c (not= % @c)) (f %))
+        set #(when (and (lens? c) (not= % @c)) (f %))
         deb (debounce (or ms 1000) set)
         deb #(do (deb %) (reset! val %))
-        src (alts! c val)]
-     (cell= (first src) #(if (= % ::tx) (set val) (deb %)))))
+        src (alts! val c)]
+    (cell= (some identity src) #(if (= % ::tx) (set val) (deb %)))))
 
 (defn commit! [cell]
   (reset! cell ::tx))
@@ -120,7 +120,6 @@
   [:forms       "forms"
    :transitions "transitions"
    :scales      "scales"
-   :media       "media"
    :components  "components"])
 
 (def images
@@ -162,6 +161,7 @@
 
 ;;; components ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defelem slider [{:keys [sh sv s src] r* :r :as attrs}]
   ;- change sizes to body after api refactoring where border becomes stroke
   ;- substract border from sizes / add border to body bh bv b
@@ -172,24 +172,45 @@
   ;- consider passing curried interpolator function
   ;- handle overflowing margins without overflow: none due to perf problem. new
   ;  box model may fix.
-  (let [src    (cache src)
+  (let [src    (deb= src #(reset! src %) 500)
         w      (cell= (or sh s))
         h      (cell= (or sv s))
         kd     (cell= (min 32 w h))
         kr     (cell= (/ kd 2))
         dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
-        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
         dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
+        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
         ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r r* :m :pointer
-      :pl   (t (cell= (x pos)) 300 i/quadratic-out)
-      :pt   (t (cell= (y pos)) 300 i/quadratic-out)
-      :down #(reset! pos (mouse %))
-      :move #(when (= (.-which %) 1) (reset! pos (mouse %)))
+      :pl   (t (cell= (x pos)) 500 i/quadratic-out)
+      :pt   (t (cell= (y pos)) 500 i/quadratic-out)
+      :overflowv :hidden
+      :up   #(reset! pos (mouse %))
+      :move #(when (down? %) (reset! pos (mouse %)))
       (dissoc attrs :src)
       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
+
+; (defelem slider [{:keys [sh sv s src] r* :r :as attrs}]
+;   (let [src    (cache src)
+;         w      (cell= (or sh s))
+;         h      (cell= (or sv s))
+;         kd     (cell= (min 32 w h))
+;         kr     (cell= (/ kd 2))
+;         dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
+;         rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
+;         dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
+;         ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
+;         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
+;         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
+;     (elem :d (sdw :inset true) :r r* :m :pointer
+;       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
+;       :pt   (t (cell= (y pos)) 300 i/quadratic-out)
+;       :down #(reset! pos (mouse %))
+;       :move #(when (= (.-which %) 1) (reset! pos (mouse %)))
+;       (dissoc attrs :src)
+;       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
 
 (defelem hslider [{:keys [src] :as attrs}]
   (slider :src (cell= (vector src 0) #(reset! src (x %))) (dissoc attrs :src)))
@@ -227,18 +248,18 @@
   (let [padding [:p :ph :pv :pl :pr :pt :pb]
         key (cache src)
         pop (cell false)]
-    (elem :m :pointer :up #(reset! pop true) (apply dissoc attrs :src padding)
+    (elem :m :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src padding)
       (elem :sh (- (r 1 1) 40) (select-keys attrs padding)
         (cell= (get items key prompt)))
       (elem :s 40 :a :mid :bl 3 :bc black
         (triangle :body 15 :c black :dir :b))
-      (fore :y 46 :sh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :click #(reset! pop false) :down-off #(when @pop (reset! pop false)) :v pop
+      (fore :y 46 :sh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop
         (let [over? (cell false)]
-          (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) prompt :m :pointer :click #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
+          (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) prompt :m :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
         (for-tpl [[k v] (cell= (if (seq items) (map-indexed vector items) items))]
           (let [over?    (cell false)
                 selected? (cell= (= k key))]
-            (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :click (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
+            (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
               v)))))))
 
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
