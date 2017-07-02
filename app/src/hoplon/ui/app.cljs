@@ -3,6 +3,7 @@
     :exclude [-])
   (:require
     [hoplon.ui.interpolators :as i]
+    [hoplon.ui.app.content   :as c]
     [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
     [hoplon.core     :refer [defelem for-tpl when-tpl if-tpl case-tpl]]
     [hoplon.ui       :refer [window elem fore line lines file files path line-path image video b t markdown]]
@@ -244,19 +245,19 @@
       :bcb (when (= dir :t) c)
       (dissoc attrs :c :body :dir))))
 
-(defelem popout-menu [{:keys [src items prompt] :as attrs}] ;; consider giving a for-tpl binding semantic
+(defelem popup-menu [{:keys [src items prompt popup] :as attrs}] ;; consider giving a for-tpl binding semantic
   (let [padding [:p :ph :pv :pl :pr :pt :pb]
         key (cache src)
         pop (cell false)]
-    (elem :m :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src padding)
+    (elem :m :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src popup padding)
       (elem :sh (- (r 1 1) 40) (select-keys attrs padding)
         (cell= (get items key prompt)))
       (elem :s 40 :a :mid :bl 3 :bc black
         (triangle :body 15 :c black :dir :b))
-      (fore :y 46 :sh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop
+      (fore :y 46 :sh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop popup
         (let [over? (cell false)]
           (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) prompt :m :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
-        (for-tpl [[k v] (cell= (if (seq items) (map-indexed vector items) items))]
+        (for-tpl [[k v] (cell= (if (sequential? items) (map-indexed vector items) items))]
           (let [over?    (cell false)
                 selected? (cell= (= k key))]
             (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
@@ -270,14 +271,14 @@
       "#Forms
        This form populates the map below." mdattrs)
     (elem +label+ :s (r 1 1) :g 16 :ah :end
-      (line  -field-  +field+ :sh (r 1 1)            :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
-      (line  -field-  +field+ :sh (r 1 1)            :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
-      (popout-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "State"   :src (path= data [:state])   :items ["Alabama" "California" "Canada" "Florida" "Texas" "Wyoming"])
-      (popout-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "Country" :src (path= data [:country]) :items ["China" "England" "France" "Mexico" "Spain" "United States"])
-      (line  -field-  +field+ :sh (>sm (r 1 5))      :prompt "Zip"     :src (path= data [:zip])     :autocomplete :postal-code)
-      (line  -field-  +field+ :sh (>sm (r 1 2))      :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
-      (files -button- +field+ :sh (>sm (r 1 2))      :prompt "Photo"   :src (path= data [:photo])   :types [:image/*])
-      (lines -field-  +field+ :sh (r 1 1) :rows 10   :prompt "Message" :src (path= data [:message]))
+      (line  -field-  +field+ :sh (r 1 1)           :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
+      (line  -field-  +field+ :sh (r 1 1)           :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
+      (popup-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "State"   :src (path= data [:state])   :items c/states :popup {:sv 400 :scroll true})
+      (popup-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "Country" :src (path= data [:country]) :items ["China" "England" "France" "Mexico" "Spain" "United States"])
+      (line  -field-  +field+ :sh (>sm (r 1 5))     :prompt "Zip"     :src (path= data [:zip])     :autocomplete :postal-code)
+      (line  -field-  +field+ :sh (>sm (r 1 2))     :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
+      (files -button- +field+ :sh (>sm (r 1 2))     :prompt "Photo"   :src (path= data [:photo])   :types [:image/*])
+      (lines -field-  +field+ :sh (r 1 1) :rows 10  :prompt "Message" :src (path= data [:message]))
       (elem -label- +field+ :sh (b (- (r 1 1) (+ 92 16)) sm nil) :sv 46 :av :mid
         "Spam Me")
       (hswitch -input- :sh 92 :sv 46 :src (path= data [:spam]))
