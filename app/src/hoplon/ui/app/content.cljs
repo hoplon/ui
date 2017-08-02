@@ -1,5 +1,12 @@
 (ns hoplon.ui.app.content)
 
+(def countries
+  ["China"
+   "India"
+   "Mexico"
+   "Pakistan"
+   "United States"])
+
 (def states
  (sorted-map
    :alabama              "Alabama"
@@ -29,7 +36,7 @@
    :new-jersey           "New Jersey"
    :new-mexico           "New Mexico"
    :new-york             "New York"
-   :north-calolina       "North Carolina"
+   :north-carolina       "North Carolina"
    :north-dakota         "North Dakota"
    :ohio                 "Ohio"
    :oklahoma             "Oklahoma"

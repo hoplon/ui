@@ -24,7 +24,7 @@
           (fn [redef#]
             (fn []
               (with-redefs ~defs
-               (redef#)))))
+                (redef#)))))
         ~@body))))
 
 (defmacro inherit

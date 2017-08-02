@@ -4,9 +4,10 @@
   (:require
     [hoplon.ui.interpolators :as i]
     [hoplon.ui.app.content   :as c]
+    [clojure.string  :refer [lower-case starts-with?]]
     [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
     [hoplon.core     :refer [defelem for-tpl when-tpl if-tpl case-tpl]]
-    [hoplon.ui       :refer [window elem fore line lines file files path line-path image video b t markdown]]
+    [hoplon.ui       :refer [window elem fore line lines file files path line-path image video markdown b= t= a=]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
     [hoplon.ui.utils :refer [x y w h mouse down? lb clamp debounce prv nxt current with-ready xssoc-in]]))
 
@@ -54,7 +55,7 @@
 (def md 1240)
 (def lg 1480)
 
-(defn >sm [& bks] (apply b (r 1 1) sm bks))
+(defn >sm [& bks] (apply b= (r 1 1) sm bks))
 
 ;-- sizes ---------------------------------------------------------------------;
 
@@ -185,33 +186,13 @@
         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r r* :m :pointer
-      :pl   (t (cell= (x pos)) 500 i/quadratic-out)
-      :pt   (t (cell= (y pos)) 500 i/quadratic-out)
+      :pl   (t= (cell= (x pos)) 500 i/quadratic-out)
+      :pt   (t= (cell= (y pos)) 500 i/quadratic-out)
       :overflowv :hidden
       :up   #(reset! pos (mouse %))
       :move #(when (down? %) (reset! pos (mouse %)))
       (dissoc attrs :src)
       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
-
-; (defelem slider [{:keys [sh sv s src] r* :r :as attrs}]
-;   (let [src    (cache src)
-;         w      (cell= (or sh s))
-;         h      (cell= (or sv s))
-;         kd     (cell= (min 32 w h))
-;         kr     (cell= (/ kd 2))
-;         dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
-;         rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
-;         dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
-;         ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
-;         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
-;         sdw    (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
-;     (elem :d (sdw :inset true) :r r* :m :pointer
-;       :pl   (t (cell= (x pos)) 300 i/quadratic-out)
-;       :pt   (t (cell= (y pos)) 300 i/quadratic-out)
-;       :down #(reset! pos (mouse %))
-;       :move #(when (= (.-which %) 1) (reset! pos (mouse %)))
-;       (dissoc attrs :src)
-;       (elem :s kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (white :a 0.6) :d sdw :m :grab))))
 
 (defelem hslider [{:keys [src] :as attrs}]
   (slider :src (cell= (vector src 0) #(reset! src (x %))) (dissoc attrs :src)))
@@ -226,7 +207,7 @@
         sw  (cell= (/ w 2))
         sdw (sdw 2 2 (rgb 0 0 0 (r 1 14)) 2 0)]
     (elem :d (sdw :inset true) :r rd :m :pointer
-      :pl   (t (cell= (if-not src 0 sw)) 400 i/quadratic-out)
+      :pl   (t= (cell= (if-not src 0 sw)) 400 i/quadratic-out)
       :down #(swap! src not)
       (dissoc attrs :src)
       (elem :sh sw :sv (r 1 1) :c black :a :mid :d sdw knob
@@ -245,7 +226,7 @@
       :bcb (when (= dir :t) c)
       (dissoc attrs :c :body :dir))))
 
-(defelem popup-menu [{:keys [src items prompt popup] :as attrs}] ;; consider giving a for-tpl binding semantic
+(defelem popup-menu [{:keys [src items prompt popup] :as attrs}]
   (let [padding [:p :ph :pv :pl :pr :pt :pb]
         key (cache src)
         pop (cell false)]
@@ -263,25 +244,70 @@
             (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
               v)))))))
 
+(defelem typeahead [{:keys [src items prompt popup] :as attrs}]
+  (let [padding [:p :ph :pv :pl :pr :pt :pb]
+        key   (cache src)
+        input (cell nil)
+        pop   (cell nil)
+        pop   (cell= (or input pop) #(reset! pop %))]
+    (elem :m :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src popup padding)
+      (line +field+ :sh (- (r 1 1) 40) :src (cell= (get items key input) #(reset! input %)) :prompt prompt (select-keys attrs padding))
+      (elem :s 40 :a :mid :bl 3 :bc black
+        (triangle :body 15 :c black :dir :b))
+      (fore :y 46 :sh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop popup
+        (let [over? (cell false)]
+          (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) prompt :m :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
+        (for-tpl [[k v] (cell= (filter (fn [[_ v]] (starts-with? (lower-case v) (lower-case (or input "")))) (if (sequential? items) (map-indexed vector items) items)))]
+          (let [over?    (cell false)
+                selected? (cell= (= k key))]
+            (elem +field+ :sh (r 1 1) :ph g :pv (/ g 2) :m :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
+              v)))))))
+
+(defelem scroll [{:keys [src prev next]} elems]
+  (let [chars "ABCDEFGHIJKLMNOPQRSTUVWXYZ#"
+        vv  600
+        cv  (/ vv (count chars))
+        iv  40
+        v   (cell= (* iv (count src)))
+        num (cell= (/ vv iv))
+        items (cell #queue[])]
+    (elem :sh (r 1 1) :b 2 :bc black :sv vv
+      (elem :sh (- (r 1 1) cv) :sv (r 1 1) :d :pile :scroll true
+        (elem :s (r 1 1) :sv v)
+        (elem :s (r 1 1) :pt
+          (for-tpl [[k v] src]
+            (elem :sh (r 1 1) :sv iv :bv 1 :bc grey :av :mid
+              v))))
+      (elem :sh cv :sv (r 1 1)
+        (for [c chars]
+          (elem :s cv :a :mid :b 1 :bc grey :m :pointer :click #(prn :clicked)
+            c))))))
+
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn forms-view []
-  (elem :sh (r 1 1) :p (b 16 sm 50) :g 16
+  (elem :sh (r 1 1) :p (b= 16 sm 50) :g (cell= (prn :elem hoplon.ui/*elem*))
+    (elem :sh (r 1 1) :pl (a= 0 3000 1000 6000 0 i/quadratic)
+      "->")
+    (markdown
+      "#Scroll
+       A scrolling component." mdattrs)
+    #_(scroll :src c/states)
     (markdown
       "#Forms
        This form populates the map below." mdattrs)
     (elem +label+ :s (r 1 1) :g 16 :ah :end
-      (line  -field-  +field+ :sh (r 1 1)           :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
-      (line  -field-  +field+ :sh (r 1 1)           :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
-      (popup-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "State"   :src (path= data [:state])   :items c/states :popup {:sv 400 :scroll true})
-      (popup-menu -field- +field+ :sh (>sm (r 2 5)) :prompt "Country" :src (path= data [:country]) :items ["China" "England" "France" "Mexico" "Spain" "United States"])
-      (line  -field-  +field+ :sh (>sm (r 1 5))     :prompt "Zip"     :src (path= data [:zip])     :autocomplete :postal-code)
-      (line  -field-  +field+ :sh (>sm (r 1 2))     :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
-      (files -button- +field+ :sh (>sm (r 1 2))     :prompt "Photo"   :src (path= data [:photo])   :types [:image/*])
-      (lines -field-  +field+ :sh (r 1 1) :rows 10  :prompt "Message" :src (path= data [:message]))
-      (elem -label- +field+ :sh (b (- (r 1 1) (+ 92 16)) sm nil) :sv 46 :av :mid
+      (line       -field-  +field+ :sh (r 1 1)           :prompt "Name"    :src (path= data [:name])    :autocomplete :given-name)
+      (line       -field-  +field+ :sh (r 1 1)           :prompt "Address" :src (path= data [:address]) :autocomplete :address-line1)
+      (typeahead  -field-  +field+ :sh (>sm (r 2 5))     :prompt "State"   :src (path= data [:state])   :items c/states :popup {:sv 400 :scroll true})
+      (popup-menu -field-  +field+ :sh (>sm (r 2 5))     :prompt "Country" :src (path= data [:country]) :items c/countries)
+      (line       -field-  +field+ :sh (>sm (r 1 5))     :prompt "Zip"     :src (path= data [:zip])     :autocomplete :postal-code)
+      (line       -field-  +field+ :sh (>sm (r 1 2))     :prompt "Email"   :src (path= data [:email])   :autocomplete :email)
+      (files      -button- +field+ :sh (>sm (r 1 2))     :prompt "Photo"   :src (path= data [:photo])   :types [:image/*])
+      (lines      -field-  +field+ :sh (r 1 1) :rows 10  :prompt "Message" :src (path= data [:message]))
+      (elem       -label-  +field+ :sh (b= (- (r 1 1) (+ 92 16)) sm nil) :sv 46 :av :mid
         "Spam Me")
-      (hswitch -input- :sh 92 :sv 46 :src (path= data [:spam]))
+      (hswitch    -input- :sh 92 :sv 46 :src (path= data [:spam]))
       (elem  -button- +field+ :sh (>sm 300) :click #(swap! sess assoc :data data)
         "Submit"))
     (elem -code- +code+ :sh (r 1 1)
@@ -316,7 +342,7 @@
           "Prev")
         (elem :sh 800 :sv 600 :d :pile
           (for [[idx* [label filename]] (map-indexed vector images)]
-            (image :s (r 1 1) :o (cell= (r ~(t (cell= (if (= idx* idx) 1 0)) 2000 i/linear) 1)) :src filename)))
+            (image :s (r 1 1) :o (cell= (r ~(t= (cell= (if (= idx* idx) 1 0)) 2000 i/linear) 1)) :src filename)))
         (elem -button- :click #(swap! idx (partial nxt (count images)))
           "Next")))
     (elem :sh (r  1 1) :a :mid
@@ -334,7 +360,7 @@
               (let [num (cell= (/ (count cities) 2))]
                 (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
                   (elem :sh (cell= (r 1 num)) :g gu :av :beg
-                    (elem :sh (r 1 1) :sv (t (cell= ((i/linear [0 100] [0 size]) value)) 800 i/cubic-out) :g gu :c :orange :ah :mid
+                    (elem :sh (r 1 1) :sv (t= (cell= ((i/linear [0 100] [0 size]) value)) 800 i/cubic-out) :g gu :c :orange :ah :mid
                       (elem +label+ :s (r 1 1) :ah :mid value)
                       (elem +field+ :sh (r 1 1) :a :mid label))))))))))
    (elem +title+ :sh (r 1 1)
@@ -389,8 +415,8 @@
               :let [g  8
                     px (cell 0)
                     py (cell 0)
-                    tx (t px 2000 function)
-                    ty (t py 2000 function)]]
+                    tx (t= px 2000 function)
+                    ty (t= py 2000 function)]]
           (elem :sh size :gv g
             (elem +label+ :s (r 3 4) :ph g :tc (hsl (* index 20) (r 1 2) (r 1 2))
               label)
@@ -415,15 +441,15 @@
     (elem :sh (r 1 1) :p g :g g
       (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
         (elem :sh (r 1 1)
-          (elem +label+ :sh (t size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
+          (elem +label+ :sh (t= size 1000 function) :sv 60 :p g :c (hsl (* index 20) (r 1 2) (r 1 2)) :av :mid :m :pointer :click #(swap! size (partial + 150))
             label))))))
 
 (window :src route :scroll true :title "Hoplon UI"
-  (elem :sh (r 1 1) :sv (b :auto sm 80) :av :mid :p g :g g :c orange :bt 4 :bc yellow
+  (elem :sh (r 1 1) :sv (b= :auto sm 80) :av :mid :p g :g g :c orange :bt 4 :bc yellow
     (image :s 50 :m :pointer :click #(reset! state :home) :src "hoplon-logo.png")
     (elem :sh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
       (for [[*state label] (partition 2 menu-items) :let [sel-bc (cell= (if (= *state state) white orange))]]
-        (elem +menu+ :sh (>sm :auto) :ph (b g sm nil) :bl (b 3 sm nil) :bb (b nil sm 3) :bcl (b sel-bc sm orange) :bcb (b orange sm sel-bc) :m :pointer :click #(reset! state *state)
+        (elem +menu+ :sh (>sm :auto) :ph (b= g sm nil) :bl (b= 3 sm nil) :bb (b= nil sm 3) :bcl (b= sel-bc sm orange) :bcb (b= orange sm sel-bc) :m :pointer :click #(reset! state *state)
           label))))
   (case-tpl state
     :forms       (forms-view)
