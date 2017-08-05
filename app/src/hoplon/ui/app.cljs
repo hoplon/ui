@@ -7,7 +7,7 @@
     [clojure.string  :refer [lower-case starts-with?]]
     [javelin.core    :refer [defc cell cell= cell-let dosync lens? alts!]]
     [hoplon.core     :refer [defelem for-tpl when-tpl if-tpl case-tpl]]
-    [hoplon.ui       :refer [window elem fore line lines file files path line-path image video markdown b= t= a=]]
+    [hoplon.ui       :refer [window elem fore line lines file files path line-path image video markdown b= t=]]
     [hoplon.ui.attrs :refer [- r font hsl lgr rgb sdw]]
     [hoplon.ui.utils :refer [x y w h mouse down? lb clamp debounce prv nxt current with-ready xssoc-in]]))
 
@@ -286,9 +286,7 @@
 ;;; views ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn forms-view []
-  (elem :sh (r 1 1) :p (b= 16 sm 50) :g (cell= (prn :elem hoplon.ui/*elem*))
-    (elem :sh (r 1 1) :pl (a= 0 3000 1000 6000 0 i/quadratic)
-      "->")
+  (elem :sh (r 1 1) :p (b= 16 sm 50) :g 16
     (markdown
       "#Scroll
        A scrolling component." mdattrs)
