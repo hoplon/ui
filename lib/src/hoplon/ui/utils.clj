@@ -24,7 +24,7 @@
           (fn [redef#]
             (fn []
               (with-redefs ~defs
-               (redef#)))))
+                (redef#)))))
         ~@body))))
 
 (defmacro inherit
@@ -36,3 +36,10 @@
   [element & body]
   `(inherit* ~element (fn [] ~@body)))
 
+(defmacro with-ready
+  "evaluate the body only after the element has been inserted into the dom and
+   the dom is fully loaded. similar to with-dom, but evaluates only after the
+   layout is complete.  useful in scenarios where an element needs to obtain
+   layout information from the dom after it is added. see the popout elem."
+  [element & body]
+  `(when-ready ~element (fn [] ~@body)))
