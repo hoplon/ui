@@ -8,9 +8,10 @@
     [javelin.core      :refer [defc cell cell= cell-let dosync lens? alts!]]
     [hoplon.core       :refer [defelem for-tpl when-tpl if-tpl case-tpl]]
     [hoplon.ui         :refer [window elem fore line lines file files path line-path image video markdown b= t=]]
-    [hoplon.ui.attrs   :refer [- r font]]
+    [hoplon.ui.attrs   :refer [- r]]
     [hoplon.ui.colors  :refer [->hex hex rgb hsv hsl hsi hcl triadic]]
     [hoplon.ui.effects :refer [sdw lgr]]
+    [hoplon.ui.fonts   :refer [font]]
     [hoplon.ui.utils   :refer [x y w h mouse down? lb clamp debounce prv nxt current with-ready xssoc-in]]))
 
 ;;; utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
