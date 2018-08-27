@@ -182,10 +182,10 @@
         h      (cell= (or sv s))
         kd     (cell= (min 32 w h))
         kr     (cell= (/ kd 2))
-        dx->rx (cell= (i/linear [0       100] [0  (- w kd)]))
-        dy->ry (cell= (i/linear [0       100] [(- h kd)  0]))
-        rx->dx (cell= (i/linear [kr (- w kr)] [0       100]))
-        ry->dy (cell= (i/linear [(- h kr) kr] [0       100]))
+        dx->rx (cell= (partial i/linear 0        100      0        (- w kd)))
+        dy->ry (cell= (partial i/linear 0        100      (- h kd) 0))
+        rx->dx (cell= (partial i/linear kr       (- w kr) 0        100))
+        ry->dy (cell= (partial i/linear (- h kr) kr       0        100))
         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 0x12 2 0 true)]
     (elem :d (sdw :inset true) :r r* :m :pointer
@@ -409,7 +409,7 @@
               (let [num (cell= (/ (count cities) 2))]
                 (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
                   (elem :sh (cell= (r 1 num)) :g gu :av :beg
-                    (elem :sh (r 1 1) :sv (t= (cell= ((i/linear [0 100] [0 size]) value)) 800 i/cubic-out) :g gu :c yellow :ah :mid
+                    (elem :sh (r 1 1) :sv (t= (cell= (i/linear 0 100 0 size value)) 800 i/cubic-out) :g gu :c yellow :ah :mid
                       (elem +label+ :s (r 1 1) :ah :mid value)
                       (elem +field+ :sh (r 1 1) :a :mid label))))))))))
    (elem +title+ :sh (r 1 1)
@@ -441,7 +441,7 @@
       (for [[label v f] (partition 3 ["B \u2190" bx - "B \u2192" bx + "B \u2191"  by + "B \u2193" by - "E \u2190" ex - "E \u2192" ex + "E \u2191" ey + "E \u2193" ey -])]
         (elem  -button- +field+ :sh (>sm 142) :click #(swap! v  (fn [v] (f v step)))
           label))
-      (for [[index [label function]] (map-indexed vector (partition 2 transforms))
+      (for [[index [label interpolator]] (map-indexed vector (partition 2 transforms))
         :let [c  (hsl (* index 20) .5 .5) px (cell 0)]]
         (elem :sh size
           (elem +label+ :s (r 3 4) :pl 8 :ah :beg :tc c
@@ -450,7 +450,7 @@
             \u25b6)
           (elem :s (>sm 300) :b bd :bc grey :d :pile
             (path :s (r 1 1) :b size :k 4 :kc c :av :mid
-              :src (cell= (interleave xs (mapv (function [bx ex] [(- by) (- ey)]) xs))))
+              :src (cell= (interleave xs (mapv (partial interpolator bx ex (- by) (- ey)) xs))))
             (elem :s (r 1 1) :pl (cell= (- bx bd 2)) :ah :beg
               (elem :sv (r 1 1) :sh 2 :c grey))
             (elem :s (r 1 1) :pl (cell= (- ex bd 2)) :ah :beg
@@ -460,14 +460,14 @@
             (elem :s (r 1 1) :pb (cell= (- by bd 2)) :av :end
               (elem :sh (r 1 1) :sv 2 :c grey)))
           (elem :sh (r 1 1) :pl bx :pr (cell= (- size ex)) :pt 8
-            (elem :sh (t= px 2000 function) :sv 4 :r (/ rd 2) :c c)))))))
+            (elem :sh (t= px 2000 interpolator) :sv 4 :r (/ rd 2) :c c)))))))
 
 (defn transitions-scene []
   (let [size (cell 150)]
     (elem :sh (r 1 1) :p g :g g
-      (for [[index [label function]] (map-indexed vector (partition 2 transforms))]
+      (for [[index [label interpolator]] (map-indexed vector (partition 2 transforms))]
         (elem :sh (r 1 1)
-          (elem +label+ :sh (t= size 1000 function) :sv 60 :p g :c (hsl (* index 15) 0.6 0.5) :av :mid :m :pointer :click #(swap! size (partial + 150))
+          (elem +label+ :sh (t= size 1000 interpolator) :sv 60 :p g :c (hsl (* index 15) 0.6 0.5) :av :mid :m :pointer :click #(swap! size (partial + 150))
             label))))))
 
 (window :src route :scroll true :title "Hoplon UI" :ah :mid
