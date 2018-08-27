@@ -92,8 +92,8 @@
 ;-- attributes -----------------------------------------------------------------
 
 (def -label-  {:mh 12 :mv 6})
-(def -code-   (merge -label- {:r rd :c grey :b 1 :bc black}))
-(def -input-  {:r rd :c grey :b bd :bc black})
+(def -code-   (merge -label- {:r rd :fc grey :b 1 :bc black}))
+(def -input-  {:r rd :fc grey :b bd :bc black})
 (def -button- (merge -label- -input- {:a :mid :p :pointer}))
 (def -field-  (merge -label- -input-))
 
@@ -195,7 +195,7 @@
       :up   #(reset! pos (mouse %))
       :move #(when (down? %) (reset! pos (mouse %)))
       (dissoc attrs :src)
-      (view :e kd :r (cell= (or r* 16)) :c yellow :b 2 :bc (assoc white :a -2.6) :d sdw :m :grab))))
+      (view :e kd :r (cell= (or r* 16)) :fc yellow :b 2 :bc (assoc white :a -2.6) :d sdw :p :grab))))
 
 (defelem hslider [{:keys [src] :as attrs}]
   (slider :src (cell= (vector src 0) #(reset! src (x %))) (dissoc attrs :src)))
@@ -213,7 +213,7 @@
       :pl   (t= (cell= (if-not src 0 sw)) 400 i/quadratic-out)
       :down #(swap! src not)
       (dissoc attrs :src)
-      (view :eh sw :ev (r 1 1) :c black :a :mid :d sdw
+      (view :eh sw :ev (r 1 1) :fc black :a :mid :d sdw
         knob
         (if-tpl src "✔" "X")))))
 
@@ -228,7 +228,7 @@
       :bcr (when (= dir :l) c)
       :bct (when (= dir :b) c)
       :bcb (when (= dir :t) c)
-      (dissoc attrs :c :body :dir))))
+      (dissoc attrs :fc :body :dir))))
 
 (defelem popup-menu [{:keys [src items prompt popup] :as attrs}]
   (let [padding [:m :mh :mv :pl :pr :pt :pb]
@@ -238,14 +238,14 @@
       (view :eh (- (r 1 1) 40) (select-keys attrs padding)
         (cell= (get items key prompt)))
       (view :e 40 :a :mid :bl 3 :bc black
-        (triangle :body 15 :c black :dir :b))
-      (fore :y 46 :eh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop popup
+        (triangle :body 15 :fc black :dir :b))
+      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :b bd :bt 0 :bc black :v pop popup
         (let [over? (cell false)]
-          (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
+          (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (if over? grey white))))
         (for-tpl [[k v] (cell= (if (sequential? items) (map-indexed vector items) items))]
           (let [over?    (cell false)
                 selected? (cell= (= k key))]
-            (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) :p :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
+            (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) :p :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (cond selected? orange over? grey :else white))
               v)))))))
 
 (defelem typeahead [{:keys [src items prompt popup] :as attrs}]
@@ -257,14 +257,14 @@
     (view :p :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src popup padding)
       (line +field+ :eh (- (r 1 1) 40) :src (cell= (get items key input) #(reset! input %)) :prompt prompt (select-keys attrs padding))
       (view :e 40 :a :mid :bl 3 :bc black
-        (triangle :body 15 :c black :dir :b))
-      (fore :y 46 :eh (r 1 1) :rb rd :c :white :b bd :bt 0 :bc black :v pop popup
+        (triangle :body 15 :fc black :dir :b))
+      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :b bd :bt 0 :bc black :v pop popup
         (let [over? (cell false)]
-          (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (if over? grey white))))
+          (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (if over? grey white))))
         (for-tpl [[k v] (cell= (filter (fn [[_ v]] (starts-with? (lower-case v) (lower-case (or input "")))) (if (sequential? items) (map-indexed vector items) items)))]
           (let [over?    (cell false)
                 selected? (cell= (= k key))]
-            (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) :p :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :c (cell= (cond selected? orange over? grey :else white))
+            (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) :p :pointer :down (fn [] (reset! key @k) (reset! over? false)) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (cond selected? orange over? grey :else white))
               v)))))))
 
 (defelem scroll [{:keys [src prev next]} elems]
@@ -320,7 +320,7 @@
         (view +title+ :eh (r 1 1) :mh 10
           label)
         (for [value (range 0 360 15) :let [c (model value 0.7 l)]]
-          (view +label+ :eh (r 1 4) :ev 40 :a :mid :c c :t 12 :tc (second (triadic c))
+          (view +label+ :eh (r 1 4) :ev 40 :a :mid :fc c :t 12 :tc (second (triadic c))
             (cell= (upper-case (->hex c)))))))
     (view +title+ :eh (r 1 1)
       "Cubic Color System")
@@ -328,12 +328,12 @@
       (for [rr (range 0 0xFF 32)]
         (view :eh (r 1 4) :g 1
           (for [gg (range 0 0xFF 32) bb (range 0 0xFF 32) :let [color (rgb rr gg bb)]]
-            (view +label+ :eh (r 1 8) :ev 40 :a :mid :c color)))))
+            (view +label+ :eh (r 1 8) :ev 40 :a :mid :fc color)))))
     (view +title+ :eh (r 1 1)
       "Identical Colors Across Systems")
     (view :eh (r 1 1) :g 2
       (for [[label value] (partition 2 identical-colors)]
-        (view +label+ :eh (r 1 6) :m g :a :mid :c value
+        (view +label+ :eh (r 1 6) :m g :a :mid :fc value
             (cell= (str label "\n" (->hex value))))))))
 
 (defn forms-scene []
@@ -409,7 +409,7 @@
               (let [num (cell= (/ (count cities) 2))]
                 (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
                   (view :eh (cell= (r 1 num)) :g gu :av :beg
-                    (view :eh (r 1 1) :ev (t= (cell= (i/linear 0 100 0 size value)) 800 i/cubic-out) :g gu :c yellow :ah :mid
+                    (view :eh (r 1 1) :ev (t= (cell= (i/linear 0 100 0 size value)) 800 i/cubic-out) :g gu :fc yellow :ah :mid
                       (view +label+ :e (r 1 1) :ah :mid value)
                       (view +field+ :eh (r 1 1) :a :mid label))))))))))
    (view +title+ :eh (r 1 1)
@@ -421,16 +421,16 @@
        (view :eh (+ 400 32 g) :g g
           (view :eh 400 :ah :mid :g 40
             (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
-              (view :e 32 :r 18 :c (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 0x12 2 0 true) :p :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
-         (slider  :e 400          :r 18 :c grey :src (cell= [cs cs] #(reset! cs (x %))))
-         (vslider :eh 32  :ev 400 :r 18 :c grey :src cs)
-         (hslider :eh 400 :ev 32  :r 18 :c grey :src cs))))
+              (view :e 32 :r 18 :fc (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 0x12 2 0 true) :p :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
+         (slider  :e 400          :r 18 :fc grey :src (cell= [cs cs] #(reset! cs (x %))))
+         (vslider :eh 32  :ev 400 :r 18 :fc grey :src cs)
+         (hslider :eh 400 :ev 32  :r 18 :fc grey :src cs))))
    (view :eh (r 1 1) :ev 400)
    (view +title+ :eh (r 1 1)
      "Color Pickers")
    (view :eh (r 1 1) :g 100 :a :mid
-     (slider :e 400 :r 18  :c (apply lgr 0 (map #(hsl % 1 0.5) (range 0 360 10))))
-     (slider :e 400 :r 200 :c (apply lgr 0 (map #(hsl % 1 0.5) (range 0 360 10))) :src [50 50]))
+     (slider :e 400 :r 18  :fc (apply lgr 0 (map #(hsl % 1 0.5) (range 0 360 10))))
+     (slider :e 400 :r 200 :fc (apply lgr 0 (map #(hsl % 1 0.5) (range 0 360 10))) :src [50 50]))
    (view :eh (r 1 1) :ev 400)))
 
 (defn scales-scene []
@@ -452,26 +452,26 @@
             (path :e (r 1 1) :b size :k 4 :kc c :av :mid
               :src (cell= (interleave xs (mapv (partial interpolator bx ex (- by) (- ey)) xs))))
             (view :e (r 1 1) :pl (cell= (- bx bd 2)) :ah :beg
-              (view :ev (r 1 1) :eh 2 :c grey))
+              (view :ev (r 1 1) :eh 2 :fc grey))
             (view :e (r 1 1) :pl (cell= (- ex bd 2)) :ah :beg
-              (view :ev (r 1 1) :eh 2 :c grey))
+              (view :ev (r 1 1) :eh 2 :fc grey))
             (view :e (r 1 1) :pb (cell= (- ey bd 2)) :av :end
-              (view :eh (r 1 1) :ev 2 :c grey))
+              (view :eh (r 1 1) :ev 2 :fc grey))
             (view :e (r 1 1) :pb (cell= (- by bd 2)) :av :end
-              (view :eh (r 1 1) :ev 2 :c grey)))
+              (view :eh (r 1 1) :ev 2 :fc grey)))
           (view :eh (r 1 1) :pl bx :pr (cell= (- size ex)) :pt 8
-            (view :eh (t= px 2000 interpolator) :ev 4 :r (/ rd 2) :c c)))))))
+            (view :eh (t= px 2000 interpolator) :ev 4 :r (/ rd 2) :fc c)))))))
 
 (defn transitions-scene []
   (let [size (cell 150)]
     (view :eh (r 1 1) :m g :g g
       (for [[index [label interpolator]] (map-indexed vector (partition 2 transforms))]
         (view :eh (r 1 1)
-          (view +label+ :eh (t= size 1000 interpolator) :ev 60 :m g :c (hsl (* index 15) 0.6 0.5) :av :mid :p :pointer :click #(swap! size (partial + 150))
+          (view +label+ :eh (t= size 1000 interpolator) :ev 60 :m g :fc (hsl (* index 15) 0.6 0.5) :av :mid :p :pointer :click #(swap! size (partial + 150))
             label))))))
 
 (window :src route :scroll true :title "Hoplon UI" :ah :mid
-  (view :eh (r 1 1) :ev (b= :auto sm 80) :av :mid :m g :g g :c orange :bt 4 :bc yellow
+  (view :eh (r 1 1) :ev (b= :auto sm 80) :av :mid :m g :g g :fc orange :bt 4 :bc yellow
     (image :e 50 :p :pointer :click #(reset! state :home) :src "hoplon-logo.png")
     (view :eh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
       (for [[*state label] (partition 2 menu-items) :let [sel-bc (cell= (if (= *state state) white orange))]]
