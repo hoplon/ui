@@ -92,8 +92,8 @@
 ;-- attributes -----------------------------------------------------------------
 
 (def -label-  {:mh 12 :mv 6})
-(def -code-   (merge -label- {:r rd :fc grey :b 1 :bc black}))
-(def -input-  {:r rd :fc grey :b bd :bc black})
+(def -code-   (merge -label- {:r rd :fc grey :s 1 :sc black}))
+(def -input-  {:r rd :fc grey :s bd :sc black})
 (def -button- (merge -label- -input- {:a :mid :p :pointer}))
 (def -field-  (merge -label- -input-))
 
@@ -106,12 +106,12 @@
    :header-4         {:t 16}
    :header-5         {:t 14}
    :header-6         {:t 13}
-   :bullet-list      {:eh (r 1 1) :pl 32}
-   :number-list      {:eh (r 1 1) :pl 32}
+   :bullet-list      {:eh (r 1 1) :ml 32}
+   :number-list      {:eh (r 1 1) :ml 32}
    :bullet-list-item {:eh (r 1 1) :l :disc}
    :number-list-item {:eh (r 1 1) :l :decimal}
    :paragraph        +body+ #_{:eh (r 1 1)}
-   :code-block       {:eh (r 1 1) :b 1}
+   :code-block       {:eh (r 1 1) :s 1}
    :inline-code      (merge -code- +code+)
    :image            {:eh (r 1 1)}
    :line-break       {:eh (r 1 1)}
@@ -189,13 +189,13 @@
         pos    (cell= [(dx->rx (clamp (x src) 0 100)) (dy->ry (clamp (y src) 0 100))] #(reset! src [(clamp (@rx->dx (x %)) 0 100) (clamp (@ry->dy (y %)) 0 100)]))
         sdw    (sdw 2 2 0x12 2 0 true)]
     (view :d (sdw :inset true) :r r* :p :pointer
-      :pl   (t= (cell= (x pos)) 500 i/quadratic-out)
-      :pt   (t= (cell= (y pos)) 500 i/quadratic-out)
+      :ml   (t= (cell= (x pos)) 500 i/quadratic-out)
+      :mt   (t= (cell= (y pos)) 500 i/quadratic-out)
       :overflowv :hidden
       :up   #(reset! pos (mouse %))
       :move #(when (down? %) (reset! pos (mouse %)))
       (dissoc attrs :src)
-      (view :e kd :r (cell= (or r* 16)) :fc yellow :b 2 :bc (assoc white :a -2.6) :d sdw :p :grab))))
+      (view :e kd :r (cell= (or r* 16)) :fc yellow :s 2 :sc (assoc white :a -2.6) :d sdw :p :grab))))
 
 (defelem hslider [{:keys [src] :as attrs}]
   (slider :src (cell= (vector src 0) #(reset! src (x %))) (dissoc attrs :src)))
@@ -210,36 +210,36 @@
         sw  (cell= (/ w 2))
         sdw (sdw 2 2 0x12 2 0)]
     (view :d (assoc sdw :inset true) :r rd :p :pointer
-      :pl   (t= (cell= (if-not src 0 sw)) 400 i/quadratic-out)
+      :ml   (t= (cell= (if-not src 0 sw)) 400 i/quadratic-out)
       :down #(swap! src not)
       (dissoc attrs :src)
       (view :eh sw :ev (r 1 1) :fc black :a :mid :d sdw
         knob
         (if-tpl src "✔" "X")))))
 
-(defelem triangle [{:keys [body c dir] :as attrs}]
+(defelem triangle [{:keys [body fc dir] :as attrs}]
   (let [half (/ body 2)]
     (view :e 0
-      :bl  (case dir :l 0    :r body :t half :b half)
-      :br  (case dir :l body :r 0    :t half :b half)
-      :bt  (case dir :l half :r half :t 0    :b body)
-      :bb  (case dir :l half :r half :t body :b 0)
-      :bcl (when (= dir :r) c)
-      :bcr (when (= dir :l) c)
-      :bct (when (= dir :b) c)
-      :bcb (when (= dir :t) c)
+      :sl  (case dir :l 0    :r body :t half :b half)
+      :sr  (case dir :l body :r 0    :t half :b half)
+      :st  (case dir :l half :r half :t 0    :b body)
+      :sb  (case dir :l half :r half :t body :b 0)
+      :scl (when (= dir :r) fc)
+      :scr (when (= dir :l) fc)
+      :sct (when (= dir :b) fc)
+      :scb (when (= dir :t) fc)
       (dissoc attrs :fc :body :dir))))
 
 (defelem popup-menu [{:keys [src items prompt popup] :as attrs}]
-  (let [padding [:m :mh :mv :pl :pr :pt :pb]
+  (let [padding [:m :mh :mv :ml :mr :mt :pb]
         key (cache src)
         pop (cell false)]
     (view :p :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src popup padding)
       (view :eh (- (r 1 1) 40) (select-keys attrs padding)
         (cell= (get items key prompt)))
-      (view :e 40 :a :mid :bl 3 :bc black
+      (view :e 40 :a :mid :sl 3 :sc black
         (triangle :body 15 :fc black :dir :b))
-      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :b bd :bt 0 :bc black :v pop popup
+      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :s bd :st 0 :sc black :v pop popup
         (let [over? (cell false)]
           (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (if over? grey white))))
         (for-tpl [[k v] (cell= (if (sequential? items) (map-indexed vector items) items))]
@@ -249,16 +249,16 @@
               v)))))))
 
 (defelem typeahead [{:keys [src items prompt popup] :as attrs}]
-  (let [padding [:m :mh :mv :pl :pr :pt :pb]
+  (let [padding [:m :mh :mv :ml :mr :mt :pb]
         key   (cache src)
         input (cell nil)
         pop   (cell nil)
         pop   (cell= (or input pop) #(reset! pop %))]
     (view :p :pointer :click #(swap! pop not) :down-off #(when @pop (reset! pop false)) (apply dissoc attrs :src popup padding)
       (line +field+ :eh (- (r 1 1) 40) :src (cell= (get items key input) #(reset! input %)) :prompt prompt (select-keys attrs padding))
-      (view :e 40 :a :mid :bl 3 :bc black
+      (view :e 40 :a :mid :sl 3 :sc black
         (triangle :body 15 :fc black :dir :b))
-      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :b bd :bt 0 :bc black :v pop popup
+      (fore :y 46 :eh (r 1 1) :rb rd :fc :white :s bd :st 0 :sc black :v pop popup
         (let [over? (cell false)]
           (view +field+ :eh (r 1 1) :mh g :mv (/ g 2) prompt :p :pointer :down #(reset! key nil) :out #(reset! over? false) :over #(reset! over? true) :fc (cell= (if over? grey white))))
         (for-tpl [[k v] (cell= (filter (fn [[_ v]] (starts-with? (lower-case v) (lower-case (or input "")))) (if (sequential? items) (map-indexed vector items) items)))]
@@ -275,16 +275,16 @@
         v   (cell= (* iv (count src)))
         num (cell= (/ vv iv))
         items (cell #queue[])]
-    (view :eh (r 1 1) :b 2 :bc black :ev vv
+    (view :eh (r 1 1) :s 2 :sc black :ev vv
       (view :eh (- (r 1 1) cv) :ev (r 1 1) :d :pile :scroll true
         (view :e (r 1 1) :ev v)
         (view :e (r 1 1) :pt
           (for-tpl [[k v] src]
-            (view :eh (r 1 1) :ev iv :bv 1 :bc grey :av :mid
+            (view :eh (r 1 1) :ev iv :sv 1 :sc grey :av :mid
               v))))
       (view :eh cv :ev (r 1 1)
         (for [c chars]
-          (view :e cv :a :mid :b 1 :bc grey :p :pointer :click #(prn :clicked)
+          (view :e cv :a :mid :s 1 :sc grey :p :pointer :click #(prn :clicked)
             c))))))
 
 ;;; scenes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -365,19 +365,19 @@
 (defn media-scene []
   (view :eh (r 1 1)
     (view :eh (>sm md) :m 50 :g 50 :a :mid
-      (image :a :mid :b bd :bc black :src "http://placehold.ii/200x100"
+      (image :a :mid :s bd :sc black :src "http://placehold.ii/200x100"
         (view "content"))
-      (image :e 200 :a :mid :b bd :bc black :fit :fill :src "http://placehold.ii/200x100"
+      (image :e 200 :a :mid :s bd :sc black :fit :fill :src "http://placehold.ii/200x100"
         (view "filled"))
-      (image :e 200 :m 20 :b bd :bc black :fit :cover :src "http://placehold.ii/200x100"
+      (image :e 200 :m 20 :s bd :sc black :fit :cover :src "http://placehold.ii/200x100"
         (view "covered"))
-      (image :e 200 :a :mid :b bd :bc black :fit :contain :src "http://placehold.ii/200x100"
+      (image :e 200 :a :mid :s bd :sc black :fit :contain :src "http://placehold.ii/200x100"
         (view "contained"))
-      (video :e 200 :a :mid :b bd :bc black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :e 200 :a :mid :s bd :sc black :fit :fill :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (view "filled"))
-      (video :e 200 :a :mid :b bd :bc black :fit :cover :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :e 200 :a :mid :s bd :sc black :fit :cover :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (view "covered"))
-      (video :e 200 :a :mid :b bd :bc black :fit :contain :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      (video :e 200 :a :mid :s bd :sc black :fit :contain :autoplay :true :src "http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_1mb.mp4"
         (view "contained")))))
 
 (defn components-scene []
@@ -405,7 +405,7 @@
               (view +field+ "100" :eh (r 1 1) :a :end)
                  ;;issues with y-axis label
               (view +field+ "0" :eh (r 1 1) :a :end))
-            (view :ev size :eh (r 9 10) :g gu :av :end :b bd :bc :grey :ah :mid
+            (view :ev size :eh (r 9 10) :g gu :av :end :s bd :sc :grey :ah :mid
               (let [num (cell= (/ (count cities) 2))]
                 (for-tpl [[index [label value]] (cell= (map-indexed vector (partition 2 cities)))]
                   (view :eh (cell= (r 1 num)) :g gu :av :beg
@@ -421,7 +421,7 @@
        (view :eh (+ 400 32 g) :g g
           (view :eh 400 :ah :mid :g 40
             (for-tpl [[i [label value]] (cell= (map-indexed vector (partition 2 cities)))]
-              (view :e 32 :r 18 :fc (cell= (if (is i) yellow grey)) :b 2 :bc grey :d (sdw 2 2 0x12 2 0 true) :p :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
+              (view :e 32 :r 18 :fc (cell= (if (is i) yellow grey)) :s 2 :sc grey :d (sdw 2 2 0x12 2 0 true) :p :pointer :click #(swap! is (if (@is @i) disj conj) @i))))
          (slider  :e 400          :r 18 :fc grey :src (cell= [cs cs] #(reset! cs (x %))))
          (vslider :eh 32  :ev 400 :r 18 :fc grey :src cs)
          (hslider :eh 400 :ev 32  :r 18 :fc grey :src cs))))
@@ -444,22 +444,22 @@
       (for [[index [label interpolator]] (map-indexed vector (partition 2 transforms))
         :let [c  (hsl (* index 20) .5 .5) px (cell 0)]]
         (view :eh size
-          (view +label+ :e (r 3 4) :pl 8 :ah :beg :tc c
+          (view +label+ :e (r 3 4) :ml 8 :ah :beg :tc c
             label)
-          (view +label+ :e (r 1 4) :pr 8 :ah :end :tc c :p :pointer :click #(reset! px (- @ex @bx))
+          (view +label+ :e (r 1 4) :mr 8 :ah :end :tc c :p :pointer :click #(reset! px (- @ex @bx))
             \u25b6)
-          (view :e (>sm 300) :b bd :bc grey :d :pile
-            (path :e (r 1 1) :b size :k 4 :kc c :av :mid
+          (view :e (>sm 300) :s bd :sc grey :d :pile
+            (path :e (r 1 1) :s size :k 4 :kc c :av :mid
               :src (cell= (interleave xs (mapv (partial interpolator bx ex (- by) (- ey)) xs))))
-            (view :e (r 1 1) :pl (cell= (- bx bd 2)) :ah :beg
+            (view :e (r 1 1) :ml (cell= (- bx bd 2)) :ah :beg
               (view :ev (r 1 1) :eh 2 :fc grey))
-            (view :e (r 1 1) :pl (cell= (- ex bd 2)) :ah :beg
+            (view :e (r 1 1) :ml (cell= (- ex bd 2)) :ah :beg
               (view :ev (r 1 1) :eh 2 :fc grey))
-            (view :e (r 1 1) :pb (cell= (- ey bd 2)) :av :end
+            (view :e (r 1 1) :mb (cell= (- ey bd 2)) :av :end
               (view :eh (r 1 1) :ev 2 :fc grey))
-            (view :e (r 1 1) :pb (cell= (- by bd 2)) :av :end
+            (view :e (r 1 1) :mb (cell= (- by bd 2)) :av :end
               (view :eh (r 1 1) :ev 2 :fc grey)))
-          (view :eh (r 1 1) :pl bx :pr (cell= (- size ex)) :pt 8
+          (view :eh (r 1 1) :ml bx :mr (cell= (- size ex)) :mt 8
             (view :eh (t= px 2000 interpolator) :ev 4 :r (/ rd 2) :fc c)))))))
 
 (defn transitions-scene []
@@ -471,11 +471,11 @@
             label))))))
 
 (window :src route :scroll true :title "Hoplon UI" :ah :mid
-  (view :eh (r 1 1) :ev (b= :auto sm 80) :av :mid :m g :g g :fc orange :bt 4 :bc yellow
+  (view :eh (r 1 1) :ev (b= :auto sm 80) :av :mid :m g :g g :fc orange :st 4 :sc yellow
     (image :e 50 :p :pointer :click #(reset! state :home) :src "hoplon-logo.png")
     (view :eh (>sm (- (r 1 1) (+ 60 g))) :g g :ah :end
       (for [[*state label] (partition 2 menu-items) :let [sel-bc (cell= (if (= *state state) white orange))]]
-        (view +menu+ :eh (>sm :auto) :mh (b= g sm nil) :bl (b= 3 sm nil) :bb (b= nil sm 3) :bcl (b= sel-bc sm orange) :bcb (b= orange sm sel-bc) :p :pointer :click #(reset! state *state)
+        (view +menu+ :eh (>sm :auto) :mh (b= g sm nil) :sl (b= 3 sm nil) :sb (b= nil sm 3) :scl (b= sel-bc sm orange) :scb (b= orange sm sel-bc) :p :pointer :click #(reset! state *state)
           label))))
   (case-tpl state
     :forms       (forms-scene)
