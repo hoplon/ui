@@ -5,12 +5,12 @@
                   [adzerk/env                               "0.4.0"          :scope "test"]
                   [adzerk/boot-cljs                         "1.7.228-2"      :scope "test"]
                   [adzerk/boot-test                         "1.1.2"          :scope "test"]
-                  [adzerk/boot-reload                       "0.6.0"         :scope "test"]
+                  [adzerk/boot-reload                       "0.6.0"          :scope "test"]
                   [adzerk/bootlaces                         "0.1.13"         :scope "test"]
                   [org.seleniumhq.selenium/selenium-support "3.14.0"         :scope "test"]
                   [tailrecursion/boot-static                "0.1.0"          :scope "test"]
-                  [tailrecursion/boot-bucket                "0.2.1-SNAPSHOT" :scope "test"]
-                  [tailrecursion/boot-front                 "0.1.0-SNAPSHOT" :scope "test"]
+                  [tailrecursion/boot-bucket                "2.0.0"          :scope "test"]
+                  [tailrecursion/boot-front                 "1.1.0"          :scope "test"]
                   [jumblerg/hoplon                          "7.0.2"]
                   [cljsjs/markdown                          "0.6.0-beta1-0"]])
 
